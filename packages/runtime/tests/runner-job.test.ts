@@ -2,9 +2,10 @@
  * Tests for `runJob` — the per-job executor that wires the exec and
  * eval primitives together. Exercises happy paths, env / input
  * interpolation across workflow / job / step layers, fail-fast on
- * non-zero exits, `if:` skipping, schema-deferred features
- * (`uses:`, `if:` expression strings), abort signal cascade, and
- * the runtime event stream.
+ * non-zero exits, `if:` evaluation (boolean / string literal /
+ * `${{ }}` expression / bare body), schema-deferred features
+ * (`uses:`, expression operators), abort signal cascade, and the
+ * runtime event stream.
  *
  * POSIX-only — Windows shell behaviour is exercised by integration
  * tests run on a Windows host (deferred until CI matrix lands).
@@ -110,6 +111,65 @@ describe.skipIf(!POSIX)("runJob — fail-fast and skipping", () => {
     expect(result.steps[1]?.stdout).toContain("ran");
   });
 
+  test("if: 'true' / 'false' string literals coerce to boolean", async () => {
+    const trueJob = parseJob({
+      steps: [{ if: "true", run: "echo ran" }],
+    });
+    const trueResult = await runJob(makeRequest(trueJob));
+    expect(trueResult.steps[0]?.status).toBe("succeeded");
+    expect(trueResult.steps[0]?.stdout).toContain("ran");
+
+    const falseJob = parseJob({
+      steps: [{ if: "false", run: "echo skipped" }],
+    });
+    const falseResult = await runJob(makeRequest(falseJob));
+    expect(falseResult.steps[0]?.status).toBe("skipped");
+  });
+
+  test("if: ${{ inputs.flag }} truthy value runs the step", async () => {
+    const job = parseJob({
+      steps: [{ if: "${{ inputs.flag }}", run: "echo ran" }],
+    });
+    const result = await runJob(makeRequest(job, { inputs: { flag: "true" } }));
+    expect(result.steps[0]?.status).toBe("succeeded");
+    expect(result.steps[0]?.stdout).toContain("ran");
+  });
+
+  test("if: ${{ inputs.flag }} 'false' value skips the step", async () => {
+    const job = parseJob({
+      steps: [{ if: "${{ inputs.flag }}", run: "echo skipped" }],
+    });
+    const result = await runJob(makeRequest(job, { inputs: { flag: "false" } }));
+    expect(result.steps[0]?.status).toBe("skipped");
+  });
+
+  test("if: ${{ env.X }} empty string skips (truthy rule: '' => false)", async () => {
+    const job = parseJob({
+      env: { GATE: "" },
+      steps: [{ if: "${{ env.GATE }}", run: "echo skipped" }],
+    });
+    const result = await runJob(makeRequest(job));
+    expect(result.steps[0]?.status).toBe("skipped");
+  });
+
+  test("if: ${{ env.X }} '0' string skips (truthy rule: '0' => false)", async () => {
+    const job = parseJob({
+      env: { GATE: "0" },
+      steps: [{ if: "${{ env.GATE }}", run: "echo skipped" }],
+    });
+    const result = await runJob(makeRequest(job));
+    expect(result.steps[0]?.status).toBe("skipped");
+  });
+
+  test("if: bare body (no ${{ }} wrap) is auto-wrapped and evaluated", async () => {
+    const job = parseJob({
+      steps: [{ if: "inputs.flag", run: "echo ran" }],
+    });
+    const result = await runJob(makeRequest(job, { inputs: { flag: "yes" } }));
+    expect(result.steps[0]?.status).toBe("succeeded");
+    expect(result.steps[0]?.stdout).toContain("ran");
+  });
+
   test("pre-aborted signal cascades into all step results", async () => {
     const ac = new AbortController();
     ac.abort();
@@ -128,18 +188,18 @@ describe.skipIf(!POSIX)("runJob — deferred features", () => {
     await expect(runJob(makeRequest(job))).rejects.toBeInstanceOf(RuntimeUnsupportedError);
   });
 
-  test("if: expression-string raises RuntimeUnsupportedError", async () => {
-    const job = parseJob({
-      steps: [{ if: "${{ inputs.x }}", run: "echo x" }],
-    });
-    await expect(runJob(makeRequest(job, { inputs: { x: "true" } }))).rejects.toBeInstanceOf(
-      RuntimeUnsupportedError,
-    );
-  });
-
   test("job-level uses raises RuntimeUnsupportedError", async () => {
     const job = parseJob({ uses: "ns/workflow@1.0.0" });
     await expect(runJob(makeRequest(job))).rejects.toBeInstanceOf(RuntimeUnsupportedError);
+  });
+
+  test("if: expression with operators raises ExpressionEvalError", async () => {
+    const job = parseJob({
+      steps: [{ if: "${{ inputs.x == 'y' }}", run: "echo x" }],
+    });
+    await expect(runJob(makeRequest(job, { inputs: { x: "y" } }))).rejects.toBeInstanceOf(
+      ExpressionEvalError,
+    );
   });
 
   test("job.outputs referencing steps.* raises ExpressionEvalError", async () => {

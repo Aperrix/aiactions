@@ -5,10 +5,14 @@
  * (`evaluateExpression`) into the per-step lifecycle, and emits
  * runtime events to the optional `emit` callback.
  *
- * Scope (MS1.0):
+ * Scope (MS1.0 + MS1.0.5):
  * - `run:` steps only — `uses:` raises `RuntimeUnsupportedError`.
- * - `if:` accepts boolean literals only — string expressions raise
- *   `RuntimeUnsupportedError`.
+ * - `if:` accepts boolean literals, the `"true"` / `"false"` string
+ *   literals, and `${{ }}` expressions whose body matches the
+ *   `<context>.<key>` grammar (`env.X`, `inputs.X`). Bare bodies
+ *   (`if: env.X`) are auto-wrapped before evaluation. Operators,
+ *   function calls and other expression features still raise
+ *   `ExpressionEvalError`.
  * - Job-level `outputs:` are evaluated against the (workflow ⊕ job)
  *   env context. Anything referencing `steps.<id>.outputs.<name>` or
  *   another unsupported context surfaces an `ExpressionEvalError`.
@@ -68,17 +72,42 @@ const interpolateEnvLayer = (
 };
 
 /**
- * Resolve a step's `if:` value to a run/skip decision. MS1.0 only
- * supports boolean literals; expression strings throw because the
- * minimal evaluator cannot make a truthy/falsy decision without the
- * full GHA context (function calls, comparators, etc.).
+ * Map an evaluated expression string to a run/skip decision. The rule
+ * is intentionally narrow so the runtime stays predictable while the
+ * full GHA truthiness algebra is still out of scope:
+ * - empty string, `"false"`, `"0"` => `false` (skip)
+ * - everything else => `true` (run)
  */
-const evaluateIf = (cond: boolean | string | undefined): boolean => {
+const ifTruthiness = (value: string): boolean => {
+  const trimmed = value.trim();
+  return trimmed !== "" && trimmed !== "false" && trimmed !== "0";
+};
+
+/**
+ * Resolve a step's `if:` value to a run/skip decision. Accepts:
+ * - `undefined` => run (no condition)
+ * - boolean literal => honored directly
+ * - the string literals `"true"` / `"false"` (matched after trimming)
+ *   => coerced to the corresponding boolean
+ * - any other string => evaluated via `evaluateExpression` and then
+ *   passed through `ifTruthiness`. Bare bodies (no `${{ }}` wrap) are
+ *   auto-wrapped first; this matches GHA's interpretation of `if:`
+ *   values as expressions whether or not the author wrote `${{ }}`.
+ *
+ * Operators, function calls and other expression features still
+ * defer to the underlying evaluator — anything outside the
+ * `<context>.<key>` body grammar surfaces an `ExpressionEvalError`,
+ * which is the desired explicit-failure behaviour for MS1.0.5.
+ */
+const evaluateIf = (cond: boolean | string | undefined, ctx: EvalContext): boolean => {
   if (cond === undefined || cond === true) return true;
   if (cond === false) return false;
-  throw new RuntimeUnsupportedError(
-    `step 'if:' expression evaluation is not yet supported in MS1.0 (got: ${JSON.stringify(cond)})`,
-  );
+  const trimmed = cond.trim();
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
+  const expressionString = trimmed.includes("${{") ? trimmed : `\${{ ${trimmed} }}`;
+  const result = evaluateExpression(expressionString, ctx);
+  return ifTruthiness(result);
 };
 
 /**
@@ -176,7 +205,7 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
       );
     }
 
-    if (!evaluateIf(step.if)) {
+    if (!evaluateIf(step.if, { env: workflowJobEnv, inputs })) {
       const result = skippedStepResult(step, i, stepStartedAt);
       stepResults.push(result);
       emit?.({
