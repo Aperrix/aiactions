@@ -32,10 +32,12 @@ import { resolve as resolvePath } from "node:path";
 import type { Job, Step } from "@aiactions/workflows";
 
 import { evaluateExpression } from "../eval/expression.ts";
-import type { EvalContext } from "../eval/expression.ts";
+import type { EvalContext, StepOutputContext } from "../eval/expression.ts";
 import { writeScript } from "../exec/script-file.ts";
 import { getShellInvocation } from "../exec/shell-spec.ts";
 import { spawnShell } from "../exec/spawn.ts";
+import { resolveUsesRef } from "./uses/resolver.ts";
+import { executeUsesStep } from "./uses/exec.ts";
 import { RuntimeUnsupportedError } from "../types/errors.ts";
 import type { RuntimeEvent } from "../types/events.ts";
 import type { JobResult, RunStatus, StepResult } from "../types/run.ts";
@@ -58,6 +60,13 @@ export interface JobRunRequest {
   readonly signal?: AbortSignal;
   /** Optional event sink, called synchronously per emitted event. */
   readonly emit?: (event: RuntimeEvent) => void;
+  /** Absolute path to the workflow file. Used by the `uses:` resolver
+   * to anchor `local` refs. Required when any step uses `local` refs;
+   * unused otherwise. */
+  readonly workflowFile?: string;
+  /** Absolute path to the registry root used by the `uses:` resolver
+   * to anchor `registry` refs as `<registryRoot>/<ns>/<name>/`. */
+  readonly registryRoot?: string;
 }
 
 const interpolateEnvLayer = (
@@ -174,6 +183,7 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
   const stepResults: StepResult[] = [];
   let jobStatus: RunStatus = "succeeded";
   let aborted = false;
+  const stepOutputsByStepId: Record<string, StepOutputContext> = {};
 
   for (let i = 0; i < request.job.steps.length; i++) {
     const step = request.job.steps[i];
@@ -195,7 +205,98 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
     }
 
     if (step.uses !== undefined) {
-      throw new RuntimeUnsupportedError(`step.uses: is not yet implemented (MS1.1) — step #${i}`);
+      const stepEnvRaw = step.env ?? {};
+      const stepEnvCtx: EvalContext = {
+        env: workflowJobEnv,
+        inputs,
+        steps: stepOutputsByStepId,
+      };
+      const stepEnv = interpolateEnvLayer(stepEnvRaw, stepEnvCtx);
+      const fullEnv: Record<string, string> = { ...workflowJobEnv, ...stepEnv };
+      const fullCtx: EvalContext = { env: fullEnv, inputs, steps: stepOutputsByStepId };
+
+      if (!evaluateIf(step.if, fullCtx)) {
+        const result = skippedStepResult(step, i, stepStartedAt);
+        stepResults.push(result);
+        emit?.({
+          kind: "step-skipped",
+          at: stepStartedAt,
+          jobId: request.jobId,
+          stepIndex: i,
+          stepId: step.id,
+          reason: "if: false",
+        });
+        continue;
+      }
+
+      const interpolatedInputs: Record<string, string> = {};
+      if (step.with !== undefined) {
+        for (const [key, raw] of Object.entries(step.with)) {
+          interpolatedInputs[key] = evaluateExpression(raw, fullCtx);
+        }
+      }
+
+      const resolved = await resolveUsesRef(step.uses, {
+        workflowFile: request.workflowFile,
+        registryRoot: request.registryRoot,
+      });
+
+      const timeoutMs =
+        step.timeoutMinutes !== undefined ? step.timeoutMinutes * 60_000 : undefined;
+
+      emit?.({
+        kind: "step-started",
+        at: stepStartedAt,
+        jobId: request.jobId,
+        stepIndex: i,
+        stepId: step.id,
+      });
+
+      const usesResult = await executeUsesStep({
+        resolved,
+        inputs: interpolatedInputs,
+        env: buildSpawnEnv([fullEnv]),
+        signal: request.signal,
+        ...(timeoutMs !== undefined && { timeoutMs }),
+        emit,
+        jobId: request.jobId,
+        stepIndex: i,
+        stepId: step.id,
+      });
+
+      const stepFinishedAt = Date.now();
+      const stepStatus: RunStatus = usesResult.status;
+      stepResults.push({
+        id: step.id,
+        index: i,
+        status: stepStatus,
+        exitCode: usesResult.exitCode,
+        stdout: usesResult.stdout,
+        stderr: usesResult.stderr,
+        startedAt: stepStartedAt,
+        finishedAt: stepFinishedAt,
+      });
+
+      if (step.id !== undefined) {
+        stepOutputsByStepId[step.id] = { outputs: usesResult.outputs };
+      }
+
+      emit?.({
+        kind: "step-finished",
+        at: stepFinishedAt,
+        jobId: request.jobId,
+        stepIndex: i,
+        stepId: step.id,
+        status: stepStatus,
+        exitCode: usesResult.exitCode,
+      });
+
+      if (stepStatus === "failed") {
+        jobStatus = "failed";
+        aborted = true;
+      }
+
+      continue;
     }
 
     if (step.run === undefined) {
@@ -205,7 +306,7 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
       );
     }
 
-    if (!evaluateIf(step.if, { env: workflowJobEnv, inputs })) {
+    if (!evaluateIf(step.if, { env: workflowJobEnv, inputs, steps: stepOutputsByStepId })) {
       const result = skippedStepResult(step, i, stepStartedAt);
       stepResults.push(result);
       emit?.({
@@ -220,10 +321,10 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
     }
 
     const stepEnvRaw = step.env ?? {};
-    const stepEnvCtx: EvalContext = { env: workflowJobEnv, inputs };
+    const stepEnvCtx: EvalContext = { env: workflowJobEnv, inputs, steps: stepOutputsByStepId };
     const stepEnv = interpolateEnvLayer(stepEnvRaw, stepEnvCtx);
     const fullEnv: Record<string, string> = { ...workflowJobEnv, ...stepEnv };
-    const fullCtx: EvalContext = { env: fullEnv, inputs };
+    const fullCtx: EvalContext = { env: fullEnv, inputs, steps: stepOutputsByStepId };
 
     const stepWorkingDir =
       step.workingDirectory !== undefined
@@ -325,7 +426,7 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
   // `steps.*.outputs.*` will surface as an `ExpressionEvalError`.
   const jobOutputs: Record<string, string> = {};
   if (request.job.outputs !== undefined && jobStatus === "succeeded") {
-    const outputCtx: EvalContext = { env: workflowJobEnv, inputs };
+    const outputCtx: EvalContext = { env: workflowJobEnv, inputs, steps: stepOutputsByStepId };
     for (const [key, raw] of Object.entries(request.job.outputs)) {
       jobOutputs[key] = evaluateExpression(raw, outputCtx);
     }

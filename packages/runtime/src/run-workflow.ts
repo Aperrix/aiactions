@@ -155,6 +155,8 @@ export async function runWorkflow(workflow: Workflow, options: RunOptions): Prom
       inputs,
       signal: options.signal,
       emit: onEvent,
+      workflowFile: options.workflowFile,
+      registryRoot: options.registryRoot ?? `${options.cwd.replace(/[\\/]+$/, "")}/actions`,
     });
     jobs[jobId] = jobResult;
     if (jobResult.status === "failed") {

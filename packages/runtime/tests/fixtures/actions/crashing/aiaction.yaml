@@ -1,0 +1,6 @@
+schemaVersion: 1
+name: crashing
+description: Always throws. Test fixture for failure paths.
+runs:
+  using: bun-module
+  main: ./index.mjs

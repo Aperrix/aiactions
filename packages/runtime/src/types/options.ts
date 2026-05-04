@@ -3,6 +3,10 @@
  * (single machine, single process) and the caller owns the contextual
  * inputs: working directory, declared workflow inputs, ambient env, the
  * event sink, and the cancellation signal.
+ *
+ * MS1.1 adds two `uses:`-related fields: `workflowFile` (parent dir
+ * used to resolve `local` refs) and `registryRoot` (root of the
+ * `<ns>/<name>/` layout used to resolve `registry` refs).
  */
 
 import type { RuntimeEvent } from "./events.ts";
@@ -32,4 +36,13 @@ export interface RunOptions {
    * steps via `subprocess.kill()` and short-circuits remaining ones with
    * `status: 'skipped'`. */
   readonly signal?: AbortSignal;
+  /** Absolute path to the workflow file currently being executed. Used
+   * to resolve `local` `uses:` refs (`./...`, `../...`, `file:///...`)
+   * relative to the file's parent directory. Required when the workflow
+   * contains any `local` `uses:` step; ignored otherwise. */
+  readonly workflowFile?: string;
+  /** Absolute path to the directory under which `registry` refs are
+   * resolved as `<registryRoot>/<ns>/<name>/`. Defaults to
+   * `<options.cwd>/actions` when omitted. */
+  readonly registryRoot?: string;
 }

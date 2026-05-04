@@ -1,24 +1,20 @@
 /**
- * Minimal `${{ }}` expression evaluator for MS1.0. Resolves a string
- * that may contain interspersed literals and `${{ <body> }}` segments
- * into a fully substituted string.
+ * Minimal `${{ }}` expression evaluator. Resolves a string that may
+ * contain interspersed literals and `${{ <body> }}` segments into a
+ * fully substituted string.
  *
- * Scope intentionally narrow:
- * - Body grammar = `<context>.<key>` exactly. Two contexts are
- *   supported: `env` and `inputs`. Every other context (`steps`,
- *   `github`, `matrix`, `secrets`, ...) is rejected with
- *   `ExpressionEvalError`. The runtime cannot make those contexts
- *   available in MS1.0 because the runner does not yet capture step
- *   outputs (MS1.x), nor model the GHA event payload (out of scope
- *   for a local runtime).
- * - No operators, no function calls, no quoted literals, no nested
- *   access (`env.A.B`). All of those raise `ExpressionEvalError` so
- *   the failure surface stays predictable instead of silently
- *   resolving to `undefined`.
+ * Body grammar (MS1.1):
+ * - `<context>.<key>` — `env`, `inputs`. The named key must be
+ *   defined in the corresponding context map.
+ * - `steps.<step-id>.outputs.<output-key>` — looks up the output of a
+ *   previously-completed step in the same job. Unknown step id =
+ *   ExpressionEvalError; known step but missing output = empty string
+ *   (GHA-faithful, the GHA semantics are intentional for outputs:
+ *   missing values often signal a step that conditionally emitted).
  *
- * The wrapping `${{ }}` parsing is delegated to
- * `tokenizeExpression` from `@aiactions/workflows` — that module
- * already understands escapes, nesting and unterminated bodies.
+ * Other forms (operators, function calls, quoted literals, nested
+ * access) raise ExpressionEvalError so the failure surface stays
+ * predictable instead of silently resolving to undefined.
  *
  * Contents:
  * - `EvalContext` — the resolution data the caller hands in.
@@ -29,6 +25,12 @@ import { ExpressionTokenKind, tokenizeExpression } from "@aiactions/workflows";
 
 import { ExpressionEvalError } from "../types/errors.ts";
 
+/** Per-step outputs accumulated by the runner. The evaluator only
+ * needs the read shape; the runner owns the write shape. */
+export interface StepOutputContext {
+  readonly outputs: Readonly<Record<string, string>>;
+}
+
 /** Resolution context handed to `evaluateExpression`. */
 export interface EvalContext {
   /** Effective environment for the current step (already merged by the
@@ -36,30 +38,23 @@ export interface EvalContext {
   readonly env: Readonly<Record<string, string>>;
   /** Workflow inputs, already coerced to string form. */
   readonly inputs: Readonly<Record<string, string>>;
+  /** Per-step outputs, keyed by `step.id`. Steps without an `id` and
+   * steps that have not run yet are absent from the map. */
+  readonly steps?: Readonly<Record<string, StepOutputContext>>;
 }
 
-/** Body grammar accepted by MS1.0: `<context>.<key>`, no nesting. */
-const BODY_RE = /^([a-z]+)\.([A-Za-z_][A-Za-z0-9_]*)$/;
-
-const supportedContexts = new Set(["env", "inputs"]);
+const TWO_PART_RE = /^([a-z]+)\.([A-Za-z_][A-Za-z0-9_-]*)$/;
+const STEPS_RE = /^steps\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.([A-Za-z_][A-Za-z0-9_-]*)$/;
 
 const formatBodyError = (body: string): string =>
-  `invalid expression body '${body}': MS1.0 only supports '<context>.<key>' (e.g. \${{ env.X }}, \${{ inputs.Y }})`;
+  `invalid expression body '${body}': supported forms are '<context>.<key>' (env, inputs) and 'steps.<id>.outputs.<key>'`;
 
 /**
  * Evaluate a string that may contain `${{ ... }}` segments.
  *
- * @param input - Raw expression-string value. May be a pure literal
- *   (returned verbatim), a single `${{ <body> }}`, or a mix.
- * @param context - Resolution data: effective `env` and `inputs`
- *   maps.
- * @returns The string with every `${{ }}` segment replaced by the
- *   resolved value of its body. Literal segments are preserved
- *   verbatim.
- * @throws {ExpressionEvalError} when (a) the body's grammar does not
- *   match `<context>.<key>`, (b) the context is not one of `env` /
- *   `inputs`, or (c) the requested key does not exist in the
- *   provided context map.
+ * @throws {ExpressionEvalError} when the body's grammar does not
+ *   match a supported form, the context is unknown, or a referenced
+ *   step id is not declared in the workflow.
  */
 export function evaluateExpression(input: string, context: EvalContext): string {
   const tokens = tokenizeExpression(input);
@@ -74,28 +69,29 @@ export function evaluateExpression(input: string, context: EvalContext): string 
   return out;
 }
 
-/**
- * Resolve a single `${{ <body> }}` body. Validates the grammar,
- * narrows on the context name and reads the key. Errors are mapped
- * to `ExpressionEvalError` with messages naming the offending
- * fragment so the user can locate it in their YAML.
- */
 const resolveBody = (body: string, context: EvalContext): string => {
-  const match = BODY_RE.exec(body);
-  if (!match) {
+  const stepsMatch = STEPS_RE.exec(body);
+  if (stepsMatch) {
+    const [, stepId, outputKey] = stepsMatch;
+    if (stepId === undefined || outputKey === undefined) {
+      throw new ExpressionEvalError(formatBodyError(body));
+    }
+    const stepCtx = context.steps?.[stepId];
+    if (stepCtx === undefined) {
+      throw new ExpressionEvalError(`unknown step id 'steps.${stepId}'`);
+    }
+    return stepCtx.outputs[outputKey] ?? "";
+  }
+
+  const twoPartMatch = TWO_PART_RE.exec(body);
+  if (!twoPartMatch) {
     throw new ExpressionEvalError(formatBodyError(body));
   }
-  const [, ctxName, key] = match;
-  // The regex guarantees both groups are present; assert for the type
-  // narrower without adding a runtime branch.
+  const [, ctxName, key] = twoPartMatch;
   if (ctxName === undefined || key === undefined) {
     throw new ExpressionEvalError(formatBodyError(body));
   }
-  if (!supportedContexts.has(ctxName)) {
-    throw new ExpressionEvalError(
-      `context '${ctxName}' is not supported in MS1.0 (available: env, inputs)`,
-    );
-  }
+
   if (ctxName === "env") {
     const value = context.env[key];
     if (value === undefined) {
@@ -103,10 +99,14 @@ const resolveBody = (body: string, context: EvalContext): string => {
     }
     return value;
   }
-  // ctxName === "inputs"
-  const value = context.inputs[key];
-  if (value === undefined) {
-    throw new ExpressionEvalError(`inputs.${key} is not defined`);
+  if (ctxName === "inputs") {
+    const value = context.inputs[key];
+    if (value === undefined) {
+      throw new ExpressionEvalError(`inputs.${key} is not defined`);
+    }
+    return value;
   }
-  return value;
+  throw new ExpressionEvalError(
+    `context '${ctxName}' is not supported (available: env, inputs, steps)`,
+  );
 };

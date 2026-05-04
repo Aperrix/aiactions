@@ -22,8 +22,8 @@
 /** Abstract base for every runtime-side error. */
 export abstract class RuntimeError extends Error {
   override readonly name: string;
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = new.target.name;
   }
 }
@@ -39,3 +39,26 @@ export class StepFailedError extends RuntimeError {}
 /** Raised when the minimal MS1.0 expression evaluator cannot resolve an
  * `${{ }}` body (unknown context, undefined variable, unsupported operator). */
 export class ExpressionEvalError extends RuntimeError {}
+
+/**
+ * Raised when a `uses:` ref cannot be resolved to an on-disk action
+ * directory (registry namespace+name not found, local path absent, etc.).
+ * The message must name the offending ref.
+ */
+export class ActionResolutionError extends RuntimeError {}
+
+/**
+ * Raised when an action's `aiaction.yaml` is missing, unreadable, malformed,
+ * or fails schema validation. Wraps the underlying `WorkflowParseError` /
+ * `WorkflowSchemaError` via `cause` when available.
+ */
+export class ActionManifestError extends RuntimeError {}
+
+/**
+ * Raised when the FD3 output protocol receives a frame that is invalid
+ * JSON, exceeds the 1 MiB line cap, or carries an unknown `type`. The
+ * runtime logs the offending line, drops it, and continues — but the
+ * error is still constructed so the run can surface it via a warning
+ * event when one becomes available.
+ */
+export class ActionProtocolError extends RuntimeError {}

@@ -183,11 +183,6 @@ describe.skipIf(!POSIX)("runJob — fail-fast and skipping", () => {
 });
 
 describe.skipIf(!POSIX)("runJob — deferred features", () => {
-  test("step.uses raises RuntimeUnsupportedError", async () => {
-    const job = parseJob({ steps: [{ uses: "ns/action@1.0.0" }] });
-    await expect(runJob(makeRequest(job))).rejects.toBeInstanceOf(RuntimeUnsupportedError);
-  });
-
   test("job-level uses raises RuntimeUnsupportedError", async () => {
     const job = parseJob({ uses: "ns/workflow@1.0.0" });
     await expect(runJob(makeRequest(job))).rejects.toBeInstanceOf(RuntimeUnsupportedError);
