@@ -40,10 +40,10 @@ const runStep = async (
   } = {},
 ) => {
   const runId = randomUUID();
-  const inv = getShellInvocation(undefined, "<placeholder>", process.platform);
+  const inv = getShellInvocation(undefined, "<placeholder>", process.platform, true);
   const handle = await writeScript(body, runId, 0, inv.extension, process.platform);
   try {
-    const concrete = getShellInvocation(undefined, handle.path, process.platform);
+    const concrete = getShellInvocation(undefined, handle.path, process.platform, true);
     return await spawnShell({
       bin: concrete.bin,
       args: concrete.args,

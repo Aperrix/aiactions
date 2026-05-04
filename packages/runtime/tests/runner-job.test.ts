@@ -31,6 +31,7 @@ const makeRequest = (
   cwd: process.cwd(),
   workflowEnv: {},
   inputs: {},
+  bashAvailable: true,
   ...overrides,
 });
 

@@ -8,6 +8,9 @@
  * tests run on a Windows host (deferred until CI matrix lands).
  */
 
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
 import { describe, expect, test } from "vite-plus/test";
 
 import { workflowSchema } from "@aiactions/workflows";
@@ -16,6 +19,16 @@ import { runWorkflow } from "../src/run-workflow.ts";
 import type { RuntimeEvent } from "../src/types/events.ts";
 
 const POSIX = process.platform !== "win32";
+const pExecFile = promisify(execFile);
+
+async function pythonAvailable(): Promise<boolean> {
+  try {
+    await pExecFile("python", ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const parseWorkflow = (input: unknown) => workflowSchema.parse(input);
 
@@ -213,5 +226,54 @@ describe.skipIf(!POSIX)("runWorkflow — events and abort", () => {
     });
     expect(result.jobs.a?.status).toBe("skipped");
     expect(result.jobs.b?.status).toBe("skipped");
+  });
+});
+
+describe.skipIf(!POSIX)("runWorkflow — shell: python", () => {
+  test("runs the script and reports succeeded", async () => {
+    if (!(await pythonAvailable())) return;
+    const workflow = parseWorkflow({
+      name: "python-smoke",
+      jobs: {
+        one: {
+          steps: [
+            {
+              shell: "python",
+              run: 'import sys\nprint("hello-from-python")\nsys.exit(0)\n',
+            },
+          ],
+        },
+      },
+    });
+    const result = await runWorkflow(workflow, { cwd: process.cwd() });
+    expect(result.status).toBe("succeeded");
+    expect(result.jobs.one?.steps[0]?.stdout).toContain("hello-from-python");
+  });
+});
+
+describe.skipIf(!POSIX)("runWorkflow — custom shell template", () => {
+  test("`bash {0}` runs verbatim (no fail-fast injection)", async () => {
+    const workflow = parseWorkflow({
+      name: "custom-bash-smoke",
+      jobs: {
+        one: {
+          steps: [
+            {
+              shell: "bash {0}",
+              run: "echo before\nfalse\necho after\n",
+            },
+          ],
+        },
+      },
+    });
+    const result = await runWorkflow(workflow, { cwd: process.cwd() });
+    // With `set -e`, the `false` would have aborted the script and
+    // `echo after` would not have run. With bare bash, the script
+    // runs to the end and exits with the last command's status
+    // (echo after returns 0).
+    expect(result.status).toBe("succeeded");
+    const stdout = result.jobs.one?.steps[0]?.stdout ?? "";
+    expect(stdout).toContain("before");
+    expect(stdout).toContain("after");
   });
 });

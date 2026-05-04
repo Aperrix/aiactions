@@ -31,6 +31,7 @@ const makeRequest = (
   workflowEnv: {},
   inputs: {},
   workflowFile: FAKE_WORKFLOW,
+  bashAvailable: true,
   ...overrides,
 });
 

@@ -14,6 +14,7 @@
 
 import { z } from "zod";
 
+import { defaultsSchema } from "./defaults.ts";
 import { envSchema } from "./env.ts";
 import { expressionStringSchema } from "./expression.ts";
 import { usesRefSchema } from "./ref.ts";
@@ -43,6 +44,7 @@ const baseJobShape = z.strictObject({
   name: jobNameSchema.optional(),
   needs: jobNeedsSchema.optional(),
   if: ifSchema.optional(),
+  defaults: defaultsSchema.optional(),
   env: envSchema.optional(),
   outputs: jobOutputsSchema.optional(),
   steps: z.array(stepSchema).min(1).optional(),

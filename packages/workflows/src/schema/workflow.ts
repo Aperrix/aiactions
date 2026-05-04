@@ -22,6 +22,7 @@
 import { z } from "zod";
 
 import { ValidationIssueCode } from "../types/errors.ts";
+import { defaultsSchema } from "./defaults.ts";
 import { envNameSchema, envSchema } from "./env.ts";
 import { expressionStringSchema } from "./expression.ts";
 import { jobIdSchema, jobSchema } from "./job.ts";
@@ -75,6 +76,7 @@ const baseWorkflowShape = z.strictObject({
     .string()
     .regex(/\S/, "description must contain at least one non-whitespace character")
     .optional(),
+  defaults: defaultsSchema.optional(),
   env: envSchema.optional(),
   passthrough: passthroughSchema.optional(),
   inputs: workflowInputsSchema.optional(),

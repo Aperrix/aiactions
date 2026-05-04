@@ -31,6 +31,7 @@ import { topoSort, type DepRecord, type Workflow } from "@aiactions/workflows";
 
 import { evaluateExpression } from "./eval/expression.ts";
 import type { EvalContext } from "./eval/expression.ts";
+import { probeBashAvailability } from "./exec/shell-spec.ts";
 import { runJob } from "./runner/job.ts";
 import type { RunOptions, WorkflowInputValue } from "./types/options.ts";
 import type { JobResult, RunResult, RunStatus } from "./types/run.ts";
@@ -118,6 +119,8 @@ export async function runWorkflow(workflow: Workflow, options: RunOptions): Prom
   }));
   const order = topoSort(records);
 
+  const bashAvailable = await probeBashAvailability();
+
   const jobs: Record<string, JobResult> = {};
   let workflowStatus: RunStatus = "succeeded";
 
@@ -157,6 +160,8 @@ export async function runWorkflow(workflow: Workflow, options: RunOptions): Prom
       emit: onEvent,
       workflowFile: options.workflowFile,
       registryRoot: options.registryRoot ?? `${options.cwd.replace(/[\\/]+$/, "")}/actions`,
+      bashAvailable,
+      workflowDefaults: workflow.defaults?.run,
     });
     jobs[jobId] = jobResult;
     if (jobResult.status === "failed") {

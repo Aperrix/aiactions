@@ -29,7 +29,7 @@
 
 import { resolve as resolvePath } from "node:path";
 
-import type { Job, Step } from "@aiactions/workflows";
+import type { Job, RunDefaults, Step } from "@aiactions/workflows";
 
 import { evaluateExpression } from "../eval/expression.ts";
 import type { EvalContext, StepOutputContext } from "../eval/expression.ts";
@@ -67,6 +67,15 @@ export interface JobRunRequest {
   /** Absolute path to the registry root used by the `uses:` resolver
    * to anchor `registry` refs as `<registryRoot>/<ns>/<name>/`. */
   readonly registryRoot?: string;
+  /** Whether `bash` is reachable on PATH, probed once per workflow run.
+   * Threaded into `getShellInvocation` so the POSIX platform-default
+   * branch can fall back to `sh -e {0}` per the GHA spec. */
+  readonly bashAvailable: boolean;
+  /** Workflow-level `defaults.run` block (or `undefined` if absent).
+   * Combined with `job.defaults?.run` and `step.shell` /
+   * `step.workingDirectory` to compute the effective shell + working
+   * directory of every `run:` step. */
+  readonly workflowDefaults?: RunDefaults;
 }
 
 const interpolateEnvLayer = (
@@ -326,16 +335,26 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
     const fullEnv: Record<string, string> = { ...workflowJobEnv, ...stepEnv };
     const fullCtx: EvalContext = { env: fullEnv, inputs, steps: stepOutputsByStepId };
 
+    const rawWorkingDir =
+      step.workingDirectory ??
+      request.job.defaults?.run?.workingDirectory ??
+      request.workflowDefaults?.workingDirectory;
     const stepWorkingDir =
-      step.workingDirectory !== undefined
-        ? evaluateExpression(step.workingDirectory, fullCtx)
-        : undefined;
+      rawWorkingDir !== undefined ? evaluateExpression(rawWorkingDir, fullCtx) : undefined;
     const stepCwd =
       stepWorkingDir !== undefined ? resolvePath(request.cwd, stepWorkingDir) : request.cwd;
 
+    const effectiveShell =
+      step.shell ?? request.job.defaults?.run?.shell ?? request.workflowDefaults?.shell;
+
     const runBody = evaluateExpression(step.run, fullCtx);
 
-    const placeholder = getShellInvocation(step.shell, "<placeholder>", process.platform);
+    const placeholder = getShellInvocation(
+      effectiveShell,
+      "<placeholder>",
+      process.platform,
+      request.bashAvailable,
+    );
     const handle = await writeScript(
       runBody,
       request.runId,
@@ -343,7 +362,12 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
       placeholder.extension,
       process.platform,
     );
-    const concrete = getShellInvocation(step.shell, handle.path, process.platform);
+    const concrete = getShellInvocation(
+      effectiveShell,
+      handle.path,
+      process.platform,
+      request.bashAvailable,
+    );
     const timeoutMs = step.timeoutMinutes !== undefined ? step.timeoutMinutes * 60_000 : undefined;
 
     emit?.({
