@@ -179,3 +179,39 @@ describe("stepSchema — id regex", () => {
     expect(stepSchema.safeParse({ run: "x", id: "step!" }).success).toBe(false);
   });
 });
+
+describe("stepSchema — shell field", () => {
+  test("accepts each enumerated shell on a run step", () => {
+    for (const shell of ["bash", "sh", "pwsh", "python", "cmd"] as const) {
+      const result = stepSchema.safeParse({ run: "x", shell });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  test("rejects unknown shell values", () => {
+    expect(stepSchema.safeParse({ run: "x", shell: "zsh" }).success).toBe(false);
+    expect(stepSchema.safeParse({ run: "x", shell: "" }).success).toBe(false);
+    expect(stepSchema.safeParse({ run: "x", shell: "bash -e" }).success).toBe(false);
+  });
+
+  test("rejects shell on a uses step", () => {
+    const result = stepSchema.safeParse({
+      uses: "aiactions/lint@1",
+      shell: "bash",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some((i) => /'shell:' is only valid on 'run:'/.test(i.message)),
+      ).toBe(true);
+    }
+  });
+
+  test("absent shell field stays absent on the parsed output", () => {
+    const result = stepSchema.safeParse({ run: "x" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect("shell" in (result.data as object)).toBe(false);
+    }
+  });
+});

@@ -20,6 +20,7 @@ import { z } from "zod";
 import { envSchema } from "./env.ts";
 import { expressionStringSchema } from "./expression.ts";
 import { usesRefSchema } from "./ref.ts";
+import { shellSchema } from "./shell.ts";
 
 /** Step id: optional, kebab-case identifier when present. */
 export const stepIdSchema = z
@@ -54,6 +55,7 @@ const baseStepShape = z.strictObject({
   env: envSchema.optional(),
   "working-directory": workingDirectorySchema.optional(),
   "timeout-minutes": timeoutMinutesSchema.optional(),
+  shell: shellSchema.optional(),
   run: expressionStringSchema
     .refine((v) => /\S/.test(v), "run must contain at least one non-whitespace character")
     .optional(),
@@ -90,6 +92,14 @@ export const stepSchema = baseStepShape
         code: "custom",
         message: "'with:' is only valid on 'uses:' steps",
         path: ["with"],
+      });
+    }
+
+    if (hasUses && step.shell !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "'shell:' is only valid on 'run:' steps",
+        path: ["shell"],
       });
     }
   })

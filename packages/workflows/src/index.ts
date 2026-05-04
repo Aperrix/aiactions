@@ -1,6 +1,7 @@
 export * from "./schema/expression.ts";
 export * from "./schema/env.ts";
 export * from "./schema/ref.ts";
+export * from "./schema/shell.ts";
 export * from "./schema/step.ts";
 export * from "./schema/job.ts";
 export * from "./schema/workflow.ts";

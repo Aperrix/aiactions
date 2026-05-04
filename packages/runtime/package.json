@@ -1,5 +1,5 @@
 {
-  "name": "@aiactions/workflows",
+  "name": "@aiactions/runtime",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,6 @@
     "check": "vp check"
   },
   "dependencies": {
-    "yaml": "^2.8.4",
-    "zod": "^4.4.3"
+    "@aiactions/workflows": "workspace:*"
   }
 }

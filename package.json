@@ -9,15 +9,16 @@
   ],
   "type": "module",
   "scripts": {
-    "ready": "bun run gen:schemas && vp check && vp run -r test && vp run -r build",
-    "dev": "vp run website#dev",
+    "ready": "bun run gen:schemas && vp check && vp run -r test",
     "gen:schemas": "bun run scripts/gen-schemas.ts",
     "postinstall": "bun run gen:schemas"
   },
   "devDependencies": {
+    "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "overrides": {
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
@@ -28,6 +29,7 @@
   "catalog": {
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",
     "vitest": "npm:@voidzero-dev/vite-plus-test@latest",
-    "vite-plus": "latest"
+    "vite-plus": "latest",
+    "typescript": "npm:@typescript/native-preview@7.0.0-dev.20260328.1"
   }
 }
