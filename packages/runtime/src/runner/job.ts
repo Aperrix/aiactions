@@ -76,6 +76,12 @@ export interface JobRunRequest {
    * `step.workingDirectory` to compute the effective shell + working
    * directory of every `run:` step. */
   readonly workflowDefaults?: RunDefaults;
+  /** Optional knobs forwarded to the registry-fetch path (test
+   * injection). Production callers leave it unset. */
+  readonly registryFetch?: {
+    readonly canonicalUrl?: string;
+    readonly tmpRoot?: string;
+  };
 }
 
 const interpolateEnvLayer = (
@@ -248,6 +254,8 @@ export async function runJob(request: JobRunRequest): Promise<JobResult> {
       const resolved = await resolveUsesRef(step.uses, {
         workflowFile: request.workflowFile,
         registryRoot: request.registryRoot,
+        cwd: request.cwd,
+        ...(request.registryFetch !== undefined && { registryFetch: request.registryFetch }),
       });
 
       const timeoutMs =

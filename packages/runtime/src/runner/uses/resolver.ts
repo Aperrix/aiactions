@@ -36,6 +36,7 @@ import {
   ActionResolutionError,
   RuntimeUnsupportedError,
 } from "../../types/errors.ts";
+import { ensureCachedAction } from "./registry-fetch.ts";
 
 /** Output of `resolveUsesRef`. */
 export interface ResolvedAction {
@@ -51,8 +52,16 @@ export interface ResolverContext {
    * refs are used; `local` resolution then throws `ActionResolutionError`. */
   readonly workflowFile?: string;
   /** Absolute path to the directory under which registry refs resolve
-   * as `<registryRoot>/<ns>/<name>/`. Required for `registry` refs. */
+   * as `<registryRoot>/<ns>/<name>/<ver>/`. Required for `registry` refs. */
   readonly registryRoot?: string;
+  /** Workflow working directory. Required when the resolver may need
+   * to write the lockfile (i.e. for registry refs). */
+  readonly cwd?: string;
+  /** Test-injection knobs forwarded to `ensureCachedAction`. */
+  readonly registryFetch?: {
+    readonly canonicalUrl?: string;
+    readonly tmpRoot?: string;
+  };
 }
 
 const isDirectory = async (path: string): Promise<boolean> => {
@@ -77,37 +86,38 @@ const resolveLocalDir = (
   return resolvePath(dirname(workflowFile), ref.path);
 };
 
-const resolveRegistryDir = (
-  ref: Extract<UsesRef, { kind: "registry" }>,
-  registryRoot: string | undefined,
-): string => {
-  if (registryRoot === undefined) {
-    throw new ActionResolutionError(
-      `registry ref '${ref.raw}' requires options.registryRoot to be set`,
-    );
-  }
-  return resolvePath(registryRoot, ref.namespace, ref.name);
-};
-
 /**
  * Resolve a `UsesRef` to its on-disk directory + loaded manifest.
  *
  * @throws {ActionResolutionError} when the resolved directory does not
  *   exist, or when the caller did not supply the field needed for the
- *   ref kind (`workflowFile` for local, `registryRoot` for registry).
+ *   ref kind (`workflowFile` for local, `registryRoot` + `cwd` for
+ *   registry).
  * @throws {ActionManifestError} when `aiaction.yaml` cannot be loaded
  *   or fails schema validation.
  * @throws {RuntimeUnsupportedError} when `manifest.runs.using` is not
  *   one of the runners supported by the current milestone.
  */
 export async function resolveUsesRef(ref: UsesRef, ctx: ResolverContext): Promise<ResolvedAction> {
-  const dir =
-    ref.kind === RefKind.local
-      ? resolveLocalDir(ref, ctx.workflowFile)
-      : resolveRegistryDir(ref, ctx.registryRoot);
-
-  if (!(await isDirectory(dir))) {
-    throw new ActionResolutionError(`action directory not found for ref '${ref.raw}': ${dir}`);
+  let dir: string;
+  if (ref.kind === RefKind.local) {
+    dir = resolveLocalDir(ref, ctx.workflowFile);
+    if (!(await isDirectory(dir))) {
+      throw new ActionResolutionError(`action directory not found for ref '${ref.raw}': ${dir}`);
+    }
+  } else {
+    if (ctx.registryRoot === undefined) {
+      throw new ActionResolutionError(
+        `registry ref '${ref.raw}' requires options.registryRoot to be set`,
+      );
+    }
+    if (ctx.cwd === undefined) {
+      throw new ActionResolutionError(
+        `registry ref '${ref.raw}' requires options.cwd to be set (for the lockfile path)`,
+      );
+    }
+    const result = await ensureCachedAction(ref, ctx.registryRoot, ctx.cwd, ctx.registryFetch);
+    dir = result.dir;
   }
 
   const manifestPath = join(dir, "aiaction.yaml");
