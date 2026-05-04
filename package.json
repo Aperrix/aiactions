@@ -9,8 +9,10 @@
   ],
   "type": "module",
   "scripts": {
-    "ready": "vp check && vp run -r test && vp run -r build",
-    "dev": "vp run website#dev"
+    "ready": "bun run gen:schemas && vp check && vp run -r test && vp run -r build",
+    "dev": "vp run website#dev",
+    "gen:schemas": "bun run scripts/gen-schemas.ts",
+    "postinstall": "bun run gen:schemas"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
