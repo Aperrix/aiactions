@@ -48,7 +48,7 @@ describe("actionManifestSchema — happy paths", () => {
 });
 
 describe("actionManifestSchema — runs.using", () => {
-  test("is optional", () => {
+  test("is optional and defaults to bun-module on output", () => {
     const result = actionManifestSchema.safeParse({
       schemaVersion: 1,
       name: "lint",
@@ -56,6 +56,9 @@ describe("actionManifestSchema — runs.using", () => {
       runs: { main: "./dist/index.mjs" },
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.runs.using).toBe("bun-module");
+    }
   });
 
   test("rejects unknown using values", () => {
@@ -116,6 +119,26 @@ describe("actionManifestSchema — runs.main path", () => {
       name: "x",
       description: "x.",
       runs: { main: "dist/index.mjs" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects '..' segments hidden inside the path", () => {
+    const result = actionManifestSchema.safeParse({
+      schemaVersion: 1,
+      name: "x",
+      description: "x.",
+      runs: { main: "./..\\..\\evil.mjs" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects backslashes in the path", () => {
+    const result = actionManifestSchema.safeParse({
+      schemaVersion: 1,
+      name: "x",
+      description: "x.",
+      runs: { main: "./dist\\index.mjs" },
     });
     expect(result.success).toBe(false);
   });

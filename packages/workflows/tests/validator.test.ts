@@ -5,11 +5,9 @@
  *
  * Contents:
  * - returns empty list for a valid workflow.
- * - returns issues for cycles.
+ * - returns issues for cycles (with the specific `CYCLE_DETECTED` code).
  * - returns issues for dangling needs.
- * - returns empty list for empty-jobs case (caught only at parse-time
- *   topology pass; this test feeds an already-typed Workflow which
- *   bypasses runtime construction by-passing the empty-jobs branch).
+ * - returns empty list when the workflow has no graph problems.
  */
 
 import { describe, expect, test } from "vite-plus/test";
@@ -40,7 +38,7 @@ describe("validateWorkflow", () => {
     const issues = validateWorkflow(wf);
     expect(issues.length).toBeGreaterThan(0);
     expect(issues.some((i) => /cycle/.test(i.message))).toBe(true);
-    expect(issues.every((i) => i.code === "topology")).toBe(true);
+    expect(issues.every((i) => i.code === "CYCLE_DETECTED")).toBe(true);
   });
 
   test("returns issues for dangling needs", () => {

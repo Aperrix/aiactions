@@ -189,4 +189,56 @@ describe("workflowSchema — name field", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test("rejects whitespace-only name", () => {
+    const result = workflowSchema.safeParse({
+      name: "   ",
+      jobs: { a: { steps: [{ run: "x" }] } },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("workflowSchema — topology issue codes", () => {
+  test("empty jobs issue carries code EMPTY_JOBS", () => {
+    const result = workflowSchema.safeParse({ name: "wf", jobs: {} });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const codes = result.error.issues
+        .filter((i) => (i as { params?: IssueParams }).params?.kind === TOPOLOGY_ISSUE_KIND)
+        .map((i) => (i as { params?: { code?: unknown } }).params?.code);
+      expect(codes).toContain("EMPTY_JOBS");
+    }
+  });
+
+  test("dangling needs issue carries code DANGLING_NEED", () => {
+    const result = workflowSchema.safeParse({
+      name: "wf",
+      jobs: { a: { needs: ["ghost"], steps: [{ run: "x" }] } },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const codes = result.error.issues
+        .filter((i) => (i as { params?: IssueParams }).params?.kind === TOPOLOGY_ISSUE_KIND)
+        .map((i) => (i as { params?: { code?: unknown } }).params?.code);
+      expect(codes).toContain("DANGLING_NEED");
+    }
+  });
+
+  test("cycle issue carries code CYCLE_DETECTED", () => {
+    const result = workflowSchema.safeParse({
+      name: "wf",
+      jobs: {
+        a: { needs: ["b"], steps: [{ run: "x" }] },
+        b: { needs: ["a"], steps: [{ run: "x" }] },
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const codes = result.error.issues
+        .filter((i) => (i as { params?: IssueParams }).params?.kind === TOPOLOGY_ISSUE_KIND)
+        .map((i) => (i as { params?: { code?: unknown } }).params?.code);
+      expect(codes).toContain("CYCLE_DETECTED");
+    }
+  });
 });

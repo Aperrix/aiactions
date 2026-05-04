@@ -5,6 +5,7 @@
  *
  * Contents:
  * - `WorkflowErrorCode` const + type — enum of known error codes.
+ * - `ValidationIssueCode` const + type — enum of graph-invariant codes.
  * - `ValidationIssue` interface — per-issue payload from graph validation.
  * - `WorkflowError` base class.
  * - `WorkflowParseError` — file I/O or YAML syntax failure.
@@ -22,6 +23,19 @@ export const WorkflowErrorCode = {
 export type WorkflowErrorCode = (typeof WorkflowErrorCode)[keyof typeof WorkflowErrorCode];
 
 /**
+ * Stable, programmatic codes for graph-invariant violations carried in a
+ * `ValidationIssue.code`. Useful to `switch` on the issue without parsing
+ * the message.
+ */
+export const ValidationIssueCode = {
+  cycleDetected: "CYCLE_DETECTED",
+  danglingNeed: "DANGLING_NEED",
+  emptyJobs: "EMPTY_JOBS",
+} as const;
+
+export type ValidationIssueCode = (typeof ValidationIssueCode)[keyof typeof ValidationIssueCode];
+
+/**
  * One graph-validation problem found in a workflow document.
  *
  * @see WorkflowValidationError — collection of these.
@@ -31,8 +45,12 @@ export interface ValidationIssue {
   readonly path: readonly (string | number)[];
   /** Human-facing one-line message, English, lowercase first letter. */
   readonly message: string;
-  /** Stable invariant tag, e.g. `"CYCLE_DETECTED"`, `"DANGLING_NEED"`. */
-  readonly code: string;
+  /**
+   * Stable invariant tag from `ValidationIssueCode` (e.g. `"CYCLE_DETECTED"`,
+   * `"DANGLING_NEED"`, `"EMPTY_JOBS"`). Falls back to `"TOPOLOGY"` as a
+   * safe default if a future check forgets to set its specific code.
+   */
+  readonly code: ValidationIssueCode | "TOPOLOGY";
 }
 
 /**
@@ -54,9 +72,8 @@ export class WorkflowError extends Error {
 
 /**
  * File I/O or YAML syntax failure on a workflow / action manifest file.
- *
- * @throws Always wraps the underlying `NodeJS.ErrnoException` or
- *         `YAMLParseError` in `cause`.
+ * Always wraps the underlying `NodeJS.ErrnoException` or `YAMLParseError`
+ * via the `cause` option.
  */
 export class WorkflowParseError extends WorkflowError {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -68,9 +85,8 @@ export class WorkflowParseError extends WorkflowError {
 /**
  * Zod schema validation failure: the YAML loaded successfully but the
  * resulting value does not conform to the expected shape (missing required
- * field, type mismatch, invalid enum value, …).
- *
- * @throws Always wraps the underlying `ZodError` in `cause`.
+ * field, type mismatch, invalid enum value, …). Always wraps the
+ * underlying `ZodError` via the `cause` option.
  */
 export class WorkflowSchemaError extends WorkflowError {
   constructor(message: string, options?: { cause?: unknown }) {

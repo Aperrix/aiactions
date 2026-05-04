@@ -65,6 +65,23 @@ describe("usesRefSchema — registry form", () => {
   });
 });
 
+describe("usesRefSchema — registry form (review tightening)", () => {
+  test("rejects multiple '@' separators in the version", () => {
+    const result = usesRefSchema.safeParse("org/name@v@1");
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects '/' inside the version", () => {
+    const result = usesRefSchema.safeParse("org/name@v/with/slash");
+    expect(result.success).toBe(false);
+  });
+
+  test("rejects whitespace inside the version", () => {
+    const result = usesRefSchema.safeParse("org/name@v 1");
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("usesRefSchema — local form", () => {
   test("accepts `./relative` with path preserved verbatim", () => {
     const result = usesRefSchema.safeParse("./actions/lint");
@@ -96,6 +113,21 @@ describe("usesRefSchema — local form", () => {
 
   test("rejects bare `file://` with no path after the scheme", () => {
     expect(usesRefSchema.safeParse("file://").success).toBe(false);
+  });
+
+  test("rejects `./` and `../` with no path segment after the prefix", () => {
+    expect(usesRefSchema.safeParse("./").success).toBe(false);
+    expect(usesRefSchema.safeParse("../").success).toBe(false);
+    expect(usesRefSchema.safeParse("./.").success).toBe(false);
+  });
+
+  test("rejects `file://` with a relative path after the scheme", () => {
+    expect(usesRefSchema.safeParse("file://./relative").success).toBe(false);
+    expect(usesRefSchema.safeParse("file://relative").success).toBe(false);
+  });
+
+  test("rejects `file:///` with only the root slash", () => {
+    expect(usesRefSchema.safeParse("file:///").success).toBe(false);
   });
 });
 

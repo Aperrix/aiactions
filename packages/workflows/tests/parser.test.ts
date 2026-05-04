@@ -93,7 +93,50 @@ describe("parseWorkflow — error mapping", () => {
       if (err instanceof WorkflowValidationError) {
         expect(err.issues.length).toBeGreaterThan(0);
         expect(err.issues[0]?.message).toMatch(/cycle/);
+        expect(err.issues[0]?.code).toBe("CYCLE_DETECTED");
       }
+    }
+  });
+
+  test("WorkflowValidationError surfaces specific codes (DANGLING_NEED)", async () => {
+    try {
+      await parseWorkflow(wfFixture("invalid-dangling-needs.yaml"));
+      throw new Error("expected throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(WorkflowValidationError);
+      if (err instanceof WorkflowValidationError) {
+        expect(err.issues.every((i) => i.code === "DANGLING_NEED")).toBe(true);
+      }
+    }
+  });
+
+  test("mixed shape + topology → WorkflowSchemaError takes precedence (topology issues stay on cause)", async () => {
+    const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = await mkdtemp(join(tmpdir(), "wf-mixed-"));
+    const yamlPath = join(dir, "mixed.yaml");
+    await writeFile(
+      yamlPath,
+      `name: ""
+jobs:
+  a:
+    needs: [ghost]
+    steps:
+      - run: echo a
+`,
+      "utf-8",
+    );
+    try {
+      await parseWorkflow(yamlPath);
+      throw new Error("expected throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(WorkflowSchemaError);
+      if (err instanceof WorkflowSchemaError) {
+        expect(err.message).toMatch(/and \d+ graph issue/);
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
     }
   });
 });

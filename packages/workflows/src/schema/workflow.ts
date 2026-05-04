@@ -21,6 +21,7 @@
 
 import { z } from "zod";
 
+import { ValidationIssueCode } from "../types/errors.ts";
 import { envNameSchema, envSchema } from "./env.ts";
 import { expressionStringSchema } from "./expression.ts";
 import { jobIdSchema, jobSchema } from "./job.ts";
@@ -69,8 +70,11 @@ export type TopologyIssueKind = typeof TOPOLOGY_ISSUE_KIND;
 export const passthroughSchema = z.array(envNameSchema);
 
 const baseWorkflowShape = z.strictObject({
-  name: z.string().min(1),
-  description: z.string().min(1).optional(),
+  name: z.string().regex(/\S/, "name must contain at least one non-whitespace character"),
+  description: z
+    .string()
+    .regex(/\S/, "description must contain at least one non-whitespace character")
+    .optional(),
   env: envSchema.optional(),
   passthrough: passthroughSchema.optional(),
   inputs: workflowInputsSchema.optional(),
@@ -95,7 +99,7 @@ export const workflowSchema = baseWorkflowShape.superRefine((wf, ctx) => {
       code: "custom",
       message: "'jobs' must declare at least one job",
       path: ["jobs"],
-      params: { kind: TOPOLOGY_ISSUE_KIND },
+      params: { kind: TOPOLOGY_ISSUE_KIND, code: ValidationIssueCode.emptyJobs },
     });
     return;
   }
@@ -113,7 +117,7 @@ export const workflowSchema = baseWorkflowShape.superRefine((wf, ctx) => {
           code: "custom",
           message: `job '${d.id}' has a dangling 'needs' reference to '${missing}'`,
           path: ["jobs", d.id, "needs"],
-          params: { kind: TOPOLOGY_ISSUE_KIND },
+          params: { kind: TOPOLOGY_ISSUE_KIND, code: ValidationIssueCode.danglingNeed },
         });
       }
     }
@@ -126,7 +130,7 @@ export const workflowSchema = baseWorkflowShape.superRefine((wf, ctx) => {
       code: "custom",
       message: `cycle detected in 'needs' graph: ${cycle.join(" → ")}`,
       path: ["jobs"],
-      params: { kind: TOPOLOGY_ISSUE_KIND },
+      params: { kind: TOPOLOGY_ISSUE_KIND, code: ValidationIssueCode.cycleDetected },
     });
   }
 });

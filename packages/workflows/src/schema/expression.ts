@@ -42,6 +42,14 @@ export interface ExpressionToken {
  * single `literal` token. Adjacent expressions and adjacent literals
  * remain separate tokens (no merging).
  *
+ * Notes:
+ * - Position offsets reported in error messages are UTF-16 code units
+ *   (the same units `String.prototype.indexOf` works in). For inputs
+ *   containing surrogate pairs, the column shown to the user may differ
+ *   by 1 per surrogate pair.
+ * - A stray `}}` outside any `${{ }}` block is treated as literal text
+ *   (GHA-faithful) — it does not raise an unterminated error.
+ *
  * @param input - The raw string to tokenize.
  * @returns Sequence of tokens, in source order.
  * @throws {Error} when `${{` has no matching `}}`, when a `${{ }}` body is

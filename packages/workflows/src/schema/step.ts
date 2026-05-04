@@ -26,8 +26,10 @@ export const stepIdSchema = z
   .string()
   .regex(/^[a-z][a-z0-9-]*$/, "step id must be kebab-case (lowercase, digits, hyphens)");
 
-/** Step display name: free-form non-empty string. */
-export const stepNameSchema = z.string().min(1);
+/** Step display name: free-form, must contain at least one non-whitespace character. */
+export const stepNameSchema = z
+  .string()
+  .regex(/\S/, "name must contain at least one non-whitespace character");
 
 /**
  * `if:` condition. GHA-faithful permissive form: accepts boolean literals
@@ -52,7 +54,9 @@ const baseStepShape = z.strictObject({
   env: envSchema.optional(),
   "working-directory": workingDirectorySchema.optional(),
   "timeout-minutes": timeoutMinutesSchema.optional(),
-  run: expressionStringSchema.optional(),
+  run: expressionStringSchema
+    .refine((v) => /\S/.test(v), "run must contain at least one non-whitespace character")
+    .optional(),
   uses: usesRefSchema.optional(),
   with: withSchema.optional(),
 });
@@ -60,10 +64,9 @@ const baseStepShape = z.strictObject({
 /**
  * Top-level step schema. Validates the strict-object shape, enforces the
  * `run:` / `uses:` XOR via `superRefine`, then remaps kebab-case keys to
- * camelCase via `.transform()`.
- *
- * Output type is the union of two narrow shapes (one with `run`, one with
- * `uses`); consumers can discriminate on field presence.
+ * camelCase via `.transform()`. The output is a single object shape with
+ * `run` and `uses` both optional (post-XOR exactly one is defined);
+ * consumers narrow on field presence (`step.run !== undefined`).
  */
 export const stepSchema = baseStepShape
   .superRefine((step, ctx) => {

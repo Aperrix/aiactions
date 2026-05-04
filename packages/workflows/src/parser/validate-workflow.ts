@@ -5,8 +5,8 @@
  * (e.g. obtained through a different code path) and wants to re-verify
  * the graph shape without re-parsing YAML.
  *
- * The parser-level entry point `parseWorkflow` handles the same checks as
- * part of its `safeParse` pass and throws `WorkflowValidationError` on
+ * The parser-level entry point `parseWorkflow` handles the same checks
+ * during its `safeParse` pass and throws `WorkflowValidationError` on
  * graph violations; this function exists for callers that want a
  * non-throwing, list-style result.
  *
@@ -14,16 +14,16 @@
  * - `validateWorkflow(workflow)` — pure; returns `ValidationIssue[]`.
  */
 
-import { TOPOLOGY_ISSUE_KIND, type Workflow, workflowSchema } from "../schema/workflow.ts";
+import { type Workflow, workflowSchema } from "../schema/workflow.ts";
 import type { ValidationIssue } from "../types/errors.ts";
-
-interface IssueParams {
-  readonly kind?: unknown;
-}
+import { isTopologyIssue, topologyCodeOf } from "./topology-issue.ts";
 
 /**
  * Re-validate an already-parsed workflow's graph invariants and return
- * any issues found as a list. Empty list means the workflow is valid.
+ * any issues found as a list. Empty list means the graph is valid.
+ *
+ * Shape-level issues are intentionally filtered out: callers feeding a
+ * pre-typed `Workflow` value should already have shape guarantees.
  *
  * @param workflow - A `Workflow` value that has already passed shape
  *                    validation through `parseWorkflow` or another path.
@@ -35,15 +35,14 @@ export function validateWorkflow(workflow: Workflow): ValidationIssue[] {
 
   const issues: ValidationIssue[] = [];
   for (const i of result.error.issues) {
-    if (i.code !== "custom") continue;
-    const params = i.params as IssueParams | undefined;
-    if (params?.kind !== TOPOLOGY_ISSUE_KIND) continue;
+    if (!isTopologyIssue(i)) continue;
+    const code = topologyCodeOf(i);
     issues.push({
       path: i.path.filter(
         (p): p is string | number => typeof p === "string" || typeof p === "number",
       ),
       message: i.message,
-      code: TOPOLOGY_ISSUE_KIND,
+      code: code as ValidationIssue["code"],
     });
   }
   return issues;

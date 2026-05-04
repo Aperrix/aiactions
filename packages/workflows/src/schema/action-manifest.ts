@@ -46,12 +46,22 @@ export const actionOutputsSchema = z.record(z.string().min(1), actionOutputSchem
  * `runs:` block. `using:` is optional and currently restricted to
  * `"bun-module"`; the field is preserved as a discriminator slot so
  * future runtime kinds (Python, Docker, composite) can extend the enum
- * without a breaking schema change. `main:` must be a relative `.mjs`
- * or `.js` entry point.
+ * without a breaking schema change. When omitted, the value defaults to
+ * `"bun-module"` on output so downstream consumers always see a
+ * concrete runtime kind.
+ *
+ * `main:` must be a forward-slash, double-dot-free relative path with
+ * a `.mjs` or `.js` suffix. Backslashes and `..` segments are rejected
+ * to keep the resolver from having to clean up authoring footguns.
  */
 export const actionRunsSchema = z.strictObject({
-  using: z.literal("bun-module").optional(),
-  main: z.string().regex(/^\.\/.+\.m?js$/, "runs.main must be a relative .mjs/.js path"),
+  using: z.literal("bun-module").default("bun-module"),
+  main: z
+    .string()
+    .regex(
+      /^\.\/(?!.*\.\.)(?!.*\\)[^\\]+\.m?js$/,
+      "runs.main must be a './...'-relative .mjs/.js path with no '..' segments or backslashes",
+    ),
 });
 
 /**

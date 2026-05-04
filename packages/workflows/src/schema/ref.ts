@@ -49,8 +49,10 @@ export interface LocalRef {
 /** Parsed `uses:` ref, discriminated by `kind`. */
 export type UsesRef = RegistryRef | LocalRef;
 
-const REGISTRY_RE = /^([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)@(.+)$/;
+const REGISTRY_RE = /^([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)@([^@/\s]+)$/;
 const FILE_SCHEME = "file://";
+const RELATIVE_PREFIX_RE = /^\.\.?\//;
+const ALL_DOTS_RE = /^\.+$/;
 
 /**
  * Parse a raw `uses:` ref string into a `UsesRef`. Recognises the two
@@ -73,15 +75,25 @@ export const usesRefSchema = z
     }
 
     if (value.startsWith("./") || value.startsWith("../")) {
+      const remainder = value.replace(RELATIVE_PREFIX_RE, "");
+      if (remainder.length === 0 || ALL_DOTS_RE.test(remainder)) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "local ref must include a meaningful path segment after './' or '../' (e.g. './actions/lint')",
+        });
+        return z.NEVER;
+      }
       return { kind: RefKind.local, raw: value, path: value };
     }
 
     if (value.startsWith(FILE_SCHEME)) {
       const path = value.slice(FILE_SCHEME.length);
-      if (path.length === 0) {
+      if (path.length === 0 || !path.startsWith("/") || path === "/") {
         ctx.addIssue({
           code: "custom",
-          message: "file:// ref must include an absolute path",
+          message:
+            "file:// ref must include a non-root absolute path (e.g. 'file:///home/user/actions/foo')",
         });
         return z.NEVER;
       }

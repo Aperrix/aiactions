@@ -24,8 +24,10 @@ export const jobIdSchema = z
   .string()
   .regex(/^[a-z][a-z0-9-]*$/, "job id must be kebab-case (lowercase, digits, hyphens)");
 
-/** Job display name: free-form non-empty string. */
-export const jobNameSchema = z.string().min(1);
+/** Job display name: free-form, must contain at least one non-whitespace character. */
+export const jobNameSchema = z
+  .string()
+  .regex(/\S/, "name must contain at least one non-whitespace character");
 
 /** `needs:` array; each entry must satisfy `jobIdSchema`. Empty array allowed (means no needs). */
 export const jobNeedsSchema = z.array(jobIdSchema);

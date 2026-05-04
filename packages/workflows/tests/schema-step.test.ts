@@ -137,6 +137,34 @@ describe("stepSchema — `if:` permissive form", () => {
   });
 });
 
+describe("stepSchema — review tightening (whitespace + multi-issue)", () => {
+  test("rejects whitespace-only step name", () => {
+    expect(stepSchema.safeParse({ run: "x", name: "   " }).success).toBe(false);
+  });
+
+  test("rejects empty run", () => {
+    expect(stepSchema.safeParse({ run: "" }).success).toBe(false);
+  });
+
+  test("rejects whitespace-only run", () => {
+    expect(stepSchema.safeParse({ run: "   \n\t" }).success).toBe(false);
+  });
+
+  test("surfaces both XOR and `with:`-on-`run:` issues in the same parse", () => {
+    const result = stepSchema.safeParse({
+      run: "echo hi",
+      uses: "aiactions/lint@1",
+      with: { x: "y" },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message);
+      expect(messages.some((m) => /not both/.test(m))).toBe(true);
+      expect(messages.some((m) => /'with:' is only valid on 'uses:'/.test(m))).toBe(true);
+    }
+  });
+});
+
 describe("stepSchema — id regex", () => {
   test("accepts kebab-case ids", () => {
     expect(stepSchema.safeParse({ run: "x", id: "lint" }).success).toBe(true);
