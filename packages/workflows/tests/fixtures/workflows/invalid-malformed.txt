@@ -1,0 +1,7 @@
+name: invalid-malformed
+jobs:
+  a:
+    steps:
+      - run: |
+        echo open block but no closing indent
+   bad: indentation: drift

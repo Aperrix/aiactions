@@ -1,0 +1,24 @@
+name: multi-job-needs
+description: Two jobs with a dependency.
+env:
+  COMMON: shared
+passthrough:
+  - PATH
+  - HOME
+jobs:
+  build:
+    name: Build
+    steps:
+      - id: compile
+        run: echo build
+        working-directory: src/
+        timeout-minutes: 5
+    outputs:
+      artifact: ${{ steps.compile.outputs.artifact }}
+  test:
+    name: Test
+    needs:
+      - build
+    if: ${{ jobs.build.outputs.artifact != '' }}
+    steps:
+      - run: echo test ${{ jobs.build.outputs.artifact }}

@@ -1,0 +1,6 @@
+name: invalid-steps-uses-conflict
+jobs:
+  conflicted:
+    steps:
+      - run: echo hi
+    uses: ./reusable.yaml

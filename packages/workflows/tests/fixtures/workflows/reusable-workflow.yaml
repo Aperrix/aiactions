@@ -1,0 +1,21 @@
+name: reusable-workflow
+description: A workflow callable from another via job-level uses.
+inputs:
+  target:
+    type: string
+    required: true
+    description: deploy target
+  dryRun:
+    type: boolean
+    default: false
+outputs:
+  url:
+    description: deployed url
+    value: ${{ jobs.deploy.outputs.url }}
+jobs:
+  deploy:
+    steps:
+      - id: do
+        run: echo deploying to ${{ inputs.target }}
+    outputs:
+      url: ${{ steps.do.outputs.url }}

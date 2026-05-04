@@ -1,0 +1,5 @@
+name: minimal-run
+jobs:
+  lint:
+    steps:
+      - run: echo hi

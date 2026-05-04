@@ -1,0 +1,7 @@
+name: invalid-dangling-needs
+jobs:
+  a:
+    needs:
+      - ghost
+    steps:
+      - run: echo a
