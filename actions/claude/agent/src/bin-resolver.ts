@@ -9,7 +9,10 @@
  *
  * Contents:
  * - `resolveClaudeBinary(inputOverride, env)` — returns the path or throws.
+ * - `isUnsafePath(p)` — rejects world-writable temp prefixes.
  */
+
+import { realpathSync } from "node:fs";
 
 import { isExecutableSync, whichSync } from "./which.ts";
 
@@ -20,6 +23,20 @@ const INSTALL_HINT =
   "`path_to_claude_code_executable` or env var `AIACTIONS_CLAUDE_BIN`.";
 
 /**
+ * Returns true when `absolutePath` resolves into a world-writable temp
+ * directory (`/tmp` or `/var/tmp`). Used to reject explicit binary
+ * overrides that could be injected by a prior workflow step.
+ *
+ * The PATH-lookup branch is intentionally excluded — a `claude` binary
+ * placed on PATH is a deliberate developer choice we do not second-guess.
+ *
+ * @param absolutePath - Already-canonicalized absolute path.
+ */
+function isUnsafePath(absolutePath: string): boolean {
+  return absolutePath.startsWith("/tmp/") || absolutePath.startsWith("/var/tmp/");
+}
+
+/**
  * Resolve the `claude` binary path.
  *
  * Resolution order:
@@ -27,15 +44,17 @@ const INSTALL_HINT =
  * 2. Env override (`AIACTIONS_CLAUDE_BIN`).
  * 3. PATH lookup via `whichSync("claude", env)`.
  *
- * Explicit overrides (1 and 2) are validated against `isExecutableSync`
- * — fail-fast with a precise error identifying which source supplied
- * the path so a typo surfaces immediately rather than as a confusing
- * spawn error later.
+ * Explicit overrides (1 and 2) are validated against `isExecutableSync`,
+ * canonicalized via `realpathSync` (resolves symlinks), and then checked
+ * against `isUnsafePath` — fail-fast with a precise error identifying
+ * which source supplied the path so a typo or injection surfaces
+ * immediately rather than as a confusing spawn error later.
  *
  * @param inputOverride - Value of the `path_to_claude_code_executable` action input (may be empty string).
  * @param env - Process environment (used for `AIACTIONS_CLAUDE_BIN` and `PATH`).
  * @returns Absolute (or explicit) path to the `claude` binary.
- * @throws {Error} When the binary cannot be located, or when an explicit override path is not executable.
+ * @throws {Error} When the binary cannot be located, when an explicit override path is not executable,
+ *   or when the resolved path falls under a world-writable temp directory.
  */
 export function resolveClaudeBinary(
   inputOverride: string | undefined,
@@ -58,7 +77,18 @@ export function resolveClaudeBinary(
           `Check that the path exists and is executable. (Source: ${source})`,
       );
     }
-    return explicit;
+    const resolved = realpathSync(explicit);
+    if (isUnsafePath(resolved)) {
+      const source = fromInput
+        ? `"path_to_claude_code_executable" input`
+        : `"AIACTIONS_CLAUDE_BIN" env`;
+      throw new Error(
+        `\`claude\` binary resolves to an unsafe path '${resolved}' ` +
+          `(under a world-writable temp directory). ` +
+          `Set the input or env to a path outside /tmp and /var/tmp. (Source: ${source})`,
+      );
+    }
+    return resolved;
   }
 
   const onPath = whichSync("claude", env);
