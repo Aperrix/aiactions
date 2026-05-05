@@ -80,16 +80,28 @@ const permissionMode = z
     return candidate as PermissionMode;
   });
 
+const SETTING_SOURCES = ["project", "user"] as const;
+type SettingSource = (typeof SETTING_SOURCES)[number];
+
 const settingSources = z
   .string()
   .optional()
-  .transform((v): ("project" | "user")[] | undefined => {
+  .transform((v, ctx): SettingSource[] | undefined => {
     const raw = v && NON_EMPTY(v) ? v : "project,user";
     const parts = raw
       .split(",")
       .map((s) => s.trim())
       .filter(NON_EMPTY);
-    return parts.filter((p): p is "project" | "user" => p === "project" || p === "user");
+    const unknown = parts.filter((p): p is string => !SETTING_SOURCES.includes(p as SettingSource));
+    if (unknown.length > 0) {
+      const list = unknown.map((u) => `'${u}'`).join(", ");
+      ctx.addIssue({
+        code: "custom",
+        message: `setting_sources contains unknown values: ${list}. Allowed: ${SETTING_SOURCES.join(", ")}`,
+      });
+      return z.NEVER;
+    }
+    return parts as SettingSource[];
   });
 
 interface SystemPromptObject {
@@ -105,27 +117,39 @@ const systemPrompt = z
     if (v === undefined) return { type: "preset", preset: "claude_code" };
     if (v.length === 0) return undefined;
     if (!v.startsWith("{")) return v;
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(v) as unknown;
-      if (
-        parsed !== null &&
-        typeof parsed === "object" &&
-        "type" in parsed &&
-        (parsed as { type: unknown }).type === "preset"
-      ) {
-        return parsed as SystemPromptObject;
-      }
+      parsed = JSON.parse(v);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ctx.addIssue({ code: "custom", message: `system_prompt: invalid JSON (${msg})` });
+      return z.NEVER;
+    }
+    if (parsed === null || typeof parsed !== "object" || !("type" in parsed)) {
       ctx.addIssue({
         code: "custom",
         message:
           "system_prompt: object form must be `{ type: 'preset', preset: 'claude_code', append?: string }`",
       });
       return z.NEVER;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      ctx.addIssue({ code: "custom", message: `system_prompt: invalid JSON (${msg})` });
+    }
+    const obj = parsed as { type: unknown; preset?: unknown; append?: unknown };
+    if (obj.type !== "preset") {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "system_prompt: object form must be `{ type: 'preset', preset: 'claude_code', append?: string }`",
+      });
       return z.NEVER;
     }
+    if (obj.preset !== "claude_code") {
+      ctx.addIssue({
+        code: "custom",
+        message: `system_prompt: object form's \`preset\` must be "claude_code" (got '${String(obj.preset)}')`,
+      });
+      return z.NEVER;
+    }
+    return parsed as SystemPromptObject;
   });
 
 export const inputsSchema = z.object({

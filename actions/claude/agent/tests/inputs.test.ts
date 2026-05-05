@@ -86,4 +86,17 @@ describe("parseInputs", () => {
       >),
     ).toThrow(/prompt.*not a finite number.*permission_mode/s);
   });
+
+  test("setting_sources rejects unknown values", () => {
+    expect(() => parseInputs({ ...minimal, setting_sources: "project,registry,user,foo" })).toThrow(
+      /setting_sources.*unknown.*registry.*foo/s,
+    );
+  });
+
+  test("system_prompt object form rejects unknown preset values", () => {
+    const json = JSON.stringify({ type: "preset", preset: "typo" });
+    expect(() => parseInputs({ ...minimal, system_prompt: json })).toThrow(
+      /preset.*claude_code.*typo/s,
+    );
+  });
 });

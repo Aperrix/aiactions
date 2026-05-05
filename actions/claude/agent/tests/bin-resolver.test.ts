@@ -50,4 +50,28 @@ describe("resolveClaudeBinary", () => {
     const result = resolveClaudeBinary("", { PATH: "", AIACTIONS_CLAUDE_BIN: fake });
     expect(result).toBe(fake);
   });
+
+  test("throws when explicit input override points to a missing path", () => {
+    expect(() => resolveClaudeBinary("/definitely/not/here", { PATH: "" })).toThrow(
+      /not accessible at '\/definitely\/not\/here'/,
+    );
+  });
+
+  test("throws when AIACTIONS_CLAUDE_BIN points to a non-executable file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aiactions-bin-"));
+    const path = join(dir, "fake");
+    writeFileSync(path, ""); // not chmod'd → not executable
+    expect(() => resolveClaudeBinary(undefined, { PATH: "", AIACTIONS_CLAUDE_BIN: path })).toThrow(
+      /not accessible/,
+    );
+  });
+
+  test("error message identifies the source (input vs env) of the bad path", () => {
+    expect(() => resolveClaudeBinary("/nope/input", { PATH: "" })).toThrow(
+      /path_to_claude_code_executable/,
+    );
+    expect(() =>
+      resolveClaudeBinary(undefined, { PATH: "", AIACTIONS_CLAUDE_BIN: "/nope/env" }),
+    ).toThrow(/AIACTIONS_CLAUDE_BIN/);
+  });
 });

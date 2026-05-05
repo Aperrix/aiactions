@@ -7,6 +7,7 @@
  *
  * Contents:
  * - `whichSync(name, env)` — returns the absolute path or `null`.
+ * - `isExecutableSync(file)` — returns whether the file exists and is executable.
  */
 
 import { accessSync, constants as FS } from "node:fs";
@@ -18,7 +19,7 @@ import { delimiter, isAbsolute, join } from "node:path";
  */
 export function whichSync(name: string, env: NodeJS.ProcessEnv): string | null {
   if (isAbsolute(name)) {
-    return isExecutable(name) ? name : null;
+    return isExecutableSync(name) ? name : null;
   }
 
   const path = env.PATH ?? "";
@@ -31,13 +32,17 @@ export function whichSync(name: string, env: NodeJS.ProcessEnv): string | null {
     if (dir.length === 0) continue;
     for (const ext of pathExt) {
       const candidate = join(dir, `${name}${ext}`);
-      if (isExecutable(candidate)) return candidate;
+      if (isExecutableSync(candidate)) return candidate;
     }
   }
   return null;
 }
 
-function isExecutable(file: string): boolean {
+/**
+ * Check whether `file` exists and is executable by the current process.
+ * Sync, swallows access errors and returns `false` for any failure.
+ */
+export function isExecutableSync(file: string): boolean {
   try {
     accessSync(file, FS.X_OK);
     return true;
