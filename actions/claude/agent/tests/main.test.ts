@@ -93,6 +93,7 @@ describe("run", () => {
     expect(out("session_id")).toBe("sess-1");
     expect(out("is_error")).toBe("false");
     expect(out("stop_reason")).toBe("end_turn");
+    expect(out("aborted")).toBe("false");
     const usage = JSON.parse(out("usage")!);
     expect(usage).toEqual({
       input: 10,
@@ -191,9 +192,10 @@ describe("run", () => {
     const out = (n: string): string | undefined =>
       frames.find((f) => f.kind === "output" && f.name === n)?.value;
     expect(out("text")).toBe("partial ");
-    expect(out("stop_reason")).toBe("aborted");
+    expect(out("stop_reason")).toBe("");
     expect(out("is_error")).toBe("false");
     expect(out("session_id")).toBe("");
+    expect(out("aborted")).toBe("true");
   });
 
   test("passes the correct SDK options on a happy-path run", async () => {

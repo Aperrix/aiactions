@@ -28431,12 +28431,14 @@ async function run(ctx) {
 			ctx.emitOutput("stop_reason", result.stop_reason ?? "");
 			ctx.emitOutput("is_error", result.is_error ? "true" : "false");
 			ctx.emitOutput("usage", JSON.stringify(buildUsage(result)));
+			ctx.emitOutput("aborted", "false");
 		} else if (ctx.signal.aborted) {
 			ctx.emitOutput("text", assistantText);
 			ctx.emitOutput("session_id", "");
-			ctx.emitOutput("stop_reason", "aborted");
+			ctx.emitOutput("stop_reason", "");
 			ctx.emitOutput("is_error", "false");
 			ctx.emitOutput("usage", JSON.stringify(buildUsage({})));
+			ctx.emitOutput("aborted", "true");
 		}
 	}
 	if (!result) {

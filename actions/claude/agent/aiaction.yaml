@@ -69,3 +69,8 @@ outputs:
   usage:
     description: |
       JSON string of {input, output, total, cost_usd, num_turns, model_usage}.
+  aborted:
+    description: |
+      `"true"` when the step was cancelled before a result event arrived
+      (SIGTERM, deadline, or workflow cancel). `"false"` when the agent
+      ran to completion. Independent of `is_error`.

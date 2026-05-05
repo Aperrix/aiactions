@@ -60,13 +60,14 @@ jobs:
 
 ## Outputs
 
-| Name          | Description                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `text`        | Concatenated assistant text from all `assistant.text` blocks.                               |
-| `session_id`  | Session id; pass back via `resume_session_id` in a later step.                              |
-| `stop_reason` | SDK stop reason: `end_turn`, `max_turns`, `error`, etc.                                     |
-| `is_error`    | `"true"` or `"false"`.                                                                      |
-| `usage`       | JSON string: `{"input":…,"output":…,"total":…,"cost_usd":…,"num_turns":…,"model_usage":…}`. |
+| Name          | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `text`        | Concatenated assistant text from all `assistant.text` blocks.                                   |
+| `session_id`  | Session id; pass back via `resume_session_id` in a later step.                                  |
+| `stop_reason` | SDK stop reason: `end_turn`, `max_turns`, `error`, etc.                                         |
+| `is_error`    | `"true"` or `"false"`.                                                                          |
+| `usage`       | JSON string: `{"input":…,"output":…,"total":…,"cost_usd":…,"num_turns":…,"model_usage":…}`.     |
+| `aborted`     | `"true"` if cancelled before a result event (SIGTERM/deadline). `"false"` on normal completion. |
 
 ## Auth
 
