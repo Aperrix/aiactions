@@ -171,7 +171,7 @@ describe("run", () => {
     await expect(run(ctx)).rejects.toThrow(/without a `result` event/);
   });
 
-  test("breaks the loop on signal abort and still emits whatever it has", async () => {
+  test("emits partial outputs and resolves cleanly on signal abort", async () => {
     const { ctx, frames, controller } = makeCtx({ prompt: "p" });
     vi.mocked(query).mockImplementationOnce((() =>
       (async function* () {
@@ -187,10 +187,38 @@ describe("run", () => {
         yield baseResult;
       })()) as never);
 
-    await expect(run(ctx)).rejects.toThrow(/without a `result` event/);
-    // Outputs are NOT emitted because we never saw a `result` — the
-    // finally block guards on `result !== undefined`.
-    expect(frames.find((f) => f.kind === "output" && f.name === "text")).toBeUndefined();
+    await expect(run(ctx)).resolves.toBeUndefined();
+
+    const out = (n: string): string | undefined =>
+      frames.find((f) => f.kind === "output" && f.name === n)?.value;
+    expect(out("text")).toBe("partial ");
+    expect(out("stop_reason")).toBe("aborted");
+    expect(out("is_error")).toBe("false");
+    expect(out("session_id")).toBe("");
+    expect(out("transcript")).toBeDefined();
+  });
+
+  test("passes the correct SDK options on a happy-path run", async () => {
+    vi.mocked(query).mockReturnValueOnce(eventStream([baseResult]) as never);
+    const { ctx } = makeCtx({
+      prompt: "p",
+      model: "claude-sonnet-4-6",
+      permission_mode: "bypassPermissions",
+      allowed_tools: "Read,Grep",
+    });
+    await run(ctx);
+
+    const call = vi.mocked(query).mock.calls[0]?.[0];
+    expect(call).toBeDefined();
+    expect(call?.prompt).toBe("p");
+    // Cast to a loose record because the SDK's Options shape is not in scope here.
+    const opts = call?.options as Record<string, unknown>;
+    expect(opts.model).toBe("claude-sonnet-4-6");
+    expect(opts.permissionMode).toBe("bypassPermissions");
+    expect(opts.allowDangerouslySkipPermissions).toBe(true);
+    expect(opts.allowedTools).toEqual(["Read", "Grep"]);
+    expect(opts.executable).toBe("node");
+    expect(opts.pathToClaudeCodeExecutable).toBe("/usr/bin/true");
   });
 
   test("rejects with a friendly error when the binary cannot be resolved", async () => {

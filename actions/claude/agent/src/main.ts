@@ -12,7 +12,7 @@
  * - Local helpers (event dispatch, abort wiring) inlined.
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { type Options, query } from "@anthropic-ai/claude-agent-sdk";
 
 import { resolveClaudeBinary } from "./bin-resolver.ts";
 import { parseInputs, type ParsedInputs } from "./inputs.ts";
@@ -126,6 +126,11 @@ export async function run(ctx: ActionContext): Promise<void> {
   } finally {
     // Always emit whatever we have, even on abort/throw, so the user
     // can inspect `outputs.transcript` for diagnosis.
+    //
+    // Spec §12: SIGTERM / abort → break loop, emit partial outputs,
+    // exit 0 if no error. When the loop exited because the signal was
+    // aborted but we never saw a `result` event, synthesize the output
+    // markers so the loader emits a clean step.completed frame.
     if (result !== undefined) {
       ctx.emitOutput("text", assistantText);
       ctx.emitOutput("session_id", result.session_id ?? "");
@@ -133,10 +138,18 @@ export async function run(ctx: ActionContext): Promise<void> {
       ctx.emitOutput("is_error", result.is_error ? "true" : "false");
       ctx.emitOutput("usage", JSON.stringify(buildUsage(result)));
       ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
+    } else if (ctx.signal.aborted) {
+      ctx.emitOutput("text", assistantText);
+      ctx.emitOutput("session_id", "");
+      ctx.emitOutput("stop_reason", "aborted");
+      ctx.emitOutput("is_error", "false");
+      ctx.emitOutput("usage", JSON.stringify(buildUsage({})));
+      ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
     }
   }
 
   if (!result) {
+    if (ctx.signal.aborted) return;
     throw new Error("agent stream ended without a `result` event");
   }
   if (result.is_error) {
@@ -161,15 +174,15 @@ function buildSdkOptions(
   ctx: ActionContext,
   claudePath: string,
   controller: AbortController,
-): Record<string, unknown> {
-  const options: Record<string, unknown> = {
+): Options {
+  const options: Options = {
     cwd: inputs.cwd ?? ctx.cwd,
     permissionMode: inputs.permission_mode,
     allowDangerouslySkipPermissions: inputs.permission_mode === "bypassPermissions",
     settingSources: inputs.setting_sources,
     pathToClaudeCodeExecutable: claudePath,
     executable: "node",
-    env: ctx.env as Record<string, string>,
+    env: ctx.env,
     abortController: controller,
     stderr: (data: string) => {
       const trimmed = data.trim();
@@ -180,7 +193,12 @@ function buildSdkOptions(
   if (inputs.system_prompt !== undefined) options.systemPrompt = inputs.system_prompt;
   if (inputs.max_turns !== undefined) options.maxTurns = inputs.max_turns;
   if (inputs.allowed_tools !== undefined) options.allowedTools = inputs.allowed_tools;
-  if (inputs.mcp_servers !== undefined) options.mcpServers = inputs.mcp_servers;
+  // `mcp_servers` is parsed as `Record<string, unknown>` because the SDK's
+  // `McpServerConfig` is a discriminated union we don't statically validate
+  // at parse time — the SDK's own runtime validation owns that.
+  if (inputs.mcp_servers !== undefined) {
+    options.mcpServers = inputs.mcp_servers as Options["mcpServers"];
+  }
   if (inputs.resume_session_id !== undefined) options.resume = inputs.resume_session_id;
   if (inputs.fallback_model !== undefined) options.fallbackModel = inputs.fallback_model;
   if (inputs.max_budget_usd !== undefined) options.maxBudgetUsd = inputs.max_budget_usd;
