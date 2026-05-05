@@ -16,7 +16,6 @@ import { type Options, query } from "@anthropic-ai/claude-agent-sdk";
 
 import { resolveClaudeBinary } from "./bin-resolver.ts";
 import { parseInputs, type ParsedInputs } from "./inputs.ts";
-import { capToOneMiB } from "./transcript.ts";
 import type { ActionContext } from "./types.ts";
 import { buildUsage } from "./usage.ts";
 
@@ -83,7 +82,6 @@ export async function run(ctx: ActionContext): Promise<void> {
 
   const sdkOptions = buildSdkOptions(inputs, ctx, claudePath, controller);
 
-  const transcript: SdkEvent[] = [];
   let assistantText = "";
   let result: ResultEvent | undefined;
 
@@ -91,7 +89,6 @@ export async function run(ctx: ActionContext): Promise<void> {
     const events = query({ prompt: inputs.prompt, options: sdkOptions });
     for await (const event of events as AsyncIterable<SdkEvent>) {
       if (ctx.signal.aborted) break;
-      transcript.push(event);
 
       if (event.type === "assistant") {
         const e = event as AssistantEvent;
@@ -124,9 +121,6 @@ export async function run(ctx: ActionContext): Promise<void> {
       }
     }
   } finally {
-    // Always emit whatever we have, even on abort/throw, so the user
-    // can inspect `outputs.transcript` for diagnosis.
-    //
     // Spec §12: SIGTERM / abort → break loop, emit partial outputs,
     // exit 0 if no error. When the loop exited because the signal was
     // aborted but we never saw a `result` event, synthesize the output
@@ -137,14 +131,12 @@ export async function run(ctx: ActionContext): Promise<void> {
       ctx.emitOutput("stop_reason", result.stop_reason ?? "");
       ctx.emitOutput("is_error", result.is_error ? "true" : "false");
       ctx.emitOutput("usage", JSON.stringify(buildUsage(result)));
-      ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
     } else if (ctx.signal.aborted) {
       ctx.emitOutput("text", assistantText);
       ctx.emitOutput("session_id", "");
       ctx.emitOutput("stop_reason", "aborted");
       ctx.emitOutput("is_error", "false");
       ctx.emitOutput("usage", JSON.stringify(buildUsage({})));
-      ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
     }
   }
 

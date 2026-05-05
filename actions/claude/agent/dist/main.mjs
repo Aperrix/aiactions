@@ -28345,37 +28345,6 @@ function parseInputs(raw) {
 	throw new Error(`invalid action inputs:\n${issues}`);
 }
 //#endregion
-//#region src/transcript.ts
-/**
-* Caps a JSON-serialized transcript at <1 MiB so it fits in a single
-* FD3 protocol frame (parent-side limit defined in
-* `packages/runtime/src/runner/uses/protocol.ts:58`).
-*
-* Strategy: if the input fits, return it verbatim. Otherwise truncate
-* to MAX_BYTES minus a small marker and append `…[truncated]`. The
-* truncated string is no longer valid JSON, but downstream consumers
-* read it as an opaque string with a sentinel suffix.
-*
-* Contents:
-* - `MAX_BYTES` — cap (slightly under 1 MiB to leave room for framing).
-* - `capToOneMiB(json)` — main entry.
-*/
-/** Byte cap: 1 MiB minus 4 KiB headroom for the FD3 JSON envelope. */
-const MAX_BYTES = 1024 * 1024 - 4096;
-const MARKER = "…[truncated]";
-/**
-* Return `json` unchanged if it fits within {@link MAX_BYTES}, otherwise
-* truncate at a multi-byte-safe character boundary and append the
-* `…[truncated]` sentinel.
-*/
-function capToOneMiB(json) {
-	if (Buffer.byteLength(json, "utf8") <= 1044480) return json;
-	const target = MAX_BYTES - Buffer.byteLength(MARKER, "utf8");
-	const buf = Buffer.allocUnsafe(target);
-	const written = buf.write(json, 0, target, "utf8");
-	return `${buf.toString("utf8", 0, written)}${MARKER}`;
-}
-//#endregion
 //#region src/usage.ts
 /**
 * Flatten an SDK `result` event into a {@link UsageJson} payload.
@@ -28420,7 +28389,6 @@ function buildUsage(result) {
 async function run(ctx) {
 	const inputs = parseInputs(ctx.inputs);
 	const sdkOptions = buildSdkOptions(inputs, ctx, resolveClaudeBinary(inputs.path_to_claude_code_executable, ctx.env), signalToController(ctx.signal));
-	const transcript = [];
 	let assistantText = "";
 	let result;
 	try {
@@ -28430,7 +28398,6 @@ async function run(ctx) {
 		});
 		for await (const event of events) {
 			if (ctx.signal.aborted) break;
-			transcript.push(event);
 			if (event.type === "assistant") {
 				const e = event;
 				for (const block of e.message.content ?? []) if (block.type === "text") {
@@ -28464,14 +28431,12 @@ async function run(ctx) {
 			ctx.emitOutput("stop_reason", result.stop_reason ?? "");
 			ctx.emitOutput("is_error", result.is_error ? "true" : "false");
 			ctx.emitOutput("usage", JSON.stringify(buildUsage(result)));
-			ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
 		} else if (ctx.signal.aborted) {
 			ctx.emitOutput("text", assistantText);
 			ctx.emitOutput("session_id", "");
 			ctx.emitOutput("stop_reason", "aborted");
 			ctx.emitOutput("is_error", "false");
 			ctx.emitOutput("usage", JSON.stringify(buildUsage({})));
-			ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
 		}
 	}
 	if (!result) {

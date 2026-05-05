@@ -162,7 +162,6 @@ describe("run", () => {
     await expect(run(ctx)).rejects.toThrow(/agent reported error.*tool_error/);
 
     expect(frames.find((f) => f.kind === "output" && f.name === "is_error")?.value).toBe("true");
-    expect(frames.find((f) => f.kind === "output" && f.name === "transcript")).toBeDefined();
   });
 
   test("throws when the stream ends without a result event", async () => {
@@ -195,7 +194,6 @@ describe("run", () => {
     expect(out("stop_reason")).toBe("aborted");
     expect(out("is_error")).toBe("false");
     expect(out("session_id")).toBe("");
-    expect(out("transcript")).toBeDefined();
   });
 
   test("passes the correct SDK options on a happy-path run", async () => {

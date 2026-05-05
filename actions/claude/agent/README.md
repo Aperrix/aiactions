@@ -5,8 +5,7 @@ Run a Claude Code agent loop as a workflow step.
 `claude/agent` is the foundational [AIaction](https://github.com/aperrix/aiactions) wrapping
 [`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk).
 Given a prompt, it spawns the agent in `cwd`, runs the tool-use loop, and
-emits the final assistant text, session id, transcript, and usage as
-step outputs.
+emits the final assistant text, session id, and usage as step outputs.
 
 ## Prerequisites
 
@@ -61,14 +60,13 @@ jobs:
 
 ## Outputs
 
-| Name          | Description                                                                                                                                                          |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`        | Concatenated assistant text from all `assistant.text` blocks.                                                                                                        |
-| `session_id`  | Session id; pass back via `resume_session_id` in a later step.                                                                                                       |
-| `stop_reason` | SDK stop reason: `end_turn`, `max_turns`, `error`, etc.                                                                                                              |
-| `is_error`    | `"true"` or `"false"`.                                                                                                                                               |
-| `usage`       | JSON string: `{"input":…,"output":…,"total":…,"cost_usd":…,"num_turns":…,"model_usage":…}`.                                                                          |
-| `transcript`  | JSON array of every event chunk (assistant, tool_use, tool_result, system, rate_limit, result). Truncated to <1 MiB with a trailing `…[truncated]` marker if longer. |
+| Name          | Description                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `text`        | Concatenated assistant text from all `assistant.text` blocks.                               |
+| `session_id`  | Session id; pass back via `resume_session_id` in a later step.                              |
+| `stop_reason` | SDK stop reason: `end_turn`, `max_turns`, `error`, etc.                                     |
+| `is_error`    | `"true"` or `"false"`.                                                                      |
+| `usage`       | JSON string: `{"input":…,"output":…,"total":…,"cost_usd":…,"num_turns":…,"model_usage":…}`. |
 
 ## Auth
 

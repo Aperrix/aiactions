@@ -3,9 +3,9 @@ name: agent
 description: |
   Run a Claude Code agent loop via @anthropic-ai/claude-agent-sdk.
   Sends a prompt, executes the agent's tool-use loop in cwd, and
-  emits the final assistant text + session id + transcript + usage
-  as step outputs. Auth is delegated to the user's local `claude`
-  binary (must already be logged in: `claude login`).
+  emits the final assistant text, session id, and usage as step
+  outputs. Auth is delegated to the user's local `claude` binary
+  (must already be logged in: `claude login`).
 
 runs:
   using: node
@@ -69,8 +69,3 @@ outputs:
   usage:
     description: |
       JSON string of {input, output, total, cost_usd, num_turns, model_usage}.
-  transcript:
-    description: |
-      JSON string array of every event chunk (assistant, tool_use,
-      tool_result, system, rate_limit, result). Truncated to <1 MiB
-      with a trailing `…[truncated]` marker if longer.
