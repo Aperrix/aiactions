@@ -10,7 +10,7 @@
   ],
   "type": "module",
   "scripts": {
-    "ready": "bun run gen:schemas && vp check && vp run -r test",
+    "ready": "bun run gen:schemas && vp check && vp run -r build && vp run -r test",
     "gen:schemas": "bun run scripts/gen-schemas.ts",
     "postinstall": "bun run gen:schemas"
   },
