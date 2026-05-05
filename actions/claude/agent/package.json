@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vp test --passWithNoTests",
+    "test": "vp test",
     "check": "vp check",
     "build": "vp pack"
   },
