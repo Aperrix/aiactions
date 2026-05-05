@@ -6,14 +6,13 @@
   "scripts": {
     "test": "vp test --passWithNoTests",
     "check": "vp check",
-    "build": "tsdown"
+    "build": "vp pack"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.128",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^22.12.0",
-    "tsdown": "^0.21.0"
+    "@types/node": "^22.12.0"
   }
 }
