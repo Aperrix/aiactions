@@ -25,8 +25,7 @@ describe.skipIf(!POSIX)("makeBareRepoWithAction", () => {
       namespace: "octocat",
       name: "lint",
       tag: "v1.0.0",
-      manifest:
-        "name: lint\ndescription: lint things\nruns:\n  using: bun-module\n  main: index.mjs\n",
+      manifest: "name: lint\ndescription: lint things\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
 

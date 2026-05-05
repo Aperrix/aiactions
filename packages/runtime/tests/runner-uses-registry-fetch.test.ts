@@ -27,7 +27,7 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
     await mkdir(cachedDir, { recursive: true });
     await writeFile(
       join(cachedDir, "aiaction.yaml"),
-      "name: tool\ndescription: x\nruns:\n  using: bun-module\n  main: index.mjs\n",
+      "name: tool\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
       "utf8",
     );
 
@@ -54,7 +54,7 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
       namespace: "octocat",
       name: "lint",
       tag: "v1.0.0",
-      manifest: "name: lint\ndescription: x\nruns:\n  using: bun-module\n  main: index.mjs\n",
+      manifest: "name: lint\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
 
@@ -84,7 +84,7 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
     await mkdir(cachedDir, { recursive: true });
     await writeFile(
       join(cachedDir, "aiaction.yaml"),
-      "name: internal\ndescription: user-private\nruns:\n  using: bun-module\n  main: index.mjs\n",
+      "name: internal\ndescription: user-private\nruns:\n  using: node\n  main: index.mjs\n",
       "utf8",
     );
     await writeFile(join(cachedDir, "marker"), "user-placed\n", "utf8");

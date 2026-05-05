@@ -34,7 +34,7 @@ describe("actionManifestSchema — happy paths", () => {
       schemaVersion: 1,
       name: "claude-agent",
       description: "Run Claude as a workflow node.",
-      runs: { using: "bun-module", main: "./dist/index.mjs" },
+      runs: { using: "node", main: "./dist/index.mjs" },
       inputs: {
         prompt: { description: "the prompt", required: true },
         model: { description: "model id", default: "claude-sonnet-4-6" },
@@ -48,7 +48,7 @@ describe("actionManifestSchema — happy paths", () => {
 });
 
 describe("actionManifestSchema — runs.using", () => {
-  test("is optional and defaults to bun-module on output", () => {
+  test("is optional and defaults to node on output", () => {
     const result = actionManifestSchema.safeParse({
       schemaVersion: 1,
       name: "lint",
@@ -57,7 +57,7 @@ describe("actionManifestSchema — runs.using", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.runs.using).toBe("bun-module");
+      expect(result.data.runs.using).toBe("node");
     }
   });
 

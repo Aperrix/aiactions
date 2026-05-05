@@ -146,7 +146,7 @@ describe("parseActionManifest", () => {
     const manifest = await parseActionManifest(actionFixture("echo"));
     expect(manifest.schemaVersion).toBe(1);
     expect(manifest.name).toBe("echo");
-    expect(manifest.runs.using).toBe("bun-module");
+    expect(manifest.runs.using).toBe("node");
     expect(manifest.runs.main).toBe("./dist/index.mjs");
     expect(manifest.inputs?.message?.required).toBe(true);
     expect(manifest.outputs?.echoed?.description).toBe("the same message, echoed");

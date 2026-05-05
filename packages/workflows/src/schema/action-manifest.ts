@@ -14,7 +14,7 @@
  * Contents:
  * - `actionInputSchema` / `actionInputsSchema`.
  * - `actionOutputSchema` / `actionOutputsSchema`.
- * - `actionRunsSchema` (with optional `using: "bun-module"`).
+ * - `actionRunsSchema` (with optional `using: "node"`).
  * - `actionManifestSchema` — the document.
  * - `ActionManifest` — inferred output type.
  */
@@ -44,18 +44,18 @@ export const actionOutputsSchema = z.record(z.string().min(1), actionOutputSchem
 
 /**
  * `runs:` block. `using:` is optional and currently restricted to
- * `"bun-module"`; the field is preserved as a discriminator slot so
- * future runtime kinds (Python, Docker, composite) can extend the enum
- * without a breaking schema change. When omitted, the value defaults to
- * `"bun-module"` on output so downstream consumers always see a
- * concrete runtime kind.
+ * `"node"`; the field is preserved as a discriminator slot so future
+ * runtime kinds (Python, Docker, composite) can extend the enum without
+ * a breaking schema change. When omitted, the value defaults to
+ * `"node"` on output so downstream consumers always see a concrete
+ * runtime kind.
  *
  * `main:` must be a forward-slash, double-dot-free relative path with
  * a `.mjs` or `.js` suffix. Backslashes and `..` segments are rejected
  * to keep the resolver from having to clean up authoring footguns.
  */
 export const actionRunsSchema = z.strictObject({
-  using: z.literal("bun-module").default("bun-module"),
+  using: z.literal("node").default("node"),
   main: z
     .string()
     .regex(

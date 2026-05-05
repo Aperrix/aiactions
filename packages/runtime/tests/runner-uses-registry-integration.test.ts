@@ -30,7 +30,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
       name: "echo",
       tag: "v1.0.0",
       manifest:
-        "schemaVersion: 1\nname: echo\ndescription: echo a value\ninputs:\n  message:\n    description: text to echo\noutputs:\n  echoed:\n    description: the same text\nruns:\n  using: bun-module\n  main: ./index.mjs\n",
+        "schemaVersion: 1\nname: echo\ndescription: echo a value\ninputs:\n  message:\n    description: text to echo\noutputs:\n  echoed:\n    description: the same text\nruns:\n  using: node\n  main: ./index.mjs\n",
       sources: {
         "index.mjs":
           "export async function run(ctx) {\n  ctx.emitOutput('echoed', ctx.inputs.message ?? '');\n}\n",
@@ -81,7 +81,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
       name: "noop",
       tag: "v1.0.0",
       manifest:
-        "schemaVersion: 1\nname: noop\ndescription: x\nruns:\n  using: bun-module\n  main: ./index.mjs\n",
+        "schemaVersion: 1\nname: noop\ndescription: x\nruns:\n  using: node\n  main: ./index.mjs\n",
       sources: { "index.mjs": "export async function run() {}\n" },
     });
 

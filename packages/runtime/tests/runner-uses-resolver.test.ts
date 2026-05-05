@@ -78,7 +78,7 @@ describe("resolveUsesRef — registry refs", () => {
         "name: lint",
         "description: lint fixture",
         "runs:",
-        "  using: bun-module",
+        "  using: node",
         "  main: ./index.mjs",
       ].join("\n"),
       "utf-8",

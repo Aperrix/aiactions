@@ -2,7 +2,7 @@ schemaVersion: 1
 name: echo
 description: Echo each input back as a same-name output. Test fixture.
 runs:
-  using: bun-module
+  using: node
   main: ./index.mjs
 inputs:
   message:

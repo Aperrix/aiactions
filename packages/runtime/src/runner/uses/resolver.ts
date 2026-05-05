@@ -17,7 +17,7 @@
  * directory does not exist, `ActionManifestError` if the manifest is
  * missing, unreadable, malformed, or fails schema validation, and
  * `RuntimeUnsupportedError` if `manifest.runs.using` is anything other
- * than `"bun-module"` (forward-compatible guard for future runners).
+ * than `"node"` (forward-compatible guard for future runners).
  */
 
 import { stat } from "node:fs/promises";
@@ -134,14 +134,13 @@ export async function resolveUsesRef(ref: UsesRef, ctx: ResolverContext): Promis
     throw err;
   }
 
-  // TODO MS1.2: exercise the bun-module guard once the runner literal union widens
-  if (manifest.runs.using !== "bun-module") {
-    // `using` narrows to `never` here because the schema currently locks
-    // it to "bun-module"; the guard remains for forward-compat (MS1.2+
-    // will widen the literal union). Cast to `string` for the message.
-    const using = manifest.runs.using as string;
+  // The schema currently restricts `runs.using` to "node"; this
+  // guard remains for forward-compat (composite/Docker/Python runners
+  // could widen the enum in a later milestone).
+  if (manifest.runs.using !== "node") {
+    const using = String(manifest.runs.using);
     throw new RuntimeUnsupportedError(
-      `runs.using '${using}' for ref '${ref.raw}' is not yet implemented (MS1.1 supports 'bun-module' only)`,
+      `runs.using '${using}' for ref '${ref.raw}' is not yet implemented (currently 'node' only)`,
     );
   }
 
