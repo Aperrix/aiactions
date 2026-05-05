@@ -1,0 +1,30 @@
+# Example workflow demonstrating `uses: claude/agent@v1`.
+#
+# Run with the AIactions runtime (when the CLI lands in a future
+# milestone). For now, this file is documentation: it shows the wire
+# format that consumers should expect.
+#
+# Prerequisites:
+#   - `claude` binary on PATH (`npm i -g @anthropic-ai/claude-code`).
+#   - Logged in (`claude login`) OR `ANTHROPIC_API_KEY` set.
+#
+# Note: `on:` (triggers) and `runs-on:` (runner labels) are not yet part
+# of the AIactions workflow schema (v1 milestone). They will be added in a
+# future milestone. The fields have been omitted so this file parses today.
+
+name: claude-agent-smoke
+jobs:
+  smoke:
+    steps:
+      - name: Ask a trivial question
+        id: ask
+        uses: claude/agent@v1
+        with:
+          prompt: "Reply with the literal text: PONG"
+          model: claude-haiku-4-5
+          max_turns: "1"
+
+      - name: Echo the result
+        run: |
+          echo "Got: ${{ steps.ask.outputs.text }}"
+          echo "Session: ${{ steps.ask.outputs.session_id }}"

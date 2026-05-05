@@ -13,3 +13,4 @@ export * from "./context.ts";
 export * from "./resolver.ts";
 export * from "./protocol.ts";
 export * from "./exec.ts";
+export * from "./registry-fetch.ts";

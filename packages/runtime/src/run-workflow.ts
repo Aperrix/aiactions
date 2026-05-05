@@ -26,6 +26,8 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { topoSort, type DepRecord, type Workflow } from "@aiactions/workflows";
 
@@ -159,9 +161,10 @@ export async function runWorkflow(workflow: Workflow, options: RunOptions): Prom
       signal: options.signal,
       emit: onEvent,
       workflowFile: options.workflowFile,
-      registryRoot: options.registryRoot ?? `${options.cwd.replace(/[\\/]+$/, "")}/actions`,
+      registryRoot: options.registryRoot ?? join(homedir(), ".aiactions", "actions"),
       bashAvailable,
       workflowDefaults: workflow.defaults?.run,
+      ...(options.registryFetch !== undefined && { registryFetch: options.registryFetch }),
     });
     jobs[jobId] = jobResult;
     if (jobResult.status === "failed") {

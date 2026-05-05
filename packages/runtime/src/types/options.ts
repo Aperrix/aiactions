@@ -42,7 +42,14 @@ export interface RunOptions {
    * contains any `local` `uses:` step; ignored otherwise. */
   readonly workflowFile?: string;
   /** Absolute path to the directory under which `registry` refs are
-   * resolved as `<registryRoot>/<ns>/<name>/`. Defaults to
-   * `<options.cwd>/actions` when omitted. */
+   * resolved as `<registryRoot>/<ns>/<name>/<ver>/`. Defaults to
+   * `<homedir>/.aiactions/actions/` when omitted. */
   readonly registryRoot?: string;
+  /** Optional knobs for the registry-fetch path. Tests inject
+   *  `canonicalUrl: file://...` to keep CI off the network; production
+   *  callers leave it unset and the fetcher targets the canonical URL. */
+  readonly registryFetch?: {
+    readonly canonicalUrl?: string;
+    readonly tmpRoot?: string;
+  };
 }

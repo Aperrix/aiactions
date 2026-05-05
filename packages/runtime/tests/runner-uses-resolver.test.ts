@@ -64,10 +64,12 @@ describe("resolveUsesRef — local refs", () => {
 });
 
 describe("resolveUsesRef — registry refs", () => {
-  test("resolves <ns>/<name>@<ver> against registryRoot/<ns>/<name>", async () => {
+  test("resolves <ns>/<name>@<ver> against registryRoot/<ns>/<name>/<ver>", async () => {
     const root = await mkdtemp(join(tmpdir(), "aia-reg-"));
     dirsToCleanup.push(root);
-    const actionDir = join(root, "core", "lint");
+    const cwd = await mkdtemp(join(tmpdir(), "aia-reg-cwd-"));
+    dirsToCleanup.push(cwd);
+    const actionDir = join(root, "core", "lint", "1.2.3");
     await mkdir(actionDir, { recursive: true });
     await writeFile(
       join(actionDir, "aiaction.yaml"),
@@ -76,7 +78,7 @@ describe("resolveUsesRef — registry refs", () => {
         "name: lint",
         "description: lint fixture",
         "runs:",
-        "  using: bun-module",
+        "  using: node",
         "  main: ./index.mjs",
       ].join("\n"),
       "utf-8",
@@ -86,21 +88,27 @@ describe("resolveUsesRef — registry refs", () => {
     const result = await resolveUsesRef(ref, {
       workflowFile: "/dev/null/no-such.yaml",
       registryRoot: root,
+      cwd,
     });
     expect(result.dir).toBe(actionDir);
     expect(result.manifest.name).toBe("lint");
-    // version is parsed but ignored at resolution time (MS1.1)
     expect(ref.kind === "registry" ? ref.version : "").toBe("1.2.3");
   });
 
-  test("missing registry namespace surfaces ActionResolutionError", async () => {
+  test("missing registry entry surfaces ActionResolutionError when fetch fails", async () => {
     const root = await mkdtemp(join(tmpdir(), "aia-reg-empty-"));
     dirsToCleanup.push(root);
+    const cwd = await mkdtemp(join(tmpdir(), "aia-reg-cwd-"));
+    dirsToCleanup.push(cwd);
+    const tmp = await mkdtemp(join(tmpdir(), "aia-reg-tmp-"));
+    dirsToCleanup.push(tmp);
     const ref = parseRef("nope/missing@0.0.0");
     await expect(
       resolveUsesRef(ref, {
         workflowFile: "/dev/null/no-such.yaml",
         registryRoot: root,
+        cwd,
+        registryFetch: { canonicalUrl: "file:///does-not-exist", tmpRoot: tmp },
       }),
     ).rejects.toThrow(ActionResolutionError);
   });

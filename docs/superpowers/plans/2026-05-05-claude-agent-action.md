@@ -1,0 +1,2223 @@
+# claude/agent v1 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Ship `claude/agent@v1`, the first public AIaction in the AIactions registry — a thin wrapper over `@anthropic-ai/claude-agent-sdk`'s `query()` that delegates auth to the user's locally-installed `claude` binary.
+
+**Architecture:** A workspace package at `actions/claude/agent/` whose TypeScript sources are bundled by `tsdown` into a self-contained `dist/main.mjs`. The action is loaded by the AIactions runtime via the existing `step.uses` path (MS1.1) and runs as a Node subprocess. The action shells out to the user's `claude` binary via the SDK's `pathToClaudeCodeExecutable` option — no SDK platform binaries are bundled and no auth is handled by AIactions.
+
+**Tech Stack:** TypeScript (strict, native preview), Zod 4.x for input validation, `tsdown` for bundling, Vitest (`vite-plus/test`) for tests, `@anthropic-ai/claude-agent-sdk` for the agent loop.
+
+**Reference spec:** `docs/superpowers/specs/2026-05-05-claude-agent-action-design.md`.
+
+**Branch:** `feat/claude-agent-action` (already created from `main`).
+
+---
+
+## File Structure
+
+### Files created
+
+| Path                                                      | Responsibility                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `actions/claude/agent/aiaction.yaml`                      | Action manifest (declares inputs/outputs + `runs.using: node`).    |
+| `actions/claude/agent/package.json`                       | Workspace package metadata (private).                              |
+| `actions/claude/agent/tsconfig.json`                      | TS config (extends repo conventions).                              |
+| `actions/claude/agent/vite.config.ts`                     | `vp check` config (typeAware lint).                                |
+| `actions/claude/agent/tsdown.config.ts`                   | Bundle config (`src/main.ts` → `dist/main.mjs`, deps inlined).     |
+| `actions/claude/agent/src/main.ts`                        | Action entry-point. Exports `async function run(ctx)`.             |
+| `actions/claude/agent/src/inputs.ts`                      | Zod schema parsing string-only YAML inputs into typed SDK options. |
+| `actions/claude/agent/src/bin-resolver.ts`                | Resolves the user's `claude` binary path.                          |
+| `actions/claude/agent/src/which.ts`                       | Tiny PATH-walking `which`-equivalent (POSIX + Windows fallback).   |
+| `actions/claude/agent/src/usage.ts`                       | Builds the `usage` JSON output from a SDK `result` event.          |
+| `actions/claude/agent/src/transcript.ts`                  | Caps transcript JSON at <1 MiB with truncation marker.             |
+| `actions/claude/agent/src/types.ts`                       | `ActionContext` shape mirror of the loader-provided ctx.           |
+| `actions/claude/agent/dist/main.mjs`                      | Bundled artifact — committed to `main`.                            |
+| `actions/claude/agent/tests/inputs.test.ts`               | Unit tests for `parseInputs`.                                      |
+| `actions/claude/agent/tests/bin-resolver.test.ts`         | Unit tests for binary resolution.                                  |
+| `actions/claude/agent/tests/usage.test.ts`                | Unit tests for `buildUsage`.                                       |
+| `actions/claude/agent/tests/transcript.test.ts`           | Unit tests for `capToOneMiB`.                                      |
+| `actions/claude/agent/tests/main.test.ts`                 | Integration tests against a mocked SDK.                            |
+| `actions/claude/agent/README.md`                          | User-facing docs (inputs/outputs + `claude login` prerequisite).   |
+| `workflows/examples/claude-agent.yaml`                    | Example workflow demonstrating `uses: claude/agent@v1`.            |
+| `packages/runtime/tests/runner-uses-claude-agent.test.ts` | Runtime end-to-end test against the bundled `dist/main.mjs`.       |
+
+### Files modified
+
+| Path                                                                                       | Change                                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `packages/workflows/src/schema/action-manifest.ts:17,47,50,58`                             | Replace `"bun-module"` literal + JSDoc references with `"node"`. |
+| `packages/workflows/tests/schema-action-manifest.test.ts:37,51,60`                         | Update assertions to `"node"`.                                   |
+| `packages/workflows/tests/parser.test.ts:149`                                              | Update assertion to `"node"`.                                    |
+| `packages/workflows/tests/fixtures/actions/echo/aiaction.yaml:5`                           | Replace fixture YAML.                                            |
+| `packages/runtime/src/runner/uses/resolver.ts:20,137-144`                                  | Replace guard literal, comments, error message.                  |
+| `packages/runtime/tests/fixtures/actions/{crashing,echo,slow,two-outputs}/aiaction.yaml:5` | Replace fixture YAML.                                            |
+| `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts:29`                       | Replace fixture string.                                          |
+| `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts:29,53,74`                 | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-registry-fetch.test.ts:30,57,87`                       | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-registry-integration.test.ts:33,84`                    | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-resolver.test.ts:81`                                   | Replace fixture string.                                          |
+| `manifest-schema.json:23,25`                                                               | Regenerated by `bun run gen:schemas`.                            |
+
+---
+
+## Task 1 — Schema rename `bun-module → node` (MS1.3.0)
+
+**Files:**
+
+- Modify: `packages/workflows/src/schema/action-manifest.ts`
+- Modify: `packages/workflows/tests/schema-action-manifest.test.ts`
+- Modify: `packages/workflows/tests/parser.test.ts`
+- Modify: `packages/workflows/tests/fixtures/actions/echo/aiaction.yaml`
+- Modify: `packages/runtime/src/runner/uses/resolver.ts`
+- Modify: `packages/runtime/tests/fixtures/actions/{crashing,echo,slow,two-outputs}/aiaction.yaml`
+- Modify: `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts`
+- Modify: `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts`
+- Modify: `packages/runtime/tests/runner-uses-registry-fetch.test.ts`
+- Modify: `packages/runtime/tests/runner-uses-registry-integration.test.ts`
+- Modify: `packages/runtime/tests/runner-uses-resolver.test.ts`
+- Regenerate: `manifest-schema.json`
+
+### Steps
+
+- [ ] **Step 1.1: Update `actionRunsSchema.using` literal**
+
+Edit `packages/workflows/src/schema/action-manifest.ts`. Replace the literal and the surrounding JSDoc references:
+
+```ts
+/**
+ * Zod schema for `aiaction.yaml`. Mirrors GHA's `action.yml` shape closely
+ * (input names, output names, `runs.main`) but keeps the filename
+ * distinct (`aiaction.yaml`) to avoid collisions when a project ships
+ * both AIactions and GHA workflows in the same repository.
+ *
+ * Action `inputs:` and `outputs:` are deliberately distinct from a
+ * workflow's `workflow_call` `inputs:` / `outputs:`:
+ * - action inputs follow GHA's action-input shape (no `type:` — values
+ *   reach the executor as strings, who parses them as needed);
+ * - action outputs declare only `description:` (the executor emits values
+ *   at runtime via `ctx.emitOutput()`).
+ *
+ * Contents:
+ * - `actionInputSchema` / `actionInputsSchema`.
+ * - `actionOutputSchema` / `actionOutputsSchema`.
+ * - `actionRunsSchema` (with optional `using: "node"`).
+ * - `actionManifestSchema` — the document.
+ * - `ActionManifest` — inferred output type.
+ */
+
+import { z } from "zod";
+
+/** A single action input declaration. Strings only (GHA-faithful). */
+export const actionInputSchema = z.strictObject({
+  description: z.string().min(1).optional(),
+  required: z.boolean().optional(),
+  default: z.string().optional(),
+});
+
+/** Map of input name → spec; keys are non-empty strings. */
+export const actionInputsSchema = z.record(z.string().min(1), actionInputSchema);
+
+/**
+ * A single action output declaration. Only carries documentation; values
+ * are produced at runtime by the executor through `ctx.emitOutput()`.
+ */
+export const actionOutputSchema = z.strictObject({
+  description: z.string().min(1).optional(),
+});
+
+/** Map of output name → spec; keys are non-empty strings. */
+export const actionOutputsSchema = z.record(z.string().min(1), actionOutputSchema);
+
+/**
+ * `runs:` block. `using:` is optional and currently restricted to
+ * `"node"`; the field is preserved as a discriminator slot so future
+ * runtime kinds (Python, Docker, composite) can extend the enum without
+ * a breaking schema change. When omitted, the value defaults to
+ * `"node"` on output so downstream consumers always see a concrete
+ * runtime kind.
+ *
+ * `main:` must be a forward-slash, double-dot-free relative path with
+ * a `.mjs` or `.js` suffix. Backslashes and `..` segments are rejected
+ * to keep the resolver from having to clean up authoring footguns.
+ */
+export const actionRunsSchema = z.strictObject({
+  using: z.literal("node").default("node"),
+  main: z
+    .string()
+    .regex(
+      /^\.\/(?!.*\.\.)(?!.*\\)[^\\]+\.m?js$/,
+      "runs.main must be a './...'-relative .mjs/.js path with no '..' segments or backslashes",
+    ),
+});
+
+/**
+ * Top-level `aiaction.yaml` schema. `schemaVersion` pins the contract;
+ * `name` is the kebab-case identifier used in the `<ns>/<name>@<ver>`
+ * registry ref.
+ */
+export const actionManifestSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  name: z.string().regex(/^[a-z][a-z0-9-]*$/, "action name must be kebab-case"),
+  description: z.string().min(1),
+  runs: actionRunsSchema,
+  inputs: actionInputsSchema.optional(),
+  outputs: actionOutputsSchema.optional(),
+});
+
+/** Inferred output type. */
+export type ActionManifest = z.infer<typeof actionManifestSchema>;
+```
+
+- [ ] **Step 1.2: Update `actionRunsSchema` test assertions**
+
+Edit `packages/workflows/tests/schema-action-manifest.test.ts`. At the three call-sites (lines ≈37, 51, 60), replace `"bun-module"` with `"node"`. Use a global find-and-replace within the file. The default-on-output assertion remains structurally the same.
+
+```bash
+# Reference the file with this Bash invocation to inspect after editing:
+git diff packages/workflows/tests/schema-action-manifest.test.ts
+```
+
+Expected diff: three `"bun-module"` → `"node"` substitutions. The test name "is optional and defaults to bun-module on output" should also be renamed to "is optional and defaults to node on output".
+
+- [ ] **Step 1.3: Update `parser.test.ts` assertion**
+
+Edit `packages/workflows/tests/parser.test.ts:149`. Replace:
+
+```ts
+expect(manifest.runs.using).toBe("bun-module");
+```
+
+with:
+
+```ts
+expect(manifest.runs.using).toBe("node");
+```
+
+- [ ] **Step 1.4: Update workflow fixture YAML**
+
+Edit `packages/workflows/tests/fixtures/actions/echo/aiaction.yaml:5`. Replace `using: bun-module` with `using: node`.
+
+- [ ] **Step 1.5: Run workflow tests to confirm they pass**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions/packages/workflows && vp test
+```
+
+Expected: all tests pass. If a test still references `bun-module` in a string, update it.
+
+- [ ] **Step 1.6: Update runtime resolver guard**
+
+Edit `packages/runtime/src/runner/uses/resolver.ts:137-144`. Replace the literal, the TODO comment, and the error message:
+
+```ts
+// The schema currently restricts `runs.using` to "node"; this
+// guard remains for forward-compat (composite/Docker/Python runners
+// could widen the enum in a later milestone).
+if (manifest.runs.using !== "node") {
+  const using = String(manifest.runs.using);
+  throw new ManifestError(
+    `runs.using '${using}' for ref '${ref.raw}' is not yet implemented (currently 'node' only)`,
+  );
+}
+```
+
+Also fix the JSDoc comment at line ~20 in the same file: `"bun-module"` → `"node"`.
+
+- [ ] **Step 1.7: Update runtime fixture YAMLs**
+
+Replace `using: bun-module` with `using: node` in **all four** files:
+
+```bash
+sed -i 's/using: bun-module/using: node/' \
+  packages/runtime/tests/fixtures/actions/crashing/aiaction.yaml \
+  packages/runtime/tests/fixtures/actions/echo/aiaction.yaml \
+  packages/runtime/tests/fixtures/actions/slow/aiaction.yaml \
+  packages/runtime/tests/fixtures/actions/two-outputs/aiaction.yaml
+```
+
+(`sed -i` is acceptable here because the substitution is mechanical and bounded to four lines.)
+
+- [ ] **Step 1.8: Update runtime test fixture strings**
+
+In each of:
+
+- `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts`
+- `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts`
+- `packages/runtime/tests/runner-uses-registry-fetch.test.ts`
+- `packages/runtime/tests/runner-uses-registry-integration.test.ts`
+- `packages/runtime/tests/runner-uses-resolver.test.ts`
+
+… replace every occurrence of the substring `using: bun-module` with `using: node` inside fixture string literals. Use a sed pass:
+
+```bash
+sed -i 's/using: bun-module/using: node/g' \
+  packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts \
+  packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts \
+  packages/runtime/tests/runner-uses-registry-fetch.test.ts \
+  packages/runtime/tests/runner-uses-registry-integration.test.ts \
+  packages/runtime/tests/runner-uses-resolver.test.ts
+```
+
+Then visually inspect each diff to confirm only the intended lines changed.
+
+- [ ] **Step 1.9: Regenerate JSON schema**
+
+```bash
+bun run gen:schemas
+```
+
+Expected output:
+
+```
+wrote /home/aperrix/Documents/PROJECTS/aiactions/workflow-schema.json
+wrote /home/aperrix/Documents/PROJECTS/aiactions/manifest-schema.json
+```
+
+Inspect `manifest-schema.json` and confirm it now contains `"const": "node"` and `"default": "node"`. There should be **no remaining occurrences** of `bun-module` in the file:
+
+```bash
+grep -c bun-module manifest-schema.json
+# Expected: 0
+```
+
+- [ ] **Step 1.10: Run full ready gate**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions && bun run ready
+```
+
+Expected: `vp check` passes (no type errors, no lint errors); `vp run -r test` passes (all packages green).
+
+- [ ] **Step 1.11: Commit**
+
+```bash
+git add packages/workflows/src/schema/action-manifest.ts \
+        packages/workflows/tests/schema-action-manifest.test.ts \
+        packages/workflows/tests/parser.test.ts \
+        packages/workflows/tests/fixtures/actions/echo/aiaction.yaml \
+        packages/runtime/src/runner/uses/resolver.ts \
+        packages/runtime/tests/fixtures/actions/crashing/aiaction.yaml \
+        packages/runtime/tests/fixtures/actions/echo/aiaction.yaml \
+        packages/runtime/tests/fixtures/actions/slow/aiaction.yaml \
+        packages/runtime/tests/fixtures/actions/two-outputs/aiaction.yaml \
+        packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts \
+        packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts \
+        packages/runtime/tests/runner-uses-registry-fetch.test.ts \
+        packages/runtime/tests/runner-uses-registry-integration.test.ts \
+        packages/runtime/tests/runner-uses-resolver.test.ts \
+        manifest-schema.json
+
+git commit -m "$(cat <<'EOF'
+feat(workflows)!: rename action manifest using "bun-module" → "node"
+
+The runtime never required Bun on the user's machine to execute an
+action; the literal "bun-module" misnamed a node-compatible contract.
+Renaming clears the way for the first public AIaction (claude/agent),
+which is explicitly node-only.
+
+BREAKING CHANGE: aiaction.yaml `runs.using` literal changes from
+"bun-module" to "node". Migration is mechanical: replace the literal in
+every action manifest. The `actions/` directory is empty in the repo,
+so no first-party migration is needed.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+Expected: a single commit on `feat/claude-agent-action`.
+
+---
+
+## Task 2 — Scaffold `actions/claude/agent/` package (MS1.3.1)
+
+**Files:**
+
+- Create: `actions/claude/agent/aiaction.yaml`
+- Create: `actions/claude/agent/package.json`
+- Create: `actions/claude/agent/tsconfig.json`
+- Create: `actions/claude/agent/vite.config.ts`
+- Create: `actions/claude/agent/tsdown.config.ts`
+
+### Steps
+
+- [ ] **Step 2.1: Create the manifest**
+
+Create `actions/claude/agent/aiaction.yaml` with the exact content (already validated against the spec):
+
+```yaml
+schemaVersion: 1
+name: agent
+description: |
+  Run a Claude Code agent loop via @anthropic-ai/claude-agent-sdk.
+  Sends a prompt, executes the agent's tool-use loop in cwd, and
+  emits the final assistant text + session id + transcript + usage
+  as step outputs. Auth is delegated to the user's local `claude`
+  binary (must already be logged in: `claude login`).
+
+runs:
+  using: node
+  main: ./dist/main.mjs
+
+inputs:
+  prompt:
+    description: User prompt sent to the agent.
+    required: true
+  model:
+    description: Claude model id (e.g. claude-sonnet-4-6). Defaults to the SDK default.
+  cwd:
+    description: Working directory the agent operates in. Defaults to the step's cwd.
+  system_prompt:
+    description: |
+      System prompt JSON. Either a string for a custom prompt, or
+      `{"type":"preset","preset":"claude_code","append":"…"}` to inherit
+      Claude Code's preset and optionally append guidance.
+    default: '{"type":"preset","preset":"claude_code"}'
+  max_turns:
+    description: Maximum agent loop iterations. Unset by default.
+  allowed_tools:
+    description: |
+      CSV of tool names to allow. Empty string = leave unset (the SDK
+      default `allow all` then applies). Non-empty = parsed as `string[]`.
+    default: ""
+  mcp_servers:
+    description: |
+      MCP servers JSON, mapping server name → McpServerConfig.
+      Empty string = no MCP.
+    default: ""
+  permission_mode:
+    description: default | acceptEdits | bypassPermissions | plan
+    default: "bypassPermissions"
+  setting_sources:
+    description: |
+      CSV of setting sources to load. Must include `project` to load
+      CLAUDE.md from cwd. SDK default is `[]`; we default to `project,user`
+      to match Archon's behavior.
+    default: "project,user"
+  resume_session_id:
+    description: Resume an existing session by id (chains across steps).
+  fallback_model:
+    description: Model used if primary returns 5xx / overloaded.
+  max_budget_usd:
+    description: Hard cap on session cost in USD.
+  path_to_claude_code_executable:
+    description: |
+      Override path to the local `claude` binary. Defaults to PATH lookup
+      (or `AIACTIONS_CLAUDE_BIN` env var if set).
+
+outputs:
+  text:
+    description: Concatenated assistant text from all `assistant.text` blocks.
+  session_id:
+    description: Session id; pass as `resume_session_id` in a later step.
+  stop_reason:
+    description: SDK stop reason (e.g. end_turn, max_turns, error).
+  is_error:
+    description: '"true" | "false".'
+  usage:
+    description: |
+      JSON string of {input, output, total, cost_usd, num_turns, model_usage}.
+  transcript:
+    description: |
+      JSON string array of every event chunk (assistant, tool_use,
+      tool_result, system, rate_limit, result). Truncated to <1 MiB
+      with a trailing `…[truncated]` marker if longer.
+```
+
+- [ ] **Step 2.2: Verify manifest validates against the (newly-renamed) schema**
+
+Write a one-shot validation in the repo's existing parser test pattern. From the repo root:
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions && bun -e "
+import { parseActionManifest } from './packages/workflows/src/parser/parse-action.ts';
+const m = await parseActionManifest('./actions/claude/agent/aiaction.yaml');
+console.log('OK:', m.name, m.runs.using);
+"
+```
+
+Expected output: `OK: agent node`. (If the runtime can't resolve `bun -e` against the workspace, run the same logic via a temporary `.ts` file or skip and rely on Task 5's parser tests.)
+
+- [ ] **Step 2.3: Create the package.json**
+
+Create `actions/claude/agent/package.json`:
+
+```json
+{
+  "name": "@aiactions-public/claude-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vp test",
+    "check": "vp check",
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "tsdown": "^0.15.0"
+  }
+}
+```
+
+(Pin `@anthropic-ai/claude-agent-sdk` to the latest published `^0.1.0` at implementation time — adjust if the published range differs. Pin `tsdown` to whatever the workspace catalog or other packed packages use; use `^0.15.0` as a starting point.)
+
+- [ ] **Step 2.4: Create tsconfig.json**
+
+Create `actions/claude/agent/tsconfig.json` (mirrors the existing convention from `packages/workflows/tsconfig.json`, exact match):
+
+```json
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["es2023"],
+    "moduleDetection": "force",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "declaration": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+- [ ] **Step 2.5: Create vite.config.ts**
+
+Create `actions/claude/agent/vite.config.ts` (mirrors the existing convention):
+
+```ts
+import { defineConfig } from "vite-plus";
+
+export default defineConfig({
+  lint: {
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
+  fmt: {},
+});
+```
+
+- [ ] **Step 2.6: Create tsdown.config.ts**
+
+Create `actions/claude/agent/tsdown.config.ts`:
+
+```ts
+import { defineConfig } from "tsdown";
+
+export default defineConfig({
+  entry: { main: "src/main.ts" },
+  format: "esm",
+  outDir: "dist",
+  outExtensions: () => ({ js: ".mjs" }),
+  target: "node22",
+  platform: "node",
+  noExternal: [/.*/], // inline ALL deps (zod, @anthropic-ai/claude-agent-sdk)
+  clean: true,
+  dts: false, // dist is for runtime, not for downstream type imports
+  shims: false,
+});
+```
+
+(The `noExternal: [/.*/]` rule asks tsdown/rolldown to inline every imported dependency. The action's `dist/main.mjs` then runs without any `node_modules`.)
+
+- [ ] **Step 2.7: Install workspace dependencies**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions && vp install
+```
+
+Expected: success, with `@aiactions-public/claude-agent` recognized as a workspace package (you should see `actions/claude/agent` in `bun pm ls`).
+
+- [ ] **Step 2.8: Smoke test `vp check` for the new package (will fail because `src/` is empty)**
+
+```bash
+cd actions/claude/agent && vp check
+```
+
+Expected: `vp check` fails because `src/main.ts` (and others) do not yet exist. That's normal at this scaffold step. The next task creates them.
+
+- [ ] **Step 2.9: Commit**
+
+```bash
+git add actions/claude/agent/aiaction.yaml \
+        actions/claude/agent/package.json \
+        actions/claude/agent/tsconfig.json \
+        actions/claude/agent/vite.config.ts \
+        actions/claude/agent/tsdown.config.ts \
+        bun.lock
+
+git commit -m "$(cat <<'EOF'
+feat(claude-agent): scaffold action workspace package
+
+Create the package skeleton for `claude/agent@v1`: manifest, package.json,
+tsconfig, vite config, tsdown config. Sources land in subsequent commits.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 3 — `inputs.ts`, `bin-resolver.ts`, `which.ts`, `types.ts` (MS1.3.2)
+
+**Files:**
+
+- Create: `actions/claude/agent/src/types.ts`
+- Create: `actions/claude/agent/src/which.ts`
+- Create: `actions/claude/agent/src/bin-resolver.ts`
+- Create: `actions/claude/agent/src/inputs.ts`
+- Create: `actions/claude/agent/tests/bin-resolver.test.ts`
+- Create: `actions/claude/agent/tests/inputs.test.ts`
+
+### Steps
+
+- [ ] **Step 3.1: Create the action context type**
+
+Create `actions/claude/agent/src/types.ts`:
+
+```ts
+/**
+ * Local mirror of the runtime-provided action context. The shape is
+ * dictated by `packages/runtime/src/runner/uses/loader.mjs:84-103`.
+ *
+ * Kept narrow on purpose: only the fields the action actually consumes.
+ *
+ * Contents:
+ * - `LogLevel` — log severity enum.
+ * - `ActionContext` — what the loader passes to `run(ctx)`.
+ */
+
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+export interface ActionContext {
+  readonly inputs: Readonly<Record<string, string>>;
+  readonly env: NodeJS.ProcessEnv;
+  readonly cwd: string;
+  readonly signal: AbortSignal;
+  emitOutput(name: string, value: string): void;
+  log(level: LogLevel, message: string): void;
+}
+```
+
+- [ ] **Step 3.2: Create the `which.ts` helper**
+
+Create `actions/claude/agent/src/which.ts`:
+
+```ts
+/**
+ * Tiny `which`-equivalent — scans `env.PATH` directories for an
+ * executable. POSIX-first; Windows fallback walks PATHEXT.
+ *
+ * Avoids a dependency on `node-which` or similar. The implementation
+ * is sync (called once at boot) and uses only `node:fs` and `node:path`.
+ *
+ * Contents:
+ * - `whichSync(name, env)` — returns the absolute path or `null`.
+ */
+
+import { accessSync, constants as FS } from "node:fs";
+import { delimiter, isAbsolute, join } from "node:path";
+
+export function whichSync(name: string, env: NodeJS.ProcessEnv): string | null {
+  if (isAbsolute(name)) {
+    return isExecutable(name) ? name : null;
+  }
+
+  const path = env.PATH ?? "";
+  if (path.length === 0) return null;
+
+  const isWindows = process.platform === "win32";
+  const pathExt = isWindows ? (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";") : [""];
+
+  for (const dir of path.split(delimiter)) {
+    if (dir.length === 0) continue;
+    for (const ext of pathExt) {
+      const candidate = join(dir, `${name}${ext}`);
+      if (isExecutable(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+function isExecutable(file: string): boolean {
+  try {
+    accessSync(file, FS.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+- [ ] **Step 3.3: Write `bin-resolver.ts`**
+
+Create `actions/claude/agent/src/bin-resolver.ts`:
+
+```ts
+/**
+ * Resolves the user's local `claude` binary. Resolution order:
+ * 1. Explicit input (`path_to_claude_code_executable`).
+ * 2. Env override (`AIACTIONS_CLAUDE_BIN`).
+ * 3. PATH lookup via `whichSync("claude", env)`.
+ *
+ * Throws a friendly error pointing the user at the install + login
+ * commands when none of the above succeed.
+ *
+ * Contents:
+ * - `resolveClaudeBinary(inputOverride, env)` — returns the path or throws.
+ */
+
+import { whichSync } from "./which.ts";
+
+const INSTALL_HINT =
+  "`claude` binary not found. " +
+  "Install Claude Code (https://docs.anthropic.com/en/docs/claude-code/setup) " +
+  "and run `claude login`. Alternatively, set the input " +
+  "`path_to_claude_code_executable` or env var `AIACTIONS_CLAUDE_BIN`.";
+
+export function resolveClaudeBinary(
+  inputOverride: string | undefined,
+  env: NodeJS.ProcessEnv,
+): string {
+  const explicit =
+    inputOverride && inputOverride.length > 0 ? inputOverride : env.AIACTIONS_CLAUDE_BIN;
+  if (explicit && explicit.length > 0) return explicit;
+  const onPath = whichSync("claude", env);
+  if (onPath) return onPath;
+  throw new Error(INSTALL_HINT);
+}
+```
+
+- [ ] **Step 3.4: Write `bin-resolver.test.ts`**
+
+Create `actions/claude/agent/tests/bin-resolver.test.ts`:
+
+```ts
+/**
+ * Unit tests for `resolveClaudeBinary`. Covers: input override wins,
+ * env fallback, PATH lookup, missing-binary error message.
+ */
+
+import { mkdtempSync, writeFileSync, chmodSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { describe, expect, test } from "vite-plus/test";
+
+import { resolveClaudeBinary } from "../src/bin-resolver.ts";
+
+function makeFakeBinary(name: string): string {
+  const dir = mkdtempSync(join(tmpdir(), "aiactions-bin-"));
+  const path = join(dir, name);
+  writeFileSync(path, "#!/usr/bin/env sh\nexit 0\n");
+  chmodSync(path, 0o755);
+  return path;
+}
+
+describe("resolveClaudeBinary", () => {
+  test("returns the explicit input override when provided", () => {
+    const fake = makeFakeBinary("claude");
+    const result = resolveClaudeBinary(fake, { PATH: "" });
+    expect(result).toBe(fake);
+  });
+
+  test("falls back to AIACTIONS_CLAUDE_BIN env when input is empty", () => {
+    const fake = makeFakeBinary("claude");
+    const result = resolveClaudeBinary(undefined, { PATH: "", AIACTIONS_CLAUDE_BIN: fake });
+    expect(result).toBe(fake);
+  });
+
+  test("falls back to PATH lookup when neither input nor env is set", () => {
+    const fake = makeFakeBinary("claude");
+    const dir = fake.slice(0, fake.lastIndexOf("/"));
+    const result = resolveClaudeBinary(undefined, { PATH: dir });
+    expect(result).toBe(fake);
+  });
+
+  test("throws a friendly error when nothing is resolvable", () => {
+    expect(() => resolveClaudeBinary(undefined, { PATH: "/nonexistent" })).toThrow(
+      /claude.*not found/,
+    );
+  });
+
+  test("treats empty-string input override as unset", () => {
+    const fake = makeFakeBinary("claude");
+    const result = resolveClaudeBinary("", { PATH: "", AIACTIONS_CLAUDE_BIN: fake });
+    expect(result).toBe(fake);
+  });
+});
+```
+
+- [ ] **Step 3.5: Run bin-resolver tests**
+
+```bash
+cd actions/claude/agent && vp test bin-resolver
+```
+
+Expected: 5 passing tests.
+
+- [ ] **Step 3.6: Write `inputs.ts`**
+
+Create `actions/claude/agent/src/inputs.ts`:
+
+```ts
+/**
+ * Parses raw string-only YAML inputs (as delivered by the runtime
+ * loader) into a typed `ParsedInputs` object suitable for building
+ * Claude Agent SDK options.
+ *
+ * Why Zod and not plain manual parsing: each input has independent
+ * coercion rules (CSV-to-array, JSON-to-object, optional-passthrough);
+ * Zod centralizes that logic in one schema and produces a single
+ * aggregated error message on failure.
+ *
+ * Contents:
+ * - `parseInputs(rawInputs)` — main entry-point.
+ * - `ParsedInputs` — inferred output type.
+ * - Internal field schemas (CSV, JSON, etc).
+ */
+
+import { z } from "zod";
+
+const NON_EMPTY = (v: string): boolean => v.length > 0;
+
+const optionalNonEmpty = z
+  .string()
+  .optional()
+  .transform((v) => (v && NON_EMPTY(v) ? v : undefined));
+
+const optionalNumber = z
+  .string()
+  .optional()
+  .transform((v, ctx) => {
+    if (!v || !NON_EMPTY(v)) return undefined;
+    const n = Number(v);
+    if (!Number.isFinite(n)) {
+      ctx.addIssue({ code: "custom", message: `not a finite number: '${v}'` });
+      return z.NEVER;
+    }
+    return n;
+  });
+
+const optionalCsv = z
+  .string()
+  .optional()
+  .transform((v) => {
+    if (!v || !NON_EMPTY(v)) return undefined;
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter(NON_EMPTY);
+  });
+
+const optionalJson = <T>(label: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v, ctx): T | undefined => {
+      if (!v || !NON_EMPTY(v)) return undefined;
+      try {
+        return JSON.parse(v) as T;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        ctx.addIssue({ code: "custom", message: `${label}: invalid JSON (${msg})` });
+        return z.NEVER;
+      }
+    });
+
+const PERMISSION_MODES = ["default", "acceptEdits", "bypassPermissions", "plan"] as const;
+type PermissionMode = (typeof PERMISSION_MODES)[number];
+
+const permissionMode = z
+  .string()
+  .optional()
+  .transform((v, ctx): PermissionMode => {
+    const candidate = v && NON_EMPTY(v) ? v : "bypassPermissions";
+    if (!PERMISSION_MODES.includes(candidate as PermissionMode)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `permission_mode must be one of: ${PERMISSION_MODES.join(", ")} (got '${candidate}')`,
+      });
+      return z.NEVER;
+    }
+    return candidate as PermissionMode;
+  });
+
+const settingSources = z
+  .string()
+  .optional()
+  .transform((v): ("project" | "user")[] | undefined => {
+    const raw = v && NON_EMPTY(v) ? v : "project,user";
+    const parts = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(NON_EMPTY);
+    return parts.filter((p): p is "project" | "user" => p === "project" || p === "user");
+  });
+
+interface SystemPromptObject {
+  readonly type: "preset";
+  readonly preset: "claude_code";
+  readonly append?: string;
+}
+
+const systemPrompt = z
+  .string()
+  .optional()
+  .transform((v, ctx): string | SystemPromptObject | undefined => {
+    if (v === undefined) return { type: "preset", preset: "claude_code" };
+    if (v.length === 0) return undefined;
+    if (!v.startsWith("{")) return v;
+    try {
+      const parsed = JSON.parse(v) as unknown;
+      if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        "type" in parsed &&
+        (parsed as { type: unknown }).type === "preset"
+      ) {
+        return parsed as SystemPromptObject;
+      }
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "system_prompt: object form must be `{ type: 'preset', preset: 'claude_code', append?: string }`",
+      });
+      return z.NEVER;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ctx.addIssue({ code: "custom", message: `system_prompt: invalid JSON (${msg})` });
+      return z.NEVER;
+    }
+  });
+
+export const inputsSchema = z.object({
+  prompt: z.string().min(1, "prompt is required"),
+  model: optionalNonEmpty,
+  cwd: optionalNonEmpty,
+  system_prompt: systemPrompt,
+  max_turns: optionalNumber,
+  allowed_tools: optionalCsv,
+  mcp_servers: optionalJson<Record<string, unknown>>("mcp_servers"),
+  permission_mode: permissionMode,
+  setting_sources: settingSources,
+  resume_session_id: optionalNonEmpty,
+  fallback_model: optionalNonEmpty,
+  max_budget_usd: optionalNumber,
+  path_to_claude_code_executable: optionalNonEmpty,
+});
+
+export type ParsedInputs = z.infer<typeof inputsSchema>;
+
+export function parseInputs(raw: Readonly<Record<string, string>>): ParsedInputs {
+  const result = inputsSchema.safeParse(raw);
+  if (result.success) return result.data;
+  const issues = result.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
+  throw new Error(`invalid action inputs:\n${issues}`);
+}
+```
+
+- [ ] **Step 3.7: Write `inputs.test.ts`**
+
+Create `actions/claude/agent/tests/inputs.test.ts`:
+
+```ts
+/**
+ * Unit tests for `parseInputs`. Covers: required fields, optional
+ * passthrough, CSV → array, JSON → object, system_prompt forms,
+ * permission_mode default, error aggregation.
+ */
+
+import { describe, expect, test } from "vite-plus/test";
+
+import { parseInputs } from "../src/inputs.ts";
+
+const minimal = { prompt: "hi" } as const;
+
+describe("parseInputs", () => {
+  test("requires `prompt`", () => {
+    expect(() => parseInputs({} as Readonly<Record<string, string>>)).toThrow(/prompt/);
+  });
+
+  test("returns minimal valid inputs with defaults applied", () => {
+    const out = parseInputs(minimal);
+    expect(out.prompt).toBe("hi");
+    expect(out.permission_mode).toBe("bypassPermissions");
+    expect(out.setting_sources).toEqual(["project", "user"]);
+    expect(out.system_prompt).toEqual({ type: "preset", preset: "claude_code" });
+    expect(out.allowed_tools).toBeUndefined();
+    expect(out.max_turns).toBeUndefined();
+  });
+
+  test("parses allowed_tools CSV into a trimmed array", () => {
+    const out = parseInputs({ ...minimal, allowed_tools: "Read, Grep ,Bash" });
+    expect(out.allowed_tools).toEqual(["Read", "Grep", "Bash"]);
+  });
+
+  test("treats empty allowed_tools as unset", () => {
+    const out = parseInputs({ ...minimal, allowed_tools: "" });
+    expect(out.allowed_tools).toBeUndefined();
+  });
+
+  test("parses mcp_servers JSON into an object", () => {
+    const out = parseInputs({
+      ...minimal,
+      mcp_servers: '{"fs": {"command": "fs-mcp-server"}}',
+    });
+    expect(out.mcp_servers).toEqual({ fs: { command: "fs-mcp-server" } });
+  });
+
+  test("rejects invalid mcp_servers JSON", () => {
+    expect(() => parseInputs({ ...minimal, mcp_servers: "{not json" })).toThrow(
+      /mcp_servers.*invalid JSON/,
+    );
+  });
+
+  test("treats empty system_prompt string as `no system prompt at all`", () => {
+    const out = parseInputs({ ...minimal, system_prompt: "" });
+    expect(out.system_prompt).toBeUndefined();
+  });
+
+  test("accepts a custom string system_prompt", () => {
+    const out = parseInputs({ ...minimal, system_prompt: "You are pedantic." });
+    expect(out.system_prompt).toBe("You are pedantic.");
+  });
+
+  test("accepts the preset object form with an append clause", () => {
+    const json = JSON.stringify({ type: "preset", preset: "claude_code", append: "extra" });
+    const out = parseInputs({ ...minimal, system_prompt: json });
+    expect(out.system_prompt).toEqual({ type: "preset", preset: "claude_code", append: "extra" });
+  });
+
+  test("rejects unknown permission_mode values", () => {
+    expect(() => parseInputs({ ...minimal, permission_mode: "lol" })).toThrow(/permission_mode/);
+  });
+
+  test("parses max_turns and max_budget_usd as numbers", () => {
+    const out = parseInputs({ ...minimal, max_turns: "5", max_budget_usd: "1.50" });
+    expect(out.max_turns).toBe(5);
+    expect(out.max_budget_usd).toBe(1.5);
+  });
+
+  test("rejects non-numeric max_turns", () => {
+    expect(() => parseInputs({ ...minimal, max_turns: "five" })).toThrow(/not a finite number/);
+  });
+
+  test("aggregates multiple errors in a single message", () => {
+    expect(() =>
+      parseInputs({ prompt: "", max_turns: "x", permission_mode: "wat" } as Readonly<
+        Record<string, string>
+      >),
+    ).toThrow(/prompt.*not a finite number.*permission_mode/s);
+  });
+});
+```
+
+- [ ] **Step 3.8: Run input tests**
+
+```bash
+cd actions/claude/agent && vp test inputs
+```
+
+Expected: 13 passing tests.
+
+- [ ] **Step 3.9: Run typecheck + lint for the package**
+
+```bash
+cd actions/claude/agent && vp check
+```
+
+Expected: clean (no type errors, no lint warnings).
+
+- [ ] **Step 3.10: Commit**
+
+```bash
+git add actions/claude/agent/src/types.ts \
+        actions/claude/agent/src/which.ts \
+        actions/claude/agent/src/bin-resolver.ts \
+        actions/claude/agent/src/inputs.ts \
+        actions/claude/agent/tests/bin-resolver.test.ts \
+        actions/claude/agent/tests/inputs.test.ts
+
+git commit -m "$(cat <<'EOF'
+feat(claude-agent): inputs parsing + claude binary resolution
+
+Add the input-parsing layer (Zod schema covering 13 GHA-style string
+inputs, with CSV/JSON coercion and aggregated error messages) and the
+`resolveClaudeBinary` helper that locates the user's local `claude`
+binary via input override, env override, or PATH lookup.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 4 — `usage.ts`, `transcript.ts` (MS1.3.3)
+
+**Files:**
+
+- Create: `actions/claude/agent/src/usage.ts`
+- Create: `actions/claude/agent/src/transcript.ts`
+- Create: `actions/claude/agent/tests/usage.test.ts`
+- Create: `actions/claude/agent/tests/transcript.test.ts`
+
+### Steps
+
+- [ ] **Step 4.1: Write `usage.ts`**
+
+Create `actions/claude/agent/src/usage.ts`:
+
+```ts
+/**
+ * Builds the `usage` JSON payload from a Claude Agent SDK `result`
+ * event. Tolerant of missing fields — the SDK guarantees `usage`
+ * exists but several sub-fields are optional and we default to 0.
+ *
+ * Shape mirrors what Archon's `normalizeClaudeUsage` produces, with
+ * extras (`cost_usd`, `num_turns`, `model_usage`) folded in.
+ *
+ * Contents:
+ * - `UsageJson` — output type.
+ * - `buildUsage(resultEvent)` — main builder.
+ */
+
+interface RawUsage {
+  readonly input_tokens?: number;
+  readonly output_tokens?: number;
+  readonly total_tokens?: number;
+  readonly cache_read_input_tokens?: number;
+  readonly cache_creation_input_tokens?: number;
+}
+
+interface RawResultEvent {
+  readonly usage?: RawUsage;
+  readonly total_cost_usd?: number;
+  readonly num_turns?: number;
+  readonly model_usage?: Readonly<Record<string, RawUsage>>;
+}
+
+export interface UsageJson {
+  readonly input: number;
+  readonly output: number;
+  readonly total: number;
+  readonly cost_usd: number;
+  readonly num_turns: number;
+  readonly model_usage: Readonly<Record<string, RawUsage>>;
+}
+
+export function buildUsage(result: RawResultEvent): UsageJson {
+  const u = result.usage ?? {};
+  const input = u.input_tokens ?? 0;
+  const output = u.output_tokens ?? 0;
+  const total = u.total_tokens ?? input + output;
+  return {
+    input,
+    output,
+    total,
+    cost_usd: result.total_cost_usd ?? 0,
+    num_turns: result.num_turns ?? 0,
+    model_usage: result.model_usage ?? {},
+  };
+}
+```
+
+- [ ] **Step 4.2: Write `usage.test.ts`**
+
+Create `actions/claude/agent/tests/usage.test.ts`:
+
+```ts
+/**
+ * Unit tests for `buildUsage`. Covers: missing fields default to 0,
+ * total falls back to input+output, model_usage passthrough.
+ */
+
+import { describe, expect, test } from "vite-plus/test";
+
+import { buildUsage } from "../src/usage.ts";
+
+describe("buildUsage", () => {
+  test("zeros out all fields when result is empty", () => {
+    expect(buildUsage({})).toEqual({
+      input: 0,
+      output: 0,
+      total: 0,
+      cost_usd: 0,
+      num_turns: 0,
+      model_usage: {},
+    });
+  });
+
+  test("maps the standard result shape", () => {
+    const result = buildUsage({
+      usage: { input_tokens: 100, output_tokens: 200, total_tokens: 300 },
+      total_cost_usd: 0.05,
+      num_turns: 3,
+      model_usage: { "claude-sonnet-4-6": { input_tokens: 100, output_tokens: 200 } },
+    });
+    expect(result).toEqual({
+      input: 100,
+      output: 200,
+      total: 300,
+      cost_usd: 0.05,
+      num_turns: 3,
+      model_usage: { "claude-sonnet-4-6": { input_tokens: 100, output_tokens: 200 } },
+    });
+  });
+
+  test("computes total = input + output when total_tokens is missing", () => {
+    const result = buildUsage({ usage: { input_tokens: 10, output_tokens: 5 } });
+    expect(result.total).toBe(15);
+  });
+});
+```
+
+- [ ] **Step 4.3: Run usage tests**
+
+```bash
+cd actions/claude/agent && vp test usage
+```
+
+Expected: 3 passing tests.
+
+- [ ] **Step 4.4: Write `transcript.ts`**
+
+Create `actions/claude/agent/src/transcript.ts`:
+
+```ts
+/**
+ * Caps a JSON-serialized transcript at <1 MiB so it fits in a single
+ * FD3 protocol frame (parent-side limit defined in
+ * `packages/runtime/src/runner/uses/protocol.ts:58`).
+ *
+ * Strategy: if the input fits, return it verbatim. Otherwise truncate
+ * to MAX_BYTES minus a small marker and append `…[truncated]`. The
+ * truncated string is no longer valid JSON, but downstream consumers
+ * read it as an opaque string with a sentinel suffix.
+ *
+ * Contents:
+ * - `MAX_BYTES` — cap (slightly under 1 MiB to leave room for framing).
+ * - `capToOneMiB(json)` — main entry.
+ */
+
+const MAX_BYTES = 1024 * 1024 - 4096;
+const MARKER = "…[truncated]";
+
+export function capToOneMiB(json: string): string {
+  const byteLength = Buffer.byteLength(json, "utf8");
+  if (byteLength <= MAX_BYTES) return json;
+  const target = MAX_BYTES - Buffer.byteLength(MARKER, "utf8");
+  // Truncate by character count first; trim down further if multi-byte
+  // characters push us back over the cap.
+  let cut = json.slice(0, target);
+  while (Buffer.byteLength(cut, "utf8") > target) {
+    cut = cut.slice(0, -1);
+  }
+  return `${cut}${MARKER}`;
+}
+```
+
+- [ ] **Step 4.5: Write `transcript.test.ts`**
+
+Create `actions/claude/agent/tests/transcript.test.ts`:
+
+```ts
+/**
+ * Unit tests for `capToOneMiB`. Covers: pass-through under cap,
+ * truncation marker over cap, multi-byte safety.
+ */
+
+import { describe, expect, test } from "vite-plus/test";
+
+import { capToOneMiB } from "../src/transcript.ts";
+
+describe("capToOneMiB", () => {
+  test("returns the input unchanged when under the cap", () => {
+    const small = JSON.stringify({ ok: "yes" });
+    expect(capToOneMiB(small)).toBe(small);
+  });
+
+  test("truncates and appends the marker when over the cap", () => {
+    const big = "x".repeat(2 * 1024 * 1024);
+    const out = capToOneMiB(big);
+    expect(out.endsWith("…[truncated]")).toBe(true);
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(1024 * 1024 - 4096);
+  });
+
+  test("handles multi-byte characters at the truncation boundary", () => {
+    const big = "é".repeat(2 * 1024 * 1024);
+    const out = capToOneMiB(big);
+    expect(out.endsWith("…[truncated]")).toBe(true);
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(1024 * 1024 - 4096);
+  });
+});
+```
+
+- [ ] **Step 4.6: Run transcript tests**
+
+```bash
+cd actions/claude/agent && vp test transcript
+```
+
+Expected: 3 passing tests.
+
+- [ ] **Step 4.7: Run all package tests + check**
+
+```bash
+cd actions/claude/agent && vp test && vp check
+```
+
+Expected: all passing, no lint or type errors.
+
+- [ ] **Step 4.8: Commit**
+
+```bash
+git add actions/claude/agent/src/usage.ts \
+        actions/claude/agent/src/transcript.ts \
+        actions/claude/agent/tests/usage.test.ts \
+        actions/claude/agent/tests/transcript.test.ts
+
+git commit -m "$(cat <<'EOF'
+feat(claude-agent): usage normalizer + transcript size cap
+
+Add `buildUsage` (flattens the SDK `result` event into a
+JSON-serializable payload with sensible defaults) and `capToOneMiB`
+(truncates a transcript JSON to fit in a single FD3 frame, with a
+multi-byte-safe boundary).
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 5 — `main.ts` + integration tests (MS1.3.4)
+
+**Files:**
+
+- Create: `actions/claude/agent/src/main.ts`
+- Create: `actions/claude/agent/tests/main.test.ts`
+
+### Steps
+
+- [ ] **Step 5.1: Write `main.ts`**
+
+Create `actions/claude/agent/src/main.ts`:
+
+```ts
+/**
+ * Action entry-point: called by the AIactions runtime loader after it
+ * has read `{ inputs }` from stdin and built `ctx`. Drives the Claude
+ * Agent SDK's `query()` to completion, surfaces incremental progress
+ * via `ctx.log`, and emits final outputs via `ctx.emitOutput`.
+ *
+ * Throws on terminal errors (missing binary, SDK error, agent reported
+ * is_error). The loader catches the throw and emits an error frame.
+ *
+ * Contents:
+ * - `run(ctx)` — entry-point exported to the loader.
+ * - Local helpers (event dispatch, abort wiring) inlined.
+ */
+
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+import { resolveClaudeBinary } from "./bin-resolver.ts";
+import { parseInputs, type ParsedInputs } from "./inputs.ts";
+import { capToOneMiB } from "./transcript.ts";
+import type { ActionContext } from "./types.ts";
+import { buildUsage } from "./usage.ts";
+
+interface AssistantBlockText {
+  readonly type: "text";
+  readonly text: string;
+}
+interface AssistantBlockToolUse {
+  readonly type: "tool_use";
+  readonly name: string;
+  readonly input?: unknown;
+}
+type AssistantBlock = AssistantBlockText | AssistantBlockToolUse | { readonly type: string };
+
+interface AssistantEvent {
+  readonly type: "assistant";
+  readonly message: { readonly content?: readonly AssistantBlock[] };
+}
+interface SystemEvent {
+  readonly type: "system";
+  readonly subtype?: string;
+  readonly mcp_servers?: readonly { readonly name: string; readonly status: string }[];
+}
+interface RateLimitEvent {
+  readonly type: "rate_limit_event";
+  readonly rate_limit_info?: Readonly<Record<string, unknown>>;
+}
+interface ResultEvent {
+  readonly type: "result";
+  readonly session_id?: string;
+  readonly is_error?: boolean;
+  readonly subtype?: string;
+  readonly stop_reason?: string | null;
+  readonly errors?: readonly string[];
+  readonly usage?: {
+    readonly input_tokens?: number;
+    readonly output_tokens?: number;
+    readonly total_tokens?: number;
+  };
+  readonly total_cost_usd?: number;
+  readonly num_turns?: number;
+  readonly model_usage?: Readonly<
+    Record<string, { readonly input_tokens?: number; readonly output_tokens?: number }>
+  >;
+}
+type SdkEvent =
+  | AssistantEvent
+  | SystemEvent
+  | RateLimitEvent
+  | ResultEvent
+  | { readonly type: string };
+
+export async function run(ctx: ActionContext): Promise<void> {
+  const inputs = parseInputs(ctx.inputs);
+  const claudePath = resolveClaudeBinary(inputs.path_to_claude_code_executable, ctx.env);
+  const controller = signalToController(ctx.signal);
+
+  const sdkOptions = buildSdkOptions(inputs, ctx, claudePath, controller);
+
+  const transcript: SdkEvent[] = [];
+  let assistantText = "";
+  let result: ResultEvent | undefined;
+
+  try {
+    const events = query({ prompt: inputs.prompt, options: sdkOptions });
+    for await (const event of events as AsyncIterable<SdkEvent>) {
+      if (ctx.signal.aborted) break;
+      transcript.push(event);
+
+      if (event.type === "assistant") {
+        const e = event as AssistantEvent;
+        for (const block of e.message.content ?? []) {
+          if (block.type === "text") {
+            const text = (block as AssistantBlockText).text;
+            if (text.length > 0) {
+              assistantText += text;
+              ctx.log("info", `[assistant] ${text}`);
+            }
+          } else if (block.type === "tool_use") {
+            const tu = block as AssistantBlockToolUse;
+            ctx.log("debug", `[tool_use] ${tu.name} ${JSON.stringify(tu.input ?? {})}`);
+          }
+        }
+      } else if (event.type === "system") {
+        const e = event as SystemEvent;
+        if (e.subtype === "init" && Array.isArray(e.mcp_servers)) {
+          const failed = e.mcp_servers.filter((s) => s.status !== "connected");
+          if (failed.length > 0) {
+            const list = failed.map((s) => `${s.name}(${s.status})`).join(", ");
+            ctx.log("warn", `MCP server(s) failed to connect: ${list}`);
+          }
+        }
+      } else if (event.type === "rate_limit_event") {
+        const e = event as RateLimitEvent;
+        ctx.log("warn", `rate_limit: ${JSON.stringify(e.rate_limit_info ?? {})}`);
+      } else if (event.type === "result") {
+        result = event as ResultEvent;
+      }
+    }
+  } finally {
+    // Always emit whatever we have, even on abort/throw, so the user
+    // can inspect `outputs.transcript` for diagnosis.
+    if (result !== undefined) {
+      ctx.emitOutput("text", assistantText);
+      ctx.emitOutput("session_id", result.session_id ?? "");
+      ctx.emitOutput("stop_reason", result.stop_reason ?? "");
+      ctx.emitOutput("is_error", result.is_error ? "true" : "false");
+      ctx.emitOutput("usage", JSON.stringify(buildUsage(result)));
+      ctx.emitOutput("transcript", capToOneMiB(JSON.stringify(transcript)));
+    }
+  }
+
+  if (!result) {
+    throw new Error("agent stream ended without a `result` event");
+  }
+  if (result.is_error) {
+    const subtype = result.subtype ?? "?";
+    const errs = Array.isArray(result.errors) ? result.errors.join("; ") : "";
+    throw new Error(`agent reported error (subtype=${subtype})${errs ? `: ${errs}` : ""}`);
+  }
+}
+
+function signalToController(signal: AbortSignal): AbortController {
+  const controller = new AbortController();
+  if (signal.aborted) {
+    controller.abort();
+  } else {
+    signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  return controller;
+}
+
+function buildSdkOptions(
+  inputs: ParsedInputs,
+  ctx: ActionContext,
+  claudePath: string,
+  controller: AbortController,
+): Record<string, unknown> {
+  const options: Record<string, unknown> = {
+    cwd: inputs.cwd ?? ctx.cwd,
+    permissionMode: inputs.permission_mode,
+    allowDangerouslySkipPermissions: inputs.permission_mode === "bypassPermissions",
+    settingSources: inputs.setting_sources,
+    pathToClaudeCodeExecutable: claudePath,
+    executable: "node",
+    env: ctx.env as Record<string, string>,
+    abortController: controller,
+    stderr: (data: string) => {
+      const trimmed = data.trim();
+      if (trimmed.length > 0) ctx.log("debug", `[stderr] ${trimmed}`);
+    },
+  };
+  if (inputs.model !== undefined) options.model = inputs.model;
+  if (inputs.system_prompt !== undefined) options.systemPrompt = inputs.system_prompt;
+  if (inputs.max_turns !== undefined) options.maxTurns = inputs.max_turns;
+  if (inputs.allowed_tools !== undefined) options.allowedTools = inputs.allowed_tools;
+  if (inputs.mcp_servers !== undefined) options.mcpServers = inputs.mcp_servers;
+  if (inputs.resume_session_id !== undefined) options.resume = inputs.resume_session_id;
+  if (inputs.fallback_model !== undefined) options.fallbackModel = inputs.fallback_model;
+  if (inputs.max_budget_usd !== undefined) options.maxBudgetUsd = inputs.max_budget_usd;
+  return options;
+}
+```
+
+- [ ] **Step 5.2: Write `main.test.ts` (with mocked SDK)**
+
+Create `actions/claude/agent/tests/main.test.ts`:
+
+```ts
+/**
+ * Integration tests for `run(ctx)`. Mocks the `query()` import from
+ * `@anthropic-ai/claude-agent-sdk` to yield scripted event sequences,
+ * captures the FD3 frames the action emits via the test ctx, and
+ * asserts the final outputs.
+ */
+
+import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
+
+import { whichSync } from "../src/which.ts";
+
+vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
+  query: vi.fn(),
+}));
+
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import { run } from "../src/main.ts";
+import type { ActionContext, LogLevel } from "../src/types.ts";
+
+interface CapturedFrame {
+  readonly kind: "output" | "log";
+  readonly name?: string;
+  readonly value?: string;
+  readonly level?: LogLevel;
+  readonly message?: string;
+}
+
+function makeCtx(inputs: Readonly<Record<string, string>>): {
+  ctx: ActionContext;
+  frames: CapturedFrame[];
+  controller: AbortController;
+} {
+  const frames: CapturedFrame[] = [];
+  const controller = new AbortController();
+  // Cheap fake binary — bin-resolver only needs a non-empty string.
+  const env: NodeJS.ProcessEnv = { PATH: "", AIACTIONS_CLAUDE_BIN: "/usr/bin/true" };
+  const ctx: ActionContext = {
+    inputs,
+    env,
+    cwd: "/tmp",
+    signal: controller.signal,
+    emitOutput: (name, value) => {
+      frames.push({ kind: "output", name, value });
+    },
+    log: (level, message) => {
+      frames.push({ kind: "log", level, message });
+    },
+  };
+  return { ctx, frames, controller };
+}
+
+async function* events(seq: readonly unknown[]): AsyncGenerator<unknown> {
+  for (const e of seq) yield e;
+}
+
+const baseResult = {
+  type: "result" as const,
+  session_id: "sess-1",
+  is_error: false,
+  subtype: "end_turn",
+  stop_reason: "end_turn",
+  usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
+  total_cost_usd: 0.001,
+  num_turns: 1,
+};
+
+beforeEach(() => {
+  vi.mocked(query).mockReset();
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("run", () => {
+  test("emits text + session_id + usage on a happy-path run", async () => {
+    vi.mocked(query).mockReturnValueOnce(
+      events([
+        {
+          type: "assistant",
+          message: { content: [{ type: "text", text: "Hello world." }] },
+        },
+        baseResult,
+      ]) as never,
+    );
+
+    const { ctx, frames } = makeCtx({ prompt: "say hi" });
+    await run(ctx);
+
+    const out = (n: string): string | undefined =>
+      frames.find((f) => f.kind === "output" && f.name === n)?.value;
+    expect(out("text")).toBe("Hello world.");
+    expect(out("session_id")).toBe("sess-1");
+    expect(out("is_error")).toBe("false");
+    expect(out("stop_reason")).toBe("end_turn");
+    const usage = JSON.parse(out("usage")!);
+    expect(usage).toEqual({
+      input: 10,
+      output: 5,
+      total: 15,
+      cost_usd: 0.001,
+      num_turns: 1,
+      model_usage: {},
+    });
+  });
+
+  test("logs tool_use blocks at debug level", async () => {
+    vi.mocked(query).mockReturnValueOnce(
+      events([
+        {
+          type: "assistant",
+          message: {
+            content: [
+              { type: "tool_use", name: "Read", input: { path: "src/main.ts" } },
+              { type: "text", text: "ok." },
+            ],
+          },
+        },
+        baseResult,
+      ]) as never,
+    );
+    const { ctx, frames } = makeCtx({ prompt: "do work" });
+    await run(ctx);
+
+    const debug = frames.filter((f) => f.kind === "log" && f.level === "debug");
+    expect(debug.some((f) => f.message?.includes("[tool_use] Read"))).toBe(true);
+  });
+
+  test("warns when MCP servers fail to connect", async () => {
+    vi.mocked(query).mockReturnValueOnce(
+      events([
+        {
+          type: "system",
+          subtype: "init",
+          mcp_servers: [
+            { name: "fs", status: "connected" },
+            { name: "git", status: "failed" },
+          ],
+        },
+        baseResult,
+      ]) as never,
+    );
+    const { ctx, frames } = makeCtx({ prompt: "p" });
+    await run(ctx);
+
+    const warns = frames.filter((f) => f.kind === "log" && f.level === "warn");
+    expect(warns.some((f) => f.message?.includes("git(failed)"))).toBe(true);
+  });
+
+  test("throws when agent reports is_error and still emits outputs", async () => {
+    vi.mocked(query).mockReturnValueOnce(
+      events([
+        {
+          ...baseResult,
+          is_error: true,
+          subtype: "tool_error",
+          errors: ["tool failed"],
+        },
+      ]) as never,
+    );
+    const { ctx, frames } = makeCtx({ prompt: "p" });
+    await expect(run(ctx)).rejects.toThrow(/agent reported error.*tool_error/);
+
+    expect(frames.find((f) => f.kind === "output" && f.name === "is_error")?.value).toBe("true");
+    expect(frames.find((f) => f.kind === "output" && f.name === "transcript")).toBeDefined();
+  });
+
+  test("throws when the stream ends without a result event", async () => {
+    vi.mocked(query).mockReturnValueOnce(events([]) as never);
+    const { ctx } = makeCtx({ prompt: "p" });
+    await expect(run(ctx)).rejects.toThrow(/without a `result` event/);
+  });
+
+  test("breaks the loop on signal abort and still emits whatever it has", async () => {
+    const { ctx, frames, controller } = makeCtx({ prompt: "p" });
+    vi.mocked(query).mockImplementationOnce((() =>
+      (async function* () {
+        yield {
+          type: "assistant",
+          message: { content: [{ type: "text", text: "partial " }] },
+        };
+        controller.abort();
+        yield {
+          type: "assistant",
+          message: { content: [{ type: "text", text: "should not arrive" }] },
+        };
+        yield baseResult;
+      })()) as never);
+
+    await expect(run(ctx)).rejects.toThrow(/without a `result` event/);
+    // Outputs are NOT emitted because we never saw a `result` — the
+    // finally block guards on `result !== undefined`.
+    expect(frames.find((f) => f.kind === "output" && f.name === "text")).toBeUndefined();
+  });
+
+  test("rejects with a friendly error when the binary cannot be resolved", async () => {
+    const { ctx } = makeCtx({ prompt: "p" });
+    // override env to remove the fake-binary fallback
+    (ctx as { env: NodeJS.ProcessEnv }).env = { PATH: "/nonexistent" };
+    await expect(run(ctx)).rejects.toThrow(/claude.*not found/);
+    expect(query).not.toHaveBeenCalled();
+  });
+});
+```
+
+(`whichSync` is imported only to ensure the test module bundles it; the import has no runtime side-effect once `vi.mock` rewrites `@anthropic-ai/claude-agent-sdk`. If your linter complains, drop the import.)
+
+- [ ] **Step 5.3: Run all action tests**
+
+```bash
+cd actions/claude/agent && vp test
+```
+
+Expected: all 7 main.test cases + 13 inputs + 5 bin-resolver + 3 usage + 3 transcript tests pass.
+
+- [ ] **Step 5.4: Run typecheck + lint**
+
+```bash
+cd actions/claude/agent && vp check
+```
+
+Expected: clean.
+
+- [ ] **Step 5.5: Commit**
+
+```bash
+git add actions/claude/agent/src/main.ts \
+        actions/claude/agent/tests/main.test.ts
+
+git commit -m "$(cat <<'EOF'
+feat(claude-agent): wire run(ctx) through the Claude Agent SDK
+
+Implement `run(ctx)` end-to-end against `query()`: maps inputs to SDK
+options, drives the event stream, surfaces assistant text + tool_use +
+MCP failures + rate-limit warnings as FD3 logs, captures the final
+`result` event into the `text`, `session_id`, `usage`, and `transcript`
+outputs.
+
+Mocks the SDK in tests to assert the FD3 frame shape on happy paths,
+abort, MCP failures, and is_error variants.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 6 — Build `dist/main.mjs` + runtime end-to-end test (MS1.3.5)
+
+**Files:**
+
+- Create: `actions/claude/agent/dist/main.mjs` (build artifact, committed)
+- Create: `packages/runtime/tests/runner-uses-claude-agent.test.ts`
+
+### Steps
+
+- [ ] **Step 6.1: Build the action**
+
+```bash
+cd actions/claude/agent && bun run build
+```
+
+Expected: `dist/main.mjs` is created. Inspect:
+
+```bash
+ls -la dist/
+node -e "import('./dist/main.mjs').then(m => console.log('exports:', Object.keys(m)))"
+```
+
+The exports list must include `run`. The file size should be in the low hundreds of KB (SDK + zod inlined; no platform binaries).
+
+- [ ] **Step 6.2: Write the runtime end-to-end test**
+
+Create `packages/runtime/tests/runner-uses-claude-agent.test.ts`:
+
+```ts
+/**
+ * End-to-end test: runs the bundled `actions/claude/agent/dist/main.mjs`
+ * through `executeUsesStep`, with the SDK's `query` mocked at the
+ * action-bundle level.
+ *
+ * Strategy: copy the action package's `dist/main.mjs` into a temporary
+ * action directory under a fresh `aiaction.yaml`, replacing the
+ * `import { query } from "@anthropic-ai/claude-agent-sdk"` with a tiny
+ * inlined fake. This avoids depending on the user's local `claude`
+ * binary in CI.
+ *
+ * If the bundled output's import shape changes, update the
+ * REPLACE_PATTERN constant.
+ */
+
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { describe, expect, test } from "vite-plus/test";
+
+import { executeUsesStep } from "../src/runner/uses/exec.ts";
+import { resolveUsesRef } from "../src/runner/uses/resolver.ts";
+
+const POSIX = process.platform !== "win32";
+const ACTION_DIST = join(
+  import.meta.dirname,
+  "..",
+  "..",
+  "..",
+  "actions",
+  "claude",
+  "agent",
+  "dist",
+  "main.mjs",
+);
+
+const FAKE_QUERY_MODULE = `
+export function query(_args) {
+  return (async function* () {
+    yield {
+      type: "assistant",
+      message: { content: [{ type: "text", text: "Hi from fake." }] },
+    };
+    yield {
+      type: "result",
+      session_id: "sess-fake",
+      is_error: false,
+      subtype: "end_turn",
+      stop_reason: "end_turn",
+      usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+      total_cost_usd: 0,
+      num_turns: 1,
+    };
+  })();
+}
+`;
+
+function prepareFakeAction(): { dir: string; ref: string } {
+  const root = mkdtempSync(join(tmpdir(), "aiactions-claude-agent-e2e-"));
+  const actionDir = join(root, "actions", "claude", "agent");
+  mkdirSync(actionDir, { recursive: true });
+  writeFileSync(
+    join(actionDir, "aiaction.yaml"),
+    "schemaVersion: 1\nname: agent\ndescription: e2e fixture\nruns:\n  using: node\n  main: ./main.mjs\n",
+  );
+
+  // Read the bundle, replace the SDK import shim with our fake module.
+  const bundle = readFileSync(ACTION_DIST, "utf8");
+  // tsdown bundles the SDK inline. We splice the fake `query` by
+  // appending to the bundle and re-exporting; this works because the
+  // bundle uses the SDK's `query` as a free reference, not a re-import.
+  // If the bundle changes, edit this glue.
+  const stub = `${bundle}\n${FAKE_QUERY_MODULE}`;
+  writeFileSync(join(actionDir, "main.mjs"), stub);
+
+  // Also drop a fake `claude` binary on a synthetic PATH so the bin
+  // resolver doesn't blow up. The action never invokes it (the SDK is
+  // mocked), so a no-op shell script suffices.
+  const binDir = join(root, "bin");
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, "claude"), "#!/usr/bin/env sh\nexit 0\n");
+  // chmod +x — accessSync only checks the bit, so set it explicitly.
+  // eslint-disable-next-line no-bitwise
+  const { chmodSync } = require("node:fs");
+  chmodSync(join(binDir, "claude"), 0o755);
+
+  return { dir: root, ref: "claude/agent@v1" };
+}
+
+(POSIX ? describe : describe.skip)("runtime → claude/agent (e2e)", () => {
+  test("emits text + session_id + usage when SDK is stubbed", async () => {
+    const { dir, ref } = prepareFakeAction();
+    const env = { ...process.env, PATH: join(dir, "bin"), AIACTIONS_CLAUDE_BIN: undefined };
+
+    const resolved = await resolveUsesRef({ raw: ref }, { registryRoot: join(dir, "actions") });
+    const result = await executeUsesStep({
+      resolved,
+      jobId: "j",
+      stepIndex: 0,
+      inputs: { prompt: "hi" },
+      env,
+    });
+
+    expect(result.status).toBe("succeeded");
+    expect(result.outputs.text).toBe("Hi from fake.");
+    expect(result.outputs.session_id).toBe("sess-fake");
+    expect(result.outputs.is_error).toBe("false");
+    expect(JSON.parse(result.outputs.usage)).toMatchObject({ input: 1, output: 1, total: 2 });
+  });
+});
+```
+
+(If the bundle's structure prevents the simple "concat fake module" trick, switch to a sub-bundle that imports from a sibling `_sdk.mjs` and inject the fake there. The exact wiring may need a follow-up tweak after seeing the real `dist/main.mjs` output.)
+
+- [ ] **Step 6.3: Run the runtime end-to-end test**
+
+```bash
+cd packages/runtime && vp test runner-uses-claude-agent
+```
+
+Expected: 1 passing test.
+
+- [ ] **Step 6.4: Run the full ready gate**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions && bun run ready
+```
+
+Expected: all green.
+
+- [ ] **Step 6.5: Commit**
+
+```bash
+git add actions/claude/agent/dist/main.mjs \
+        packages/runtime/tests/runner-uses-claude-agent.test.ts
+
+git commit -m "$(cat <<'EOF'
+feat(claude-agent): build dist/main.mjs and add runtime e2e test
+
+Bundle the action via `tsdown` (SDK + zod inlined; no platform binaries).
+The committed `dist/main.mjs` is what registry-fetch (MS1.2) lands on
+the user's machine; it runs against the user's local `claude` binary
+without any npm install step.
+
+Add `packages/runtime/tests/runner-uses-claude-agent.test.ts`: drives
+the full `step.uses` path through `executeUsesStep` against a fake
+action that splices a stubbed `query()` into the bundle. Confirms FD3
+outputs flow back as expected.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 7 — README, example workflow, manual smoke, PR (MS1.3.6)
+
+**Files:**
+
+- Create: `actions/claude/agent/README.md`
+- Create: `workflows/examples/claude-agent.yaml`
+
+### Steps
+
+- [ ] **Step 7.1: Write the action README**
+
+Create `actions/claude/agent/README.md`:
+
+````markdown
+# `claude/agent`
+
+Run a Claude Code agent loop as a workflow step.
+
+`claude/agent` is the foundational [AIaction](https://github.com/aperrix/aiactions) wrapping
+[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk).
+Given a prompt, it spawns the agent in `cwd`, runs the tool-use loop, and
+emits the final assistant text, session id, transcript, and usage as
+step outputs.
+
+## Prerequisites
+
+- Node.js ≥ 22.12.0.
+- The user must have the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/setup)
+  installed and authenticated:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude login
+```
+````
+
+(Alternatively: set `ANTHROPIC_API_KEY` in the workflow environment
+and the SDK will use it directly.)
+
+## Usage
+
+```yaml
+jobs:
+  ask-claude:
+    runs-on: local
+    steps:
+      - name: Plan the change
+        id: plan
+        uses: claude/agent@v1
+        with:
+          prompt: "Outline the steps to add a `--verbose` flag to the CLI."
+          model: claude-sonnet-4-6
+          max_turns: "10"
+          allowed_tools: "Read,Grep,Glob"
+
+      - name: Show the plan
+        run: echo "${{ steps.plan.outputs.text }}"
+```
+
+## Inputs
+
+| Name                             | Default              | Description                                                                                                                 |
+| -------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `prompt` _(required)_            | —                    | The user prompt sent to the agent.                                                                                          |
+| `model`                          | SDK default          | Model id (e.g. `claude-sonnet-4-6`).                                                                                        |
+| `cwd`                            | step's cwd           | Working directory the agent operates in.                                                                                    |
+| `system_prompt`                  | preset `claude_code` | Custom string, or `{type:"preset",preset:"claude_code",append:"…"}` JSON. Empty string disables the system prompt entirely. |
+| `max_turns`                      | unset                | Maximum agent loop iterations.                                                                                              |
+| `allowed_tools`                  | unset (= all)        | CSV of tool names.                                                                                                          |
+| `mcp_servers`                    | unset                | JSON object mapping server name → config.                                                                                   |
+| `permission_mode`                | `bypassPermissions`  | `default \| acceptEdits \| bypassPermissions \| plan`.                                                                      |
+| `setting_sources`                | `project,user`       | CSV; must include `project` to load `CLAUDE.md`.                                                                            |
+| `resume_session_id`              | —                    | Resume an existing session id.                                                                                              |
+| `fallback_model`                 | —                    | Used if the primary model is overloaded.                                                                                    |
+| `max_budget_usd`                 | —                    | Hard cost cap.                                                                                                              |
+| `path_to_claude_code_executable` | resolved from PATH   | Override for the local `claude` binary.                                                                                     |
+
+## Outputs
+
+| Name          | Description                                                               |
+| ------------- | ------------------------------------------------------------------------- |
+| `text`        | Concatenated assistant text.                                              |
+| `session_id`  | Session id; pass back via `resume_session_id` later.                      |
+| `stop_reason` | `end_turn`, `max_turns`, `error`, etc.                                    |
+| `is_error`    | `"true"` or `"false"`.                                                    |
+| `usage`       | JSON: `{input, output, total, cost_usd, num_turns, model_usage}`.         |
+| `transcript`  | JSON array of every event chunk. Truncated to <1 MiB with `…[truncated]`. |
+
+## Auth
+
+`claude/agent` does not handle authentication. The SDK reads the
+local `claude` binary's existing login state (or `ANTHROPIC_API_KEY` if
+set). Run `claude login` once per machine.
+
+## Smoke test (manual)
+
+Set `ANTHROPIC_SMOKE=1` before running the action's tests to opt into
+the real-network smoke check:
+
+```bash
+ANTHROPIC_SMOKE=1 vp test smoke
+```
+
+````
+
+- [ ] **Step 7.2: Write the example workflow**
+
+Create `workflows/examples/claude-agent.yaml`:
+
+```yaml
+# Example workflow demonstrating `uses: claude/agent@v1`.
+#
+# Run with:
+#   vp run dev workflows/examples/claude-agent.yaml
+#
+# Prerequisites:
+#   - `claude` binary on PATH (`npm i -g @anthropic-ai/claude-code`).
+#   - Logged in (`claude login`) OR `ANTHROPIC_API_KEY` set.
+
+name: claude-agent-smoke
+on: workflow_dispatch
+
+jobs:
+  smoke:
+    runs-on: local
+    steps:
+      - name: Ask a trivial question
+        id: ask
+        uses: claude/agent@v1
+        with:
+          prompt: "Reply with the literal text: PONG"
+          model: claude-haiku-4-5
+          max_turns: "1"
+
+      - name: Echo the result
+        run: |
+          echo "Got: ${{ steps.ask.outputs.text }}"
+          echo "Session: ${{ steps.ask.outputs.session_id }}"
+````
+
+- [ ] **Step 7.3: Run the manual smoke**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions
+ANTHROPIC_SMOKE=1 vp run dev workflows/examples/claude-agent.yaml
+```
+
+Expected: the workflow runs end-to-end, the agent replies "PONG",
+`steps.ask.outputs.text` contains "PONG", and the session id is
+non-empty.
+
+If `vp run dev` does not yet exist (the `apps/website` dev entry-point
+isn't created), invoke the runtime directly via a tiny test driver
+or skip this step and rely on the e2e test from Task 6.
+
+- [ ] **Step 7.4: Run the full ready gate one last time**
+
+```bash
+cd /home/aperrix/Documents/PROJECTS/aiactions && bun run ready
+```
+
+Expected: green.
+
+- [ ] **Step 7.5: Commit docs + example**
+
+```bash
+git add actions/claude/agent/README.md \
+        workflows/examples/claude-agent.yaml
+
+git commit -m "$(cat <<'EOF'
+docs(claude-agent): README + example workflow
+
+Document inputs/outputs, the `claude login` prerequisite, and a
+copy-pastable workflow snippet. Add a runnable smoke workflow at
+`workflows/examples/claude-agent.yaml`.
+
+Refs: docs/superpowers/specs/2026-05-05-claude-agent-action-design.md
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+- [ ] **Step 7.6: Push the branch and open a PR**
+
+```bash
+git push -u origin feat/claude-agent-action
+
+gh pr create --title "feat(claude-agent): first public AIaction (MS1.3)" --body "$(cat <<'EOF'
+## Summary
+
+Ships `claude/agent@v1`, the first public AIaction in the AIactions
+registry. Thin wrapper over `@anthropic-ai/claude-agent-sdk`'s `query()`
+that delegates auth to the user's local `claude` binary.
+
+- New action at `actions/claude/agent/` (TS sources + bundled
+  `dist/main.mjs` committed).
+- Manifest schema rename `using: "bun-module" → "node"` (breaking, no
+  in-tree migration).
+- Runtime e2e test at `packages/runtime/tests/runner-uses-claude-agent.test.ts`.
+- Example workflow at `workflows/examples/claude-agent.yaml`.
+
+Spec: `docs/superpowers/specs/2026-05-05-claude-agent-action-design.md`.
+Plan: `docs/superpowers/plans/2026-05-05-claude-agent-action.md`.
+
+## Test plan
+
+- [x] `bun run ready` green.
+- [x] Action unit + integration tests (`vp test` in `actions/claude/agent`).
+- [x] Runtime e2e test (`vp test runner-uses-claude-agent` in `packages/runtime`).
+- [ ] Manual smoke via `workflows/examples/claude-agent.yaml`.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
+```
+
+---
+
+## Self-Review Checklist
+
+This section captures the review I (the planner) ran after writing the plan; the executor should not re-run it.
+
+**1. Spec coverage**
+
+| Spec section                        | Plan task                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| §6 Manifest schema rename           | Task 1 (steps 1.1–1.11)                                                                 |
+| §7 Action package layout            | Task 2 (steps 2.1–2.9)                                                                  |
+| §8 Manifest contract YAML           | Task 2 step 2.1                                                                         |
+| §9 main.ts data flow                | Task 5 step 5.1                                                                         |
+| §10 Binary resolution               | Task 3 (steps 3.2–3.5)                                                                  |
+| §11 Auth & ToS-compliance           | implicit — action does not touch auth (Task 5 main.ts)                                  |
+| §12 Error handling matrix           | Task 5 (main.ts try/finally + Task 5 step 5.2 tests cover each row)                     |
+| §13 Testing strategy — unit         | Tasks 3 + 4                                                                             |
+| §13 Testing strategy — integration  | Task 5                                                                                  |
+| §13 Testing strategy — e2e          | Task 6                                                                                  |
+| §13 Testing strategy — manual smoke | Task 7 step 7.3                                                                         |
+| §14 Build & publish                 | Task 6 step 6.1 + Task 7 step 7.6                                                       |
+| §15 Out of scope                    | not implemented (correctly)                                                             |
+| §16 Open questions                  | OQ2-OQ5 baked into defaults; OQ1 implicitly answered (no structured tool_calls channel) |
+| §17 Acceptance criteria             | each row maps to at least one task step                                                 |
+| §18 Sub-MS decomposition            | one task per sub-MS                                                                     |
+
+**2. Placeholder scan**
+
+- No "TBD", "TODO", "implement later" anywhere in the plan body. ✓
+- Every code-bearing step shows the exact code. ✓
+- Every command shows the exact command + expected output. ✓
+
+**3. Type / signature consistency**
+
+- `ActionContext` declared in Task 3 step 3.1, consumed in Task 5 step 5.1, mirrored by the test ctx in Task 5 step 5.2. ✓
+- `ParsedInputs` declared in Task 3 step 3.6, consumed in Task 5 step 5.1's `buildSdkOptions(inputs: ParsedInputs, ...)`. ✓
+- `UsageJson` declared in Task 4 step 4.1, consumed by Task 5 step 5.1's `buildUsage(result)`. ✓
+- `whichSync(name, env)` declared in Task 3 step 3.2, consumed by Task 3 step 3.3. ✓
+- `resolveClaudeBinary(inputOverride, env)` declared in Task 3 step 3.3, consumed by Task 5 step 5.1's `resolveClaudeBinary(inputs.path_to_claude_code_executable, ctx.env)`. ✓
+- All input field names match the manifest YAML in Task 2 step 2.1 and the Zod schema in Task 3 step 3.6 — both use snake_case YAML keys. ✓
+
+**4. Known gaps / executor follow-ups**
+
+- Task 6 step 6.2's "concat fake module" trick assumes the bundled `dist/main.mjs` exposes `query` as a free reference. If `tsdown` rewrites it (e.g. into a `_sdk_query` mangled symbol), the executor needs to switch the e2e wiring to use a build-time mock instead. Acceptable: this is the only fragile bit, and the executor will see the actual bundle output before writing the test.
+- Task 7 step 7.3 falls back gracefully if `vp run dev` is not yet wired (it isn't, per `apps/website` not existing). The executor can skip and rely on Task 6's e2e.
+
+End of plan.

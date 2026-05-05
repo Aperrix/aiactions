@@ -1,0 +1,76 @@
+schemaVersion: 1
+name: agent
+description: |
+  Run a Claude Code agent loop via @anthropic-ai/claude-agent-sdk.
+  Sends a prompt, executes the agent's tool-use loop in cwd, and
+  emits the final assistant text, session id, and usage as step
+  outputs. Auth is delegated to the user's local `claude` binary
+  (must already be logged in: `claude login`).
+
+runs:
+  using: node
+  main: ./dist/main.mjs
+
+inputs:
+  prompt:
+    description: User prompt sent to the agent.
+    required: true
+  model:
+    description: Claude model id (e.g. claude-sonnet-4-6). Defaults to the SDK default.
+  cwd:
+    description: Working directory the agent operates in. Defaults to the step's cwd.
+  system_prompt:
+    description: |
+      System prompt JSON. Either a string for a custom prompt, or
+      `{"type":"preset","preset":"claude_code","append":"…"}` to inherit
+      Claude Code's preset and optionally append guidance.
+    default: '{"type":"preset","preset":"claude_code"}'
+  max_turns:
+    description: Maximum agent loop iterations. Unset by default.
+  allowed_tools:
+    description: |
+      CSV of tool names to allow. Empty string = leave unset (the SDK
+      default `allow all` then applies). Non-empty = parsed as `string[]`.
+    default: ""
+  mcp_servers:
+    description: |
+      MCP servers JSON, mapping server name → McpServerConfig.
+      Empty string = no MCP.
+    default: ""
+  permission_mode:
+    description: default | acceptEdits | bypassPermissions | plan
+    default: "bypassPermissions"
+  setting_sources:
+    description: |
+      CSV of setting sources to load. Must include `project` to load
+      CLAUDE.md from cwd. SDK default is `[]`; we default to `project,user`
+      to match Archon's behavior.
+    default: "project,user"
+  resume_session_id:
+    description: Resume an existing session by id (chains across steps).
+  fallback_model:
+    description: Model used if primary returns 5xx / overloaded.
+  max_budget_usd:
+    description: Hard cap on session cost in USD.
+  path_to_claude_code_executable:
+    description: |
+      Override path to the local `claude` binary. Defaults to PATH lookup
+      (or `AIACTIONS_CLAUDE_BIN` env var if set).
+
+outputs:
+  text:
+    description: Concatenated assistant text from all `assistant.text` blocks.
+  session_id:
+    description: Session id; pass as `resume_session_id` in a later step.
+  stop_reason:
+    description: SDK stop reason (e.g. end_turn, max_turns, error).
+  is_error:
+    description: '"true" | "false".'
+  usage:
+    description: |
+      JSON string of {input, output, total, cost_usd, num_turns, model_usage}.
+  aborted:
+    description: |
+      `"true"` when the step was cancelled before a result event arrived
+      (SIGTERM, deadline, or workflow cancel). `"false"` when the agent
+      ran to completion. Independent of `is_error`.

@@ -12,6 +12,7 @@
     "check": "vp check"
   },
   "dependencies": {
-    "@aiactions/workflows": "workspace:*"
+    "@aiactions/workflows": "workspace:*",
+    "yaml": "^2.8.4"
   }
 }
