@@ -28230,19 +28230,6 @@ const optionalCsv = string().optional().transform((v) => {
 	if (!v || !NON_EMPTY(v)) return void 0;
 	return v.split(",").map((s) => s.trim()).filter(NON_EMPTY);
 });
-const optionalJson = (label) => string().optional().transform((v, ctx) => {
-	if (!v || !NON_EMPTY(v)) return void 0;
-	try {
-		return JSON.parse(v);
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		ctx.addIssue({
-			code: "custom",
-			message: `${label}: invalid JSON (${msg})`
-		});
-		return NEVER;
-	}
-});
 const PERMISSION_MODES = [
 	"default",
 	"acceptEdits",
@@ -28323,7 +28310,37 @@ const inputsSchema = object({
 	system_prompt: systemPrompt,
 	max_turns: optionalNumber,
 	allowed_tools: optionalCsv,
-	mcp_servers: optionalJson("mcp_servers"),
+	mcp_servers: string().optional().transform((v, ctx) => {
+		if (!v || !NON_EMPTY(v)) return void 0;
+		let parsed;
+		try {
+			parsed = JSON.parse(v);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			ctx.addIssue({
+				code: "custom",
+				message: `mcp_servers: invalid JSON (${msg})`
+			});
+			return NEVER;
+		}
+		if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+			ctx.addIssue({
+				code: "custom",
+				message: "mcp_servers: must be a JSON object"
+			});
+			return NEVER;
+		}
+		const record = parsed;
+		const stdioNames = Object.entries(record).filter(([, cfg]) => cfg !== null && typeof cfg === "object" && cfg.type === "stdio").map(([name]) => name);
+		if (stdioNames.length > 0) {
+			ctx.addIssue({
+				code: "custom",
+				message: `mcp_servers: stdio entries are not allowed (unsafe subprocess spawn vector): ` + stdioNames.map((n) => `'${n}'`).join(", ") + `. Use a network-type MCP server (sse, http) instead.`
+			});
+			return NEVER;
+		}
+		return record;
+	}),
 	permission_mode: permissionMode,
 	setting_sources: settingSources,
 	resume_session_id: optionalNonEmpty,

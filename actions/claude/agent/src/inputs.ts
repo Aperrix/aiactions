@@ -47,21 +47,6 @@ const optionalCsv = z
       .filter(NON_EMPTY);
   });
 
-const optionalJson = <T>(label: string) =>
-  z
-    .string()
-    .optional()
-    .transform((v, ctx): T | undefined => {
-      if (!v || !NON_EMPTY(v)) return undefined;
-      try {
-        return JSON.parse(v) as T;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        ctx.addIssue({ code: "custom", message: `${label}: invalid JSON (${msg})` });
-        return z.NEVER;
-      }
-    });
-
 const PERMISSION_MODES = ["default", "acceptEdits", "bypassPermissions", "plan"] as const;
 type PermissionMode = (typeof PERMISSION_MODES)[number];
 
@@ -159,7 +144,44 @@ export const inputsSchema = z.object({
   system_prompt: systemPrompt,
   max_turns: optionalNumber,
   allowed_tools: optionalCsv,
-  mcp_servers: optionalJson<Record<string, unknown>>("mcp_servers"),
+  mcp_servers: z
+    .string()
+    .optional()
+    .transform((v, ctx): Record<string, unknown> | undefined => {
+      if (!v || !NON_EMPTY(v)) return undefined;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(v);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        ctx.addIssue({ code: "custom", message: `mcp_servers: invalid JSON (${msg})` });
+        return z.NEVER;
+      }
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        ctx.addIssue({ code: "custom", message: "mcp_servers: must be a JSON object" });
+        return z.NEVER;
+      }
+      const record = parsed as Record<string, unknown>;
+      const stdioNames = Object.entries(record)
+        .filter(
+          ([, cfg]) =>
+            cfg !== null &&
+            typeof cfg === "object" &&
+            (cfg as Record<string, unknown>).type === "stdio",
+        )
+        .map(([name]) => name);
+      if (stdioNames.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            `mcp_servers: stdio entries are not allowed (unsafe subprocess spawn vector): ` +
+            stdioNames.map((n) => `'${n}'`).join(", ") +
+            `. Use a network-type MCP server (sse, http) instead.`,
+        });
+        return z.NEVER;
+      }
+      return record;
+    }),
   permission_mode: permissionMode,
   setting_sources: settingSources,
   resume_session_id: optionalNonEmpty,

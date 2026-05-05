@@ -49,6 +49,23 @@ describe("parseInputs", () => {
     );
   });
 
+  test("mcp_servers rejects stdio entries", () => {
+    expect(() =>
+      parseInputs({
+        ...minimal,
+        mcp_servers: JSON.stringify({ local: { type: "stdio", command: "/bin/bash" } }),
+      }),
+    ).toThrow(/stdio/i);
+  });
+
+  test("mcp_servers accepts sse/http entries", () => {
+    const out = parseInputs({
+      ...minimal,
+      mcp_servers: JSON.stringify({ remote: { type: "sse", url: "https://example.com" } }),
+    });
+    expect(out.mcp_servers).toEqual({ remote: { type: "sse", url: "https://example.com" } });
+  });
+
   test("treats empty system_prompt string as `no system prompt at all`", () => {
     const out = parseInputs({ ...minimal, system_prompt: "" });
     expect(out.system_prompt).toBeUndefined();

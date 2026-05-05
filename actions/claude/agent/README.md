@@ -42,21 +42,21 @@ jobs:
 
 ## Inputs
 
-| Name                             | Default                                    | Description                                                                                                                       |
-| -------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `prompt` _(required)_            | —                                          | The user prompt sent to the agent.                                                                                                |
-| `model`                          | SDK default                                | Model id (e.g. `claude-sonnet-4-6`).                                                                                              |
-| `cwd`                            | step's cwd                                 | Working directory the agent operates in.                                                                                          |
-| `system_prompt`                  | `{"type":"preset","preset":"claude_code"}` | Custom string, or `{"type":"preset","preset":"claude_code","append":"…"}` JSON. Empty string disables the system prompt entirely. |
-| `max_turns`                      | unset                                      | Maximum agent loop iterations.                                                                                                    |
-| `allowed_tools`                  | `""` (= all)                               | CSV of tool names. Empty string leaves the SDK default (allow all).                                                               |
-| `mcp_servers`                    | `""` (= none)                              | JSON object mapping server name to config.                                                                                        |
-| `permission_mode`                | `bypassPermissions`                        | `default \| acceptEdits \| bypassPermissions \| plan`.                                                                            |
-| `setting_sources`                | `project,user`                             | CSV; must include `project` to load `CLAUDE.md`.                                                                                  |
-| `resume_session_id`              | —                                          | Resume an existing session id.                                                                                                    |
-| `fallback_model`                 | —                                          | Used if the primary model is overloaded.                                                                                          |
-| `max_budget_usd`                 | —                                          | Hard cost cap in USD.                                                                                                             |
-| `path_to_claude_code_executable` | resolved from PATH                         | Override for the local `claude` binary. Also honoured via `AIACTIONS_CLAUDE_BIN` env var.                                         |
+| Name                             | Default                                    | Description                                                                                                                        |
+| -------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt` _(required)_            | —                                          | The user prompt sent to the agent.                                                                                                 |
+| `model`                          | SDK default                                | Model id (e.g. `claude-sonnet-4-6`).                                                                                               |
+| `cwd`                            | step's cwd                                 | Working directory the agent operates in.                                                                                           |
+| `system_prompt`                  | `{"type":"preset","preset":"claude_code"}` | Custom string, or `{"type":"preset","preset":"claude_code","append":"…"}` JSON. Empty string disables the system prompt entirely.  |
+| `max_turns`                      | unset                                      | Maximum agent loop iterations.                                                                                                     |
+| `allowed_tools`                  | `""` (= all)                               | CSV of tool names. Empty string leaves the SDK default (allow all).                                                                |
+| `mcp_servers`                    | `""` (= none)                              | JSON object mapping server name to config. Entries with `type: "stdio"` are rejected (subprocess spawn vector — use `sse`/`http`). |
+| `permission_mode`                | `bypassPermissions`                        | `default \| acceptEdits \| bypassPermissions \| plan`.                                                                             |
+| `setting_sources`                | `project,user`                             | CSV; must include `project` to load `CLAUDE.md`.                                                                                   |
+| `resume_session_id`              | —                                          | Resume an existing session id.                                                                                                     |
+| `fallback_model`                 | —                                          | Used if the primary model is overloaded.                                                                                           |
+| `max_budget_usd`                 | —                                          | Hard cost cap in USD.                                                                                                              |
+| `path_to_claude_code_executable` | resolved from PATH                         | Override for the local `claude` binary. Also honoured via `AIACTIONS_CLAUDE_BIN` env var.                                          |
 
 ## Outputs
 
