@@ -18,46 +18,46 @@
 
 ### Files created
 
-| Path | Responsibility |
-|------|---------------|
-| `actions/claude/agent/aiaction.yaml` | Action manifest (declares inputs/outputs + `runs.using: node`). |
-| `actions/claude/agent/package.json` | Workspace package metadata (private). |
-| `actions/claude/agent/tsconfig.json` | TS config (extends repo conventions). |
-| `actions/claude/agent/vite.config.ts` | `vp check` config (typeAware lint). |
-| `actions/claude/agent/tsdown.config.ts` | Bundle config (`src/main.ts` → `dist/main.mjs`, deps inlined). |
-| `actions/claude/agent/src/main.ts` | Action entry-point. Exports `async function run(ctx)`. |
-| `actions/claude/agent/src/inputs.ts` | Zod schema parsing string-only YAML inputs into typed SDK options. |
-| `actions/claude/agent/src/bin-resolver.ts` | Resolves the user's `claude` binary path. |
-| `actions/claude/agent/src/which.ts` | Tiny PATH-walking `which`-equivalent (POSIX + Windows fallback). |
-| `actions/claude/agent/src/usage.ts` | Builds the `usage` JSON output from a SDK `result` event. |
-| `actions/claude/agent/src/transcript.ts` | Caps transcript JSON at <1 MiB with truncation marker. |
-| `actions/claude/agent/src/types.ts` | `ActionContext` shape mirror of the loader-provided ctx. |
-| `actions/claude/agent/dist/main.mjs` | Bundled artifact — committed to `main`. |
-| `actions/claude/agent/tests/inputs.test.ts` | Unit tests for `parseInputs`. |
-| `actions/claude/agent/tests/bin-resolver.test.ts` | Unit tests for binary resolution. |
-| `actions/claude/agent/tests/usage.test.ts` | Unit tests for `buildUsage`. |
-| `actions/claude/agent/tests/transcript.test.ts` | Unit tests for `capToOneMiB`. |
-| `actions/claude/agent/tests/main.test.ts` | Integration tests against a mocked SDK. |
-| `actions/claude/agent/README.md` | User-facing docs (inputs/outputs + `claude login` prerequisite). |
-| `workflows/examples/claude-agent.yaml` | Example workflow demonstrating `uses: claude/agent@v1`. |
-| `packages/runtime/tests/runner-uses-claude-agent.test.ts` | Runtime end-to-end test against the bundled `dist/main.mjs`. |
+| Path                                                      | Responsibility                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `actions/claude/agent/aiaction.yaml`                      | Action manifest (declares inputs/outputs + `runs.using: node`).    |
+| `actions/claude/agent/package.json`                       | Workspace package metadata (private).                              |
+| `actions/claude/agent/tsconfig.json`                      | TS config (extends repo conventions).                              |
+| `actions/claude/agent/vite.config.ts`                     | `vp check` config (typeAware lint).                                |
+| `actions/claude/agent/tsdown.config.ts`                   | Bundle config (`src/main.ts` → `dist/main.mjs`, deps inlined).     |
+| `actions/claude/agent/src/main.ts`                        | Action entry-point. Exports `async function run(ctx)`.             |
+| `actions/claude/agent/src/inputs.ts`                      | Zod schema parsing string-only YAML inputs into typed SDK options. |
+| `actions/claude/agent/src/bin-resolver.ts`                | Resolves the user's `claude` binary path.                          |
+| `actions/claude/agent/src/which.ts`                       | Tiny PATH-walking `which`-equivalent (POSIX + Windows fallback).   |
+| `actions/claude/agent/src/usage.ts`                       | Builds the `usage` JSON output from a SDK `result` event.          |
+| `actions/claude/agent/src/transcript.ts`                  | Caps transcript JSON at <1 MiB with truncation marker.             |
+| `actions/claude/agent/src/types.ts`                       | `ActionContext` shape mirror of the loader-provided ctx.           |
+| `actions/claude/agent/dist/main.mjs`                      | Bundled artifact — committed to `main`.                            |
+| `actions/claude/agent/tests/inputs.test.ts`               | Unit tests for `parseInputs`.                                      |
+| `actions/claude/agent/tests/bin-resolver.test.ts`         | Unit tests for binary resolution.                                  |
+| `actions/claude/agent/tests/usage.test.ts`                | Unit tests for `buildUsage`.                                       |
+| `actions/claude/agent/tests/transcript.test.ts`           | Unit tests for `capToOneMiB`.                                      |
+| `actions/claude/agent/tests/main.test.ts`                 | Integration tests against a mocked SDK.                            |
+| `actions/claude/agent/README.md`                          | User-facing docs (inputs/outputs + `claude login` prerequisite).   |
+| `workflows/examples/claude-agent.yaml`                    | Example workflow demonstrating `uses: claude/agent@v1`.            |
+| `packages/runtime/tests/runner-uses-claude-agent.test.ts` | Runtime end-to-end test against the bundled `dist/main.mjs`.       |
 
 ### Files modified
 
-| Path | Change |
-|------|--------|
-| `packages/workflows/src/schema/action-manifest.ts:17,47,50,58` | Replace `"bun-module"` literal + JSDoc references with `"node"`. |
-| `packages/workflows/tests/schema-action-manifest.test.ts:37,51,60` | Update assertions to `"node"`. |
-| `packages/workflows/tests/parser.test.ts:149` | Update assertion to `"node"`. |
-| `packages/workflows/tests/fixtures/actions/echo/aiaction.yaml:5` | Replace fixture YAML. |
-| `packages/runtime/src/runner/uses/resolver.ts:20,137-144` | Replace guard literal, comments, error message. |
-| `packages/runtime/tests/fixtures/actions/{crashing,echo,slow,two-outputs}/aiaction.yaml:5` | Replace fixture YAML. |
-| `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts:29` | Replace fixture string. |
-| `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts:29,53,74` | Replace fixture strings. |
-| `packages/runtime/tests/runner-uses-registry-fetch.test.ts:30,57,87` | Replace fixture strings. |
-| `packages/runtime/tests/runner-uses-registry-integration.test.ts:33,84` | Replace fixture strings. |
-| `packages/runtime/tests/runner-uses-resolver.test.ts:81` | Replace fixture string. |
-| `manifest-schema.json:23,25` | Regenerated by `bun run gen:schemas`. |
+| Path                                                                                       | Change                                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `packages/workflows/src/schema/action-manifest.ts:17,47,50,58`                             | Replace `"bun-module"` literal + JSDoc references with `"node"`. |
+| `packages/workflows/tests/schema-action-manifest.test.ts:37,51,60`                         | Update assertions to `"node"`.                                   |
+| `packages/workflows/tests/parser.test.ts:149`                                              | Update assertion to `"node"`.                                    |
+| `packages/workflows/tests/fixtures/actions/echo/aiaction.yaml:5`                           | Replace fixture YAML.                                            |
+| `packages/runtime/src/runner/uses/resolver.ts:20,137-144`                                  | Replace guard literal, comments, error message.                  |
+| `packages/runtime/tests/fixtures/actions/{crashing,echo,slow,two-outputs}/aiaction.yaml:5` | Replace fixture YAML.                                            |
+| `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts:29`                       | Replace fixture string.                                          |
+| `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts:29,53,74`                 | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-registry-fetch.test.ts:30,57,87`                       | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-registry-integration.test.ts:33,84`                    | Replace fixture strings.                                         |
+| `packages/runtime/tests/runner-uses-resolver.test.ts:81`                                   | Replace fixture string.                                          |
+| `manifest-schema.json:23,25`                                                               | Regenerated by `bun run gen:schemas`.                            |
 
 ---
 
@@ -211,15 +211,15 @@ Expected: all tests pass. If a test still references `bun-module` in a string, u
 Edit `packages/runtime/src/runner/uses/resolver.ts:137-144`. Replace the literal, the TODO comment, and the error message:
 
 ```ts
-  // The schema currently restricts `runs.using` to "node"; this
-  // guard remains for forward-compat (composite/Docker/Python runners
-  // could widen the enum in a later milestone).
-  if (manifest.runs.using !== "node") {
-    const using = String(manifest.runs.using);
-    throw new ManifestError(
-      `runs.using '${using}' for ref '${ref.raw}' is not yet implemented (currently 'node' only)`,
-    );
-  }
+// The schema currently restricts `runs.using` to "node"; this
+// guard remains for forward-compat (composite/Docker/Python runners
+// could widen the enum in a later milestone).
+if (manifest.runs.using !== "node") {
+  const using = String(manifest.runs.using);
+  throw new ManifestError(
+    `runs.using '${using}' for ref '${ref.raw}' is not yet implemented (currently 'node' only)`,
+  );
+}
 ```
 
 Also fix the JSDoc comment at line ~20 in the same file: `"bun-module"` → `"node"`.
@@ -241,6 +241,7 @@ sed -i 's/using: bun-module/using: node/' \
 - [ ] **Step 1.8: Update runtime test fixture strings**
 
 In each of:
+
 - `packages/runtime/tests/fixtures/registry/make-bare-repo.test.ts`
 - `packages/runtime/tests/runner-uses-registry-fetch-fetch.test.ts`
 - `packages/runtime/tests/runner-uses-registry-fetch.test.ts`
@@ -526,9 +527,9 @@ export default defineConfig({
   outExtensions: () => ({ js: ".mjs" }),
   target: "node22",
   platform: "node",
-  noExternal: [/.*/],   // inline ALL deps (zod, @anthropic-ai/claude-agent-sdk)
+  noExternal: [/.*/], // inline ALL deps (zod, @anthropic-ai/claude-agent-sdk)
   clean: true,
-  dts: false,           // dist is for runtime, not for downstream type imports
+  dts: false, // dist is for runtime, not for downstream type imports
   shims: false,
 });
 ```
@@ -697,7 +698,8 @@ export function resolveClaudeBinary(
   inputOverride: string | undefined,
   env: NodeJS.ProcessEnv,
 ): string {
-  const explicit = inputOverride && inputOverride.length > 0 ? inputOverride : env.AIACTIONS_CLAUDE_BIN;
+  const explicit =
+    inputOverride && inputOverride.length > 0 ? inputOverride : env.AIACTIONS_CLAUDE_BIN;
   if (explicit && explicit.length > 0) return explicit;
   const onPath = whichSync("claude", env);
   if (onPath) return onPath;
@@ -821,7 +823,10 @@ const optionalCsv = z
   .optional()
   .transform((v) => {
     if (!v || !NON_EMPTY(v)) return undefined;
-    return v.split(",").map((s) => s.trim()).filter(NON_EMPTY);
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter(NON_EMPTY);
   });
 
 const optionalJson = <T>(label: string) =>
@@ -862,7 +867,10 @@ const settingSources = z
   .optional()
   .transform((v): ("project" | "user")[] | undefined => {
     const raw = v && NON_EMPTY(v) ? v : "project,user";
-    const parts = raw.split(",").map((s) => s.trim()).filter(NON_EMPTY);
+    const parts = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(NON_EMPTY);
     return parts.filter((p): p is "project" | "user" => p === "project" || p === "user");
   });
 
@@ -891,7 +899,8 @@ const systemPrompt = z
       }
       ctx.addIssue({
         code: "custom",
-        message: "system_prompt: object form must be `{ type: 'preset', preset: 'claude_code', append?: string }`",
+        message:
+          "system_prompt: object form must be `{ type: 'preset', preset: 'claude_code', append?: string }`",
       });
       return z.NEVER;
     } catch (err) {
@@ -978,7 +987,9 @@ describe("parseInputs", () => {
   });
 
   test("rejects invalid mcp_servers JSON", () => {
-    expect(() => parseInputs({ ...minimal, mcp_servers: "{not json" })).toThrow(/mcp_servers.*invalid JSON/);
+    expect(() => parseInputs({ ...minimal, mcp_servers: "{not json" })).toThrow(
+      /mcp_servers.*invalid JSON/,
+    );
   });
 
   test("treats empty system_prompt string as `no system prompt at all`", () => {
@@ -1013,7 +1024,9 @@ describe("parseInputs", () => {
 
   test("aggregates multiple errors in a single message", () => {
     expect(() =>
-      parseInputs({ prompt: "", max_turns: "x", permission_mode: "wat" } as Readonly<Record<string, string>>),
+      parseInputs({ prompt: "", max_turns: "x", permission_mode: "wat" } as Readonly<
+        Record<string, string>
+      >),
     ).toThrow(/prompt.*not a finite number.*permission_mode/s);
   });
 });
@@ -1370,12 +1383,23 @@ interface ResultEvent {
   readonly subtype?: string;
   readonly stop_reason?: string | null;
   readonly errors?: readonly string[];
-  readonly usage?: { readonly input_tokens?: number; readonly output_tokens?: number; readonly total_tokens?: number };
+  readonly usage?: {
+    readonly input_tokens?: number;
+    readonly output_tokens?: number;
+    readonly total_tokens?: number;
+  };
   readonly total_cost_usd?: number;
   readonly num_turns?: number;
-  readonly model_usage?: Readonly<Record<string, { readonly input_tokens?: number; readonly output_tokens?: number }>>;
+  readonly model_usage?: Readonly<
+    Record<string, { readonly input_tokens?: number; readonly output_tokens?: number }>
+  >;
 }
-type SdkEvent = AssistantEvent | SystemEvent | RateLimitEvent | ResultEvent | { readonly type: string };
+type SdkEvent =
+  | AssistantEvent
+  | SystemEvent
+  | RateLimitEvent
+  | ResultEvent
+  | { readonly type: string };
 
 export async function run(ctx: ActionContext): Promise<void> {
   const inputs = parseInputs(ctx.inputs);
@@ -1798,7 +1822,17 @@ import { executeUsesStep } from "../src/runner/uses/exec.ts";
 import { resolveUsesRef } from "../src/runner/uses/resolver.ts";
 
 const POSIX = process.platform !== "win32";
-const ACTION_DIST = join(import.meta.dirname, "..", "..", "..", "actions", "claude", "agent", "dist", "main.mjs");
+const ACTION_DIST = join(
+  import.meta.dirname,
+  "..",
+  "..",
+  "..",
+  "actions",
+  "claude",
+  "agent",
+  "dist",
+  "main.mjs",
+);
 
 const FAKE_QUERY_MODULE = `
 export function query(_args) {
@@ -1935,7 +1969,7 @@ EOF
 
 Create `actions/claude/agent/README.md`:
 
-```markdown
+````markdown
 # `claude/agent`
 
 Run a Claude Code agent loop as a workflow step.
@@ -1956,6 +1990,7 @@ step outputs.
 npm install -g @anthropic-ai/claude-code
 claude login
 ```
+````
 
 (Alternatively: set `ANTHROPIC_API_KEY` in the workflow environment
 and the SDK will use it directly.)
@@ -1982,32 +2017,32 @@ jobs:
 
 ## Inputs
 
-| Name | Default | Description |
-|------|---------|-------------|
-| `prompt` *(required)* | — | The user prompt sent to the agent. |
-| `model` | SDK default | Model id (e.g. `claude-sonnet-4-6`). |
-| `cwd` | step's cwd | Working directory the agent operates in. |
-| `system_prompt` | preset `claude_code` | Custom string, or `{type:"preset",preset:"claude_code",append:"…"}` JSON. Empty string disables the system prompt entirely. |
-| `max_turns` | unset | Maximum agent loop iterations. |
-| `allowed_tools` | unset (= all) | CSV of tool names. |
-| `mcp_servers` | unset | JSON object mapping server name → config. |
-| `permission_mode` | `bypassPermissions` | `default \| acceptEdits \| bypassPermissions \| plan`. |
-| `setting_sources` | `project,user` | CSV; must include `project` to load `CLAUDE.md`. |
-| `resume_session_id` | — | Resume an existing session id. |
-| `fallback_model` | — | Used if the primary model is overloaded. |
-| `max_budget_usd` | — | Hard cost cap. |
-| `path_to_claude_code_executable` | resolved from PATH | Override for the local `claude` binary. |
+| Name                             | Default              | Description                                                                                                                 |
+| -------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `prompt` _(required)_            | —                    | The user prompt sent to the agent.                                                                                          |
+| `model`                          | SDK default          | Model id (e.g. `claude-sonnet-4-6`).                                                                                        |
+| `cwd`                            | step's cwd           | Working directory the agent operates in.                                                                                    |
+| `system_prompt`                  | preset `claude_code` | Custom string, or `{type:"preset",preset:"claude_code",append:"…"}` JSON. Empty string disables the system prompt entirely. |
+| `max_turns`                      | unset                | Maximum agent loop iterations.                                                                                              |
+| `allowed_tools`                  | unset (= all)        | CSV of tool names.                                                                                                          |
+| `mcp_servers`                    | unset                | JSON object mapping server name → config.                                                                                   |
+| `permission_mode`                | `bypassPermissions`  | `default \| acceptEdits \| bypassPermissions \| plan`.                                                                      |
+| `setting_sources`                | `project,user`       | CSV; must include `project` to load `CLAUDE.md`.                                                                            |
+| `resume_session_id`              | —                    | Resume an existing session id.                                                                                              |
+| `fallback_model`                 | —                    | Used if the primary model is overloaded.                                                                                    |
+| `max_budget_usd`                 | —                    | Hard cost cap.                                                                                                              |
+| `path_to_claude_code_executable` | resolved from PATH   | Override for the local `claude` binary.                                                                                     |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| `text` | Concatenated assistant text. |
-| `session_id` | Session id; pass back via `resume_session_id` later. |
-| `stop_reason` | `end_turn`, `max_turns`, `error`, etc. |
-| `is_error` | `"true"` or `"false"`. |
-| `usage` | JSON: `{input, output, total, cost_usd, num_turns, model_usage}`. |
-| `transcript` | JSON array of every event chunk. Truncated to <1 MiB with `…[truncated]`. |
+| Name          | Description                                                               |
+| ------------- | ------------------------------------------------------------------------- |
+| `text`        | Concatenated assistant text.                                              |
+| `session_id`  | Session id; pass back via `resume_session_id` later.                      |
+| `stop_reason` | `end_turn`, `max_turns`, `error`, etc.                                    |
+| `is_error`    | `"true"` or `"false"`.                                                    |
+| `usage`       | JSON: `{input, output, total, cost_usd, num_turns, model_usage}`.         |
+| `transcript`  | JSON array of every event chunk. Truncated to <1 MiB with `…[truncated]`. |
 
 ## Auth
 
@@ -2023,7 +2058,8 @@ the real-network smoke check:
 ```bash
 ANTHROPIC_SMOKE=1 vp test smoke
 ```
-```
+
+````
 
 - [ ] **Step 7.2: Write the example workflow**
 
@@ -2058,7 +2094,7 @@ jobs:
         run: |
           echo "Got: ${{ steps.ask.outputs.text }}"
           echo "Session: ${{ steps.ask.outputs.session_id }}"
-```
+````
 
 - [ ] **Step 7.3: Run the manual smoke**
 
@@ -2145,24 +2181,24 @@ This section captures the review I (the planner) ran after writing the plan; the
 
 **1. Spec coverage**
 
-| Spec section | Plan task |
-|--------------|-----------|
-| §6 Manifest schema rename | Task 1 (steps 1.1–1.11) |
-| §7 Action package layout | Task 2 (steps 2.1–2.9) |
-| §8 Manifest contract YAML | Task 2 step 2.1 |
-| §9 main.ts data flow | Task 5 step 5.1 |
-| §10 Binary resolution | Task 3 (steps 3.2–3.5) |
-| §11 Auth & ToS-compliance | implicit — action does not touch auth (Task 5 main.ts) |
-| §12 Error handling matrix | Task 5 (main.ts try/finally + Task 5 step 5.2 tests cover each row) |
-| §13 Testing strategy — unit | Tasks 3 + 4 |
-| §13 Testing strategy — integration | Task 5 |
-| §13 Testing strategy — e2e | Task 6 |
-| §13 Testing strategy — manual smoke | Task 7 step 7.3 |
-| §14 Build & publish | Task 6 step 6.1 + Task 7 step 7.6 |
-| §15 Out of scope | not implemented (correctly) |
-| §16 Open questions | OQ2-OQ5 baked into defaults; OQ1 implicitly answered (no structured tool_calls channel) |
-| §17 Acceptance criteria | each row maps to at least one task step |
-| §18 Sub-MS decomposition | one task per sub-MS |
+| Spec section                        | Plan task                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| §6 Manifest schema rename           | Task 1 (steps 1.1–1.11)                                                                 |
+| §7 Action package layout            | Task 2 (steps 2.1–2.9)                                                                  |
+| §8 Manifest contract YAML           | Task 2 step 2.1                                                                         |
+| §9 main.ts data flow                | Task 5 step 5.1                                                                         |
+| §10 Binary resolution               | Task 3 (steps 3.2–3.5)                                                                  |
+| §11 Auth & ToS-compliance           | implicit — action does not touch auth (Task 5 main.ts)                                  |
+| §12 Error handling matrix           | Task 5 (main.ts try/finally + Task 5 step 5.2 tests cover each row)                     |
+| §13 Testing strategy — unit         | Tasks 3 + 4                                                                             |
+| §13 Testing strategy — integration  | Task 5                                                                                  |
+| §13 Testing strategy — e2e          | Task 6                                                                                  |
+| §13 Testing strategy — manual smoke | Task 7 step 7.3                                                                         |
+| §14 Build & publish                 | Task 6 step 6.1 + Task 7 step 7.6                                                       |
+| §15 Out of scope                    | not implemented (correctly)                                                             |
+| §16 Open questions                  | OQ2-OQ5 baked into defaults; OQ1 implicitly answered (no structured tool_calls channel) |
+| §17 Acceptance criteria             | each row maps to at least one task step                                                 |
+| §18 Sub-MS decomposition            | one task per sub-MS                                                                     |
 
 **2. Placeholder scan**
 

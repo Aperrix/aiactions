@@ -1,13 +1,13 @@
 # Design — `claude/agent` (first public AIaction)
 
-| Field | Value |
-|-------|-------|
-| Date | 2026-05-05 |
-| Author | Aperrix + Claude (Opus 4.7) |
-| Milestone tag | MS1.3 |
-| Branch | `feat/claude-agent-action` |
-| Status | Proposed — awaiting user review |
-| Supersedes | `ms1-3-cli-brainstorm-seed` (CLI scaffold deferred) |
+| Field         | Value                                               |
+| ------------- | --------------------------------------------------- |
+| Date          | 2026-05-05                                          |
+| Author        | Aperrix + Claude (Opus 4.7)                         |
+| Milestone tag | MS1.3                                               |
+| Branch        | `feat/claude-agent-action`                          |
+| Status        | Proposed — awaiting user review                     |
+| Supersedes    | `ms1-3-cli-brainstorm-seed` (CLI scaffold deferred) |
 
 ## 1. Goal
 
@@ -45,27 +45,27 @@ We are **not** porting this verbatim. We collapse the streaming generator into a
 
 Source: Context7 `/nothflare/claude-agent-sdk-docs`. Critical fields used:
 
-| SDK Options field | Type | Default | Notes |
-|-------------------|------|---------|-------|
-| `prompt` | `string` | — | Top-level argument to `query()`. |
-| `model` | `string` | CLI default | |
-| `cwd` | `string` | `process.cwd()` | |
-| `systemPrompt` | `string \| { type: 'preset'; preset: 'claude_code'; append?: string }` | undefined | Use the preset to inherit Claude Code's system prompt; pass a string to override entirely. |
-| `maxTurns` | `number` | undefined | |
-| `allowedTools` | `string[]` | all tools | |
-| `mcpServers` | `Record<string, McpServerConfig>` | `{}` | |
-| `permissionMode` | `'default' \| 'acceptEdits' \| 'bypassPermissions' \| 'plan'` | `'default'` | |
-| `allowDangerouslySkipPermissions` | `boolean` | `false` | **Required `true` when `permissionMode === 'bypassPermissions'`.** |
-| `settingSources` | `('project' \| 'user')[]` | `[]` | Must include `'project'` to load `CLAUDE.md`. |
-| `resume` | `string` | undefined | Session id to resume. |
-| `forkSession` | `boolean` | `false` | |
-| `fallbackModel` | `string` | undefined | |
-| `maxBudgetUsd` | `number` | undefined | |
-| `executable` | `'bun' \| 'deno' \| 'node'` | auto-detect | **Pinned to `'node'`** by the action. |
-| `pathToClaudeCodeExecutable` | `string` | resolved from `node_modules` | **Set to user's local `claude` binary** by the action. |
-| `env` | `Dict<string>` | `process.env` | |
-| `abortController` | `AbortController` | new | Wired to `ctx.signal`. |
-| `stderr` | `(data: string) => void` | undefined | Captured for logging. |
+| SDK Options field                 | Type                                                                   | Default                      | Notes                                                                                      |
+| --------------------------------- | ---------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `prompt`                          | `string`                                                               | —                            | Top-level argument to `query()`.                                                           |
+| `model`                           | `string`                                                               | CLI default                  |                                                                                            |
+| `cwd`                             | `string`                                                               | `process.cwd()`              |                                                                                            |
+| `systemPrompt`                    | `string \| { type: 'preset'; preset: 'claude_code'; append?: string }` | undefined                    | Use the preset to inherit Claude Code's system prompt; pass a string to override entirely. |
+| `maxTurns`                        | `number`                                                               | undefined                    |                                                                                            |
+| `allowedTools`                    | `string[]`                                                             | all tools                    |                                                                                            |
+| `mcpServers`                      | `Record<string, McpServerConfig>`                                      | `{}`                         |                                                                                            |
+| `permissionMode`                  | `'default' \| 'acceptEdits' \| 'bypassPermissions' \| 'plan'`          | `'default'`                  |                                                                                            |
+| `allowDangerouslySkipPermissions` | `boolean`                                                              | `false`                      | **Required `true` when `permissionMode === 'bypassPermissions'`.**                         |
+| `settingSources`                  | `('project' \| 'user')[]`                                              | `[]`                         | Must include `'project'` to load `CLAUDE.md`.                                              |
+| `resume`                          | `string`                                                               | undefined                    | Session id to resume.                                                                      |
+| `forkSession`                     | `boolean`                                                              | `false`                      |                                                                                            |
+| `fallbackModel`                   | `string`                                                               | undefined                    |                                                                                            |
+| `maxBudgetUsd`                    | `number`                                                               | undefined                    |                                                                                            |
+| `executable`                      | `'bun' \| 'deno' \| 'node'`                                            | auto-detect                  | **Pinned to `'node'`** by the action.                                                      |
+| `pathToClaudeCodeExecutable`      | `string`                                                               | resolved from `node_modules` | **Set to user's local `claude` binary** by the action.                                     |
+| `env`                             | `Dict<string>`                                                         | `process.env`                |                                                                                            |
+| `abortController`                 | `AbortController`                                                      | new                          | Wired to `ctx.signal`.                                                                     |
+| `stderr`                          | `(data: string) => void`                                               | undefined                    | Captured for logging.                                                                      |
 
 Result event (last in stream) carries: `session_id`, `is_error`, `subtype`, `usage`, `total_cost_usd`, `stop_reason`, `num_turns`, `model_usage`, `errors`, `structured_output`.
 
@@ -131,7 +131,7 @@ export const actionRunsSchema = z.strictObject({
 });
 ```
 
-Rationale for renaming: AIactions never required Bun to *execute* an action; the runtime spawns `process.execPath`. The "bun-module" literal misnames a node-compatible contract. Now that we explicitly forbid using Bun on the user's machine and add a real action, "node" is the honest label.
+Rationale for renaming: AIactions never required Bun to _execute_ an action; the runtime spawns `process.execPath`. The "bun-module" literal misnames a node-compatible contract. Now that we explicitly forbid using Bun on the user's machine and add a real action, "node" is the honest label.
 
 Change in this MS:
 
@@ -300,10 +300,7 @@ export async function run(ctx: ActionContext): Promise<void> {
             assistantText += block.text;
             ctx.log("info", `[assistant] ${block.text}`);
           } else if (block.type === "tool_use") {
-            ctx.log(
-              "debug",
-              `[tool_use] ${block.name} ${JSON.stringify(block.input ?? {})}`,
-            );
+            ctx.log("debug", `[tool_use] ${block.name} ${JSON.stringify(block.input ?? {})}`);
           }
         }
         break;
@@ -387,28 +384,28 @@ export function resolveClaudeBinary(
 
 ## 12. Error handling
 
-| Scenario | Detection | Action behavior | Runtime outcome |
-|----------|-----------|-----------------|-----------------|
-| Invalid input (Zod fail) | `parseInputs` throws | Throw enriched message | `error` frame, exit 1, `step.failed`. |
-| `claude` binary missing | `resolveClaudeBinary` throws | Throw with install + login hint | `step.failed` with friendly message. |
-| `query()` throws before first event | exception in iteration | Bubble up | `step.failed`; runtime may retry at workflow level via future `retry:` (not v1). |
-| `result.is_error === true` | inspect final event | Emit all outputs first, then throw | `step.failed`, but downstream steps can read `outputs.transcript` for diagnosis. |
-| SIGTERM (timeout / abort) | `ctx.signal.aborted` flips | `break` loop, emit partial outputs, exit 0 if no error | `step.cancelled` propagates from runtime. |
-| Transcript >1 MiB | `capToOneMiB` truncates | Append `…[truncated]`, log warn | Output emitted with marker. |
-| FD3 frame >1 MiB on `text` | log message excessive | Truncate large `assistant.text` blocks in log frames; full text still in `text` output (which itself is truncated only if >1 MiB) | `step.succeeded` with possibly truncated logs. |
-| MCP server fails to connect | `system.init.mcp_servers` shows `status !== "connected"` | `ctx.log("warn", …)` and continue | `step.succeeded` (best-effort, user warned). |
-| Rate limit | `rate_limit_event` | `ctx.log("warn", …)` and continue | `step.succeeded` (SDK manages backoff). |
+| Scenario                            | Detection                                                | Action behavior                                                                                                                   | Runtime outcome                                                                  |
+| ----------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Invalid input (Zod fail)            | `parseInputs` throws                                     | Throw enriched message                                                                                                            | `error` frame, exit 1, `step.failed`.                                            |
+| `claude` binary missing             | `resolveClaudeBinary` throws                             | Throw with install + login hint                                                                                                   | `step.failed` with friendly message.                                             |
+| `query()` throws before first event | exception in iteration                                   | Bubble up                                                                                                                         | `step.failed`; runtime may retry at workflow level via future `retry:` (not v1). |
+| `result.is_error === true`          | inspect final event                                      | Emit all outputs first, then throw                                                                                                | `step.failed`, but downstream steps can read `outputs.transcript` for diagnosis. |
+| SIGTERM (timeout / abort)           | `ctx.signal.aborted` flips                               | `break` loop, emit partial outputs, exit 0 if no error                                                                            | `step.cancelled` propagates from runtime.                                        |
+| Transcript >1 MiB                   | `capToOneMiB` truncates                                  | Append `…[truncated]`, log warn                                                                                                   | Output emitted with marker.                                                      |
+| FD3 frame >1 MiB on `text`          | log message excessive                                    | Truncate large `assistant.text` blocks in log frames; full text still in `text` output (which itself is truncated only if >1 MiB) | `step.succeeded` with possibly truncated logs.                                   |
+| MCP server fails to connect         | `system.init.mcp_servers` shows `status !== "connected"` | `ctx.log("warn", …)` and continue                                                                                                 | `step.succeeded` (best-effort, user warned).                                     |
+| Rate limit                          | `rate_limit_event`                                       | `ctx.log("warn", …)` and continue                                                                                                 | `step.succeeded` (SDK manages backoff).                                          |
 
 No retry loop in the action itself for v1. Archon's `MAX_SUBPROCESS_RETRIES`-with-backoff is **not ported**: workflow-level retry semantics belong in the runtime, not in every action that wraps a subprocess. Tracked as a future runtime feature.
 
 ## 13. Testing strategy
 
-| Level | What is tested | How |
-|-------|---------------|-----|
-| Unit | `parseInputs` (Zod), `buildUsage`, `capToOneMiB`, `resolveClaudeBinary` | `vp test` inside `actions/claude/agent`. No network, no SDK. |
-| Integration | `run(ctx)` end-to-end with the SDK's `query()` mocked | Mock the module, yield scripted event sequences (assistant + tool_use + result variants, error variants). Assert FD3 outputs and logs. |
-| End-to-end (runtime) | Workflow `uses: claude/agent@v1` → loader spawns dist/main.mjs → mocked SDK | New test fixture in `packages/runtime/tests/`. Reuses the existing bare-repo registry fixture pattern. No real network. |
-| Smoke (manual, opt-in) | Real call with `claude-haiku-4-5` and trivial prompt, real binary | Documented in the action's README. Runs only when `ANTHROPIC_SMOKE=1`. |
+| Level                  | What is tested                                                              | How                                                                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit                   | `parseInputs` (Zod), `buildUsage`, `capToOneMiB`, `resolveClaudeBinary`     | `vp test` inside `actions/claude/agent`. No network, no SDK.                                                                           |
+| Integration            | `run(ctx)` end-to-end with the SDK's `query()` mocked                       | Mock the module, yield scripted event sequences (assistant + tool_use + result variants, error variants). Assert FD3 outputs and logs. |
+| End-to-end (runtime)   | Workflow `uses: claude/agent@v1` → loader spawns dist/main.mjs → mocked SDK | New test fixture in `packages/runtime/tests/`. Reuses the existing bare-repo registry fixture pattern. No real network.                |
+| Smoke (manual, opt-in) | Real call with `claude-haiku-4-5` and trivial prompt, real binary           | Documented in the action's README. Runs only when `ANTHROPIC_SMOKE=1`.                                                                 |
 
 **Avoid**: tautological tests of the SDK's own behavior. Test the **adaptation surface** (input parsing, output emission, transcript truncation, error mapping), not the SDK's internals.
 
@@ -431,13 +428,13 @@ No retry loop in the action itself for v1. Archon's `MAX_SUBPROCESS_RETRIES`-wit
 
 ## 16. Open questions
 
-| # | Question | Default if unanswered |
-|---|----------|----------------------|
-| OQ1 | Should the action emit a structured `tool_calls` log channel separate from `info` text logs (e.g. via JSON-prefixed log messages)? | No — `debug`-level log frames with `[tool_use] <name> <input>` are sufficient for v1. |
-| OQ2 | Should `setting_sources` default change to `project,user` (Archon parity) or remain SDK default `[]`? | `project,user` — to load `CLAUDE.md` automatically, which is the dev-friendly behavior. |
-| OQ3 | Should `claude/agent` accept `system_prompt: ""` (empty string) as "no system prompt at all"? | Yes — the action treats empty string as "use no system prompt" (passes `undefined` to SDK), distinct from omitted (which uses the action's default preset). |
-| OQ4 | What naming convention for the action package's `name:` field in `package.json`? | `@aiactions-public/claude-agent` — reserved namespace for first-party public actions. |
-| OQ5 | Should we ship a sample workflow (`workflows/examples/claude-agent.yaml`) demonstrating usage? | Yes — short example invoking `claude/agent@v1` with a trivial prompt and asserting `text` output. |
+| #   | Question                                                                                                                           | Default if unanswered                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OQ1 | Should the action emit a structured `tool_calls` log channel separate from `info` text logs (e.g. via JSON-prefixed log messages)? | No — `debug`-level log frames with `[tool_use] <name> <input>` are sufficient for v1.                                                                       |
+| OQ2 | Should `setting_sources` default change to `project,user` (Archon parity) or remain SDK default `[]`?                              | `project,user` — to load `CLAUDE.md` automatically, which is the dev-friendly behavior.                                                                     |
+| OQ3 | Should `claude/agent` accept `system_prompt: ""` (empty string) as "no system prompt at all"?                                      | Yes — the action treats empty string as "use no system prompt" (passes `undefined` to SDK), distinct from omitted (which uses the action's default preset). |
+| OQ4 | What naming convention for the action package's `name:` field in `package.json`?                                                   | `@aiactions-public/claude-agent` — reserved namespace for first-party public actions.                                                                       |
+| OQ5 | Should we ship a sample workflow (`workflows/examples/claude-agent.yaml`) demonstrating usage?                                     | Yes — short example invoking `claude/agent@v1` with a trivial prompt and asserting `text` output.                                                           |
 
 ## 17. Acceptance criteria
 
@@ -455,14 +452,14 @@ For this milestone to be considered shipped:
 
 ## 18. Sub-milestones (suggested decomposition for the implementation plan)
 
-| Sub-MS | Scope | Reversible? |
-|--------|-------|-------------|
-| **MS1.3.0** | Manifest schema rename `bun-module → node`; regen JSON schema; update existing tests/fixtures. | Yes — small, isolated change. |
-| **MS1.3.1** | Scaffold `actions/claude/agent/` package: `aiaction.yaml`, `package.json`, `tsconfig.json`, `tsdown.config.ts`. Action does nothing useful yet. | Yes — pure scaffolding. |
-| **MS1.3.2** | `inputs.ts` (Zod) + `bin-resolver.ts` + unit tests. | Yes. |
-| **MS1.3.3** | `usage.ts` + `transcript.ts` + unit tests. | Yes. |
-| **MS1.3.4** | `main.ts` wired to `query()` with full event-stream handling. Integration tests at the **action package level** (mocks `@anthropic-ai/claude-agent-sdk` and asserts FD3 outputs). | Yes. |
-| **MS1.3.5** | Build to `dist/main.mjs`; commit. Runtime **end-to-end test** at the `packages/runtime/tests/` level: full `uses:` path through `executeUsesStep` against the bundled `dist/main.mjs`, with the SDK mocked inside the action build. | Yes. |
-| **MS1.3.6** | README + example workflow (`workflows/examples/claude-agent.yaml`); manual smoke run; final `vp run ready`; PR. | Yes — docs + final gate. |
+| Sub-MS      | Scope                                                                                                                                                                                                                               | Reversible?                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **MS1.3.0** | Manifest schema rename `bun-module → node`; regen JSON schema; update existing tests/fixtures.                                                                                                                                      | Yes — small, isolated change. |
+| **MS1.3.1** | Scaffold `actions/claude/agent/` package: `aiaction.yaml`, `package.json`, `tsconfig.json`, `tsdown.config.ts`. Action does nothing useful yet.                                                                                     | Yes — pure scaffolding.       |
+| **MS1.3.2** | `inputs.ts` (Zod) + `bin-resolver.ts` + unit tests.                                                                                                                                                                                 | Yes.                          |
+| **MS1.3.3** | `usage.ts` + `transcript.ts` + unit tests.                                                                                                                                                                                          | Yes.                          |
+| **MS1.3.4** | `main.ts` wired to `query()` with full event-stream handling. Integration tests at the **action package level** (mocks `@anthropic-ai/claude-agent-sdk` and asserts FD3 outputs).                                                   | Yes.                          |
+| **MS1.3.5** | Build to `dist/main.mjs`; commit. Runtime **end-to-end test** at the `packages/runtime/tests/` level: full `uses:` path through `executeUsesStep` against the bundled `dist/main.mjs`, with the SDK mocked inside the action build. | Yes.                          |
+| **MS1.3.6** | README + example workflow (`workflows/examples/claude-agent.yaml`); manual smoke run; final `vp run ready`; PR.                                                                                                                     | Yes — docs + final gate.      |
 
 The plan document (next step in the workflow) will expand each sub-MS into ordered steps with checkpoints.
