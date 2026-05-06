@@ -8,7 +8,7 @@
     "packages/runtime": { "component": "@aiactions/runtime" },
     "packages/workflows": { "component": "@aiactions/workflows" },
     "packages/cli": { "component": "@aiactions/cli" },
-    "actions/claude/agent": { "component": "claude/agent" }
+    "actions/claude/agent": { "component": "claude/agent", "release-as": "1.0.0" }
   },
   "plugins": ["node-workspace"]
 }
