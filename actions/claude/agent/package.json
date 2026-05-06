@@ -1,6 +1,6 @@
 {
   "name": "@claude/agent",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Run a Claude Code agent loop via @anthropic-ai/claude-agent-sdk. Sends a prompt, executes the agent's tool-use loop in cwd, and emits the final assistant text, session id, and usage as step outputs.",
   "type": "module",

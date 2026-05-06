@@ -2,5 +2,5 @@
   "packages/runtime": "1.0.0",
   "packages/workflows": "0.0.0",
   "packages/cli": "1.0.0",
-  "actions/claude/agent": "2.0.0"
+  "actions/claude/agent": "1.0.0"
 }
