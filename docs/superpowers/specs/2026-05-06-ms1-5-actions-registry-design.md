@@ -40,16 +40,16 @@ parsed registry coordinate.
 
 ## Brainstorm decisions
 
-| # | Question | Decision |
-|---|----------|----------|
-| Q1 | Scope decomposition | Decompose: MS1.5 backend / MS1.6 frontend CLI / MS1.7 `action check` |
-| Q2 | Registry schema | `{ actions: [{ ref, description }] }` — ref + description, nothing else |
-| Q3 | Emitter location | `scripts/gen-actions-registry.ts` (parity with `gen-schemas.ts`) |
-| Q4 | Stale-prevention strategy | lefthook pre-commit (`stage_fixed: true`) + CI PR backstop |
-| Q5 | Manifest reader | `package.json.name` / `description` / `version` as canonical metadata; aiaction.yaml keeps `name` + `description` for runtime contract |
-| Q6 | Version source | `package.json.version` (release-please bumps it). Registry ref omits the `v` prefix; tag uses it |
-| Q7 | Tag pattern | `<ns>/<name>@v<version>` (e.g. `claude/agent@v1.0.0`); release-please introduced now |
-| Q8 | release-please scope | Tracks **both** actions and packages — 4 components initially (`@aiactions/runtime`, `@aiactions/workflows`, `@aiactions/cli`, `claude/agent`) |
+| #   | Question                  | Decision                                                                                                                                       |
+| --- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Scope decomposition       | Decompose: MS1.5 backend / MS1.6 frontend CLI / MS1.7 `action check`                                                                           |
+| Q2  | Registry schema           | `{ actions: [{ ref, description }] }` — ref + description, nothing else                                                                        |
+| Q3  | Emitter location          | `scripts/gen-actions-registry.ts` (parity with `gen-schemas.ts`)                                                                               |
+| Q4  | Stale-prevention strategy | lefthook pre-commit (`stage_fixed: true`) + CI PR backstop                                                                                     |
+| Q5  | Manifest reader           | `package.json.name` / `description` / `version` as canonical metadata; aiaction.yaml keeps `name` + `description` for runtime contract         |
+| Q6  | Version source            | `package.json.version` (release-please bumps it). Registry ref omits the `v` prefix; tag uses it                                               |
+| Q7  | Tag pattern               | `<ns>/<name>@v<version>` (e.g. `claude/agent@v1.0.0`); release-please introduced now                                                           |
+| Q8  | release-please scope      | Tracks **both** actions and packages — 4 components initially (`@aiactions/runtime`, `@aiactions/workflows`, `@aiactions/cli`, `claude/agent`) |
 
 References:
 
@@ -98,12 +98,12 @@ packages/runtime/src/runner/uses/
   "include-component-in-tag": true,
   "bootstrap-sha": "6417215d52c04a8bbd632d49a6d83ac8ce8b32dc",
   "packages": {
-    "packages/runtime":         { "component": "@aiactions/runtime"   },
-    "packages/workflows":       { "component": "@aiactions/workflows" },
-    "packages/cli":             { "component": "@aiactions/cli"       },
-    "actions/claude/agent":     { "component": "claude/agent"         }
+    "packages/runtime": { "component": "@aiactions/runtime" },
+    "packages/workflows": { "component": "@aiactions/workflows" },
+    "packages/cli": { "component": "@aiactions/cli" },
+    "actions/claude/agent": { "component": "claude/agent" },
   },
-  "plugins": ["node-workspace"]
+  "plugins": ["node-workspace"],
 }
 ```
 
@@ -118,9 +118,9 @@ Tags emitted by release-please:
 
 ```json
 {
-  "packages/runtime":     "0.0.0",
-  "packages/workflows":   "0.0.0",
-  "packages/cli":         "0.0.0",
+  "packages/runtime": "0.0.0",
+  "packages/workflows": "0.0.0",
+  "packages/cli": "0.0.0",
   "actions/claude/agent": "1.0.0"
 }
 ```
@@ -182,9 +182,7 @@ export async function emitRegistry(actionsDir: string): Promise<Registry> {
       actionManifestSchema.parse(parseYaml(yamlRaw));
       const expected = `@${ns.name}/${name.name}`;
       if (pkg.name !== expected) {
-        throw new Error(
-          `${dir}/package.json name '${pkg.name}' must equal '${expected}'`,
-        );
+        throw new Error(`${dir}/package.json name '${pkg.name}' must equal '${expected}'`);
       }
       if (!pkg.description) {
         throw new Error(`${dir}/package.json must have a description`);
@@ -206,9 +204,7 @@ if (import.meta.main) {
   const registry = await emitRegistry(ACTIONS_DIR);
   const out = `${JSON.stringify(registry, null, 2)}\n`;
   await writeFile(join(ACTIONS_DIR, "registry.json"), out);
-  console.log(
-    `wrote ${join(ACTIONS_DIR, "registry.json")} (${registry.actions.length} actions)`,
-  );
+  console.log(`wrote ${join(ACTIONS_DIR, "registry.json")} (${registry.actions.length} actions)`);
 }
 ```
 

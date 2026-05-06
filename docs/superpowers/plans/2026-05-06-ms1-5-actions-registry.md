@@ -16,22 +16,22 @@
 
 ## File structure
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `packages/runtime/src/runner/uses/registry-fetch.ts` | Build git tag `${ns}/${name}@v${version}` from registry coordinate |
-| Modify | `packages/runtime/tests/runner-uses-registry-fetch.test.ts` | Update fixture tags + version arg to new format |
-| Modify | `packages/cli/tests/install.test.ts` | Update bare-repo fixture tag + install ref |
-| Modify | `packages/cli/tests/bin-integration.test.ts` | Same fixture/ref update |
-| Modify | `actions/claude/agent/package.json` | Rename to `@claude/agent`, +description, version → 1.0.0 |
-| Create | `scripts/gen-actions-registry.ts` | Emitter — exports `emitRegistry()` + CLI entry |
-| Create | `scripts/gen-actions-registry.test.ts` | Emitter unit tests |
-| Create | `actions/registry.json` | Initial emitted registry, committed |
-| Create | `lefthook.yml` | Pre-commit hook config |
-| Modify | `package.json` (root) | postinstall extended with `lefthook install`; `lefthook` added as devDep |
-| Create | `release-please-config.json` | Multi-component release-please config |
-| Create | `.release-please-manifest.json` | Initial versions for 4 components |
-| Create | `.github/workflows/release-please.yml` | release-please-action@v4 trigger |
-| Create | `.github/workflows/registry-check.yml` | PR backstop: regen + git diff --exit-code |
+| Action | Path                                                        | Responsibility                                                           |
+| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Modify | `packages/runtime/src/runner/uses/registry-fetch.ts`        | Build git tag `${ns}/${name}@v${version}` from registry coordinate       |
+| Modify | `packages/runtime/tests/runner-uses-registry-fetch.test.ts` | Update fixture tags + version arg to new format                          |
+| Modify | `packages/cli/tests/install.test.ts`                        | Update bare-repo fixture tag + install ref                               |
+| Modify | `packages/cli/tests/bin-integration.test.ts`                | Same fixture/ref update                                                  |
+| Modify | `actions/claude/agent/package.json`                         | Rename to `@claude/agent`, +description, version → 1.0.0                 |
+| Create | `scripts/gen-actions-registry.ts`                           | Emitter — exports `emitRegistry()` + CLI entry                           |
+| Create | `scripts/gen-actions-registry.test.ts`                      | Emitter unit tests                                                       |
+| Create | `actions/registry.json`                                     | Initial emitted registry, committed                                      |
+| Create | `lefthook.yml`                                              | Pre-commit hook config                                                   |
+| Modify | `package.json` (root)                                       | postinstall extended with `lefthook install`; `lefthook` added as devDep |
+| Create | `release-please-config.json`                                | Multi-component release-please config                                    |
+| Create | `.release-please-manifest.json`                             | Initial versions for 4 components                                        |
+| Create | `.github/workflows/release-please.yml`                      | release-please-action@v4 trigger                                         |
+| Create | `.github/workflows/registry-check.yml`                      | PR backstop: regen + git diff --exit-code                                |
 
 ---
 
@@ -40,6 +40,7 @@
 **Why:** The runtime currently uses the registry coordinate's `version` field verbatim as the git tag/branch. The new convention is a per-action tag `<ns>/<name>@v<version>`, so the runtime must construct that string itself and the CLI keeps passing the bare semver version. Refactoring this first lets us update tests in the same task and keeps later tasks (CLI test updates, migration) on a stable foundation.
 
 **Files:**
+
 - Modify: `packages/runtime/src/runner/uses/registry-fetch.ts`
 - Modify: `packages/runtime/tests/runner-uses-registry-fetch.test.ts`
 
@@ -174,6 +175,7 @@ EOF
 **Why:** Task 1 changed the runtime's tag construction. The CLI test fixtures still use the old convention (`tag: "v1"`, `install ref: "test/noop@v1"`, etc.), so without this update they will fail against the refactored runtime.
 
 **Files:**
+
 - Modify: `packages/cli/tests/install.test.ts`
 - Modify: `packages/cli/tests/bin-integration.test.ts`
 
@@ -194,7 +196,7 @@ const bareRepo = await makeBareRepoWithAction({
   cwd: env.home,
   namespace: "test",
   name: "noop",
-  tag: "test/noop@v1.0.0",  // was: "v1"
+  tag: "test/noop@v1.0.0", // was: "v1"
   manifest: "name: noop\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
   sources: { "index.mjs": "export default async () => {};\n" },
 });
@@ -202,7 +204,7 @@ const bareRepo = await makeBareRepoWithAction({
 process.env.AIACTIONS_CANONICAL_URL = `file://${bareRepo}`;
 // ...
 await installCommand.run!({
-  args: { ref: "test/noop@1.0.0", json: true } as never,  // was: "test/noop@v1"
+  args: { ref: "test/noop@1.0.0", json: true } as never, // was: "test/noop@v1"
   cmd: installCommand,
   data: undefined,
   rawArgs: [],
@@ -212,10 +214,10 @@ await installCommand.run!({
 Update the assertions to match the new path:
 
 ```ts
-expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "1.0.0"));  // was: "v1"
+expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "1.0.0")); // was: "v1"
 // ...
 const versions = await readdir(join(env.registryRoot, "test", "noop"));
-expect(versions).toEqual(["1.0.0"]);  // was: ["v1"]
+expect(versions).toEqual(["1.0.0"]); // was: ["v1"]
 ```
 
 The "cache hit short-circuits" test pre-creates `<root>/test/preinstalled/v1` — update that path and the install ref to `1.0.0` likewise.
@@ -286,6 +288,7 @@ EOF
 **Why:** The emitter (Task 4) reads `package.json.name`, `package.json.version`, and `package.json.description`. The current `actions/claude/agent/package.json` has the wrong name (`@aiactions-public/claude-agent`), no description, and version `0.0.0`. Bring it in line with the new convention before the emitter runs.
 
 **Files:**
+
 - Modify: `actions/claude/agent/package.json`
 
 - [ ] **Step 1: Locate every reference to the old name**
@@ -371,6 +374,7 @@ EOF
 **Why:** The emitter is the heart of the registry pipeline — every other piece (lefthook, CI backstop, release-please trigger downstream) calls into it. Implement it as a pure exported function so unit tests can target it directly without filesystem races on the real `actions/` tree.
 
 **Files:**
+
 - Create: `scripts/gen-actions-registry.ts`
 - Create: `scripts/gen-actions-registry.test.ts`
 
@@ -572,9 +576,7 @@ export async function emitRegistry(actionsDir: string): Promise<Registry> {
 
       const expectedName = `@${ns.name}/${name.name}`;
       if (pkg.name !== expectedName) {
-        throw new Error(
-          `${dir}/package.json name '${pkg.name}' must equal '${expectedName}'`,
-        );
+        throw new Error(`${dir}/package.json name '${pkg.name}' must equal '${expectedName}'`);
       }
       if (!pkg.description) {
         throw new Error(`${dir}/package.json must have a description`);
@@ -598,9 +600,7 @@ if (import.meta.main) {
   const registry = await emitRegistry(ACTIONS_DIR);
   const out = `${JSON.stringify(registry, null, 2)}\n`;
   await writeFile(join(ACTIONS_DIR, "registry.json"), out);
-  console.log(
-    `wrote ${join(ACTIONS_DIR, "registry.json")} (${registry.actions.length} actions)`,
-  );
+  console.log(`wrote ${join(ACTIONS_DIR, "registry.json")} (${registry.actions.length} actions)`);
 }
 ```
 
@@ -651,6 +651,7 @@ EOF
 **Why:** Without an initial committed file, the CI backstop has nothing to diff against on the first PR. Generate the file once via the emitter and commit it; all later commits update it via the lefthook hook.
 
 **Files:**
+
 - Create: `actions/registry.json`
 
 - [ ] **Step 1: Run the emitter**
@@ -714,6 +715,7 @@ EOF
 **Why:** Lefthook keeps `actions/registry.json` in sync with `actions/<ns>/<name>/` content automatically — every commit that touches an action regenerates the registry and re-stages it.
 
 **Files:**
+
 - Create: `lefthook.yml`
 - Modify: `package.json` (root) — add `lefthook` devDep + extend postinstall
 
@@ -750,8 +752,8 @@ Read `package.json` (root). Update the `postinstall` script value:
   "scripts": {
     "ready": "...",
     "gen:schemas": "...",
-    "postinstall": "bun run gen:schemas && lefthook install"
-  }
+    "postinstall": "bun run gen:schemas && lefthook install",
+  },
 }
 ```
 
@@ -816,6 +818,7 @@ EOF
 **Why:** Lefthook only protects authors who installed the hook. The CI backstop catches contributors who skipped install or used `--no-verify`, so a stale `actions/registry.json` can never reach `main`.
 
 **Files:**
+
 - Create: `.github/workflows/registry-check.yml`
 
 - [ ] **Step 1: Create the workflow directory + file**
@@ -878,6 +881,7 @@ EOF
 **Why:** release-please needs both `release-please-config.json` (which components to track and how) and `.release-please-manifest.json` (what their current versions are). With these in place, the next merge to `main` opens a release PR that proposes bumps based on Conventional Commits since `bootstrap-sha`.
 
 **Files:**
+
 - Create: `release-please-config.json`
 - Create: `.release-please-manifest.json`
 
@@ -891,12 +895,12 @@ EOF
   "include-component-in-tag": true,
   "bootstrap-sha": "6417215d52c04a8bbd632d49a6d83ac8ce8b32dc",
   "packages": {
-    "packages/runtime":     { "component": "@aiactions/runtime"   },
-    "packages/workflows":   { "component": "@aiactions/workflows" },
-    "packages/cli":         { "component": "@aiactions/cli"       },
-    "actions/claude/agent": { "component": "claude/agent"         }
+    "packages/runtime": { "component": "@aiactions/runtime" },
+    "packages/workflows": { "component": "@aiactions/workflows" },
+    "packages/cli": { "component": "@aiactions/cli" },
+    "actions/claude/agent": { "component": "claude/agent" },
   },
-  "plugins": ["node-workspace"]
+  "plugins": ["node-workspace"],
 }
 ```
 
@@ -941,6 +945,7 @@ EOF
 **Why:** The config is inert without a workflow that runs `release-please-action@v4` on every push to `main`.
 
 **Files:**
+
 - Create: `.github/workflows/release-please.yml`
 
 - [ ] **Step 1: Create the workflow**
@@ -1090,23 +1095,23 @@ This task produces no commits — close it after the user acknowledges the runbo
 
 **Spec coverage:**
 
-| Spec section | Implementing task |
-|---|---|
-| Goal — public registry pipeline | Tasks 4, 5, 6, 7 |
-| Refactor `fetchActionFromCanonical` | Task 1 |
-| Migrate `claude/agent` | Task 3 |
-| Schema `{actions: [{ref, description}]}` | Task 4 (emitter), Task 5 (initial output) |
-| Emitter location `scripts/gen-actions-registry.ts` | Task 4 |
-| lefthook pre-commit + `stage_fixed: true` | Task 6 |
-| postinstall extension | Task 6 |
-| CI registry-check backstop | Task 7 |
-| release-please-config.json | Task 8 |
-| .release-please-manifest.json | Task 8 |
-| release-please workflow | Task 9 |
-| Tag pattern `<ns>/<name>@v<version>` | Tasks 1 (runtime), 8 (release-please config), 10 (manual re-tag) |
-| Re-tag `claude/agent` as alias | Task 10 |
-| Test layers (emitter unit + runtime regression + manual smoke) | Tasks 4 (unit), 1 + 2 (regression), 11 (smoke) |
-| Verification gate `vp run ready` | Task 11 |
+| Spec section                                                   | Implementing task                                                |
+| -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Goal — public registry pipeline                                | Tasks 4, 5, 6, 7                                                 |
+| Refactor `fetchActionFromCanonical`                            | Task 1                                                           |
+| Migrate `claude/agent`                                         | Task 3                                                           |
+| Schema `{actions: [{ref, description}]}`                       | Task 4 (emitter), Task 5 (initial output)                        |
+| Emitter location `scripts/gen-actions-registry.ts`             | Task 4                                                           |
+| lefthook pre-commit + `stage_fixed: true`                      | Task 6                                                           |
+| postinstall extension                                          | Task 6                                                           |
+| CI registry-check backstop                                     | Task 7                                                           |
+| release-please-config.json                                     | Task 8                                                           |
+| .release-please-manifest.json                                  | Task 8                                                           |
+| release-please workflow                                        | Task 9                                                           |
+| Tag pattern `<ns>/<name>@v<version>`                           | Tasks 1 (runtime), 8 (release-please config), 10 (manual re-tag) |
+| Re-tag `claude/agent` as alias                                 | Task 10                                                          |
+| Test layers (emitter unit + runtime regression + manual smoke) | Tasks 4 (unit), 1 + 2 (regression), 11 (smoke)                   |
+| Verification gate `vp run ready`                               | Task 11                                                          |
 
 No spec section is unimplemented.
 
