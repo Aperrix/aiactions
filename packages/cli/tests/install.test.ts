@@ -57,7 +57,7 @@ test("end-to-end: cache miss → fetch from bare repo → cache populated", asyn
     cwd: env.home,
     namespace: "test",
     name: "noop",
-    tag: "v1",
+    tag: "test/noop@v1.0.0",
     manifest: "name: noop\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
     sources: { "index.mjs": "export default async () => {};\n" },
   });
@@ -72,7 +72,7 @@ test("end-to-end: cache miss → fetch from bare repo → cache populated", asyn
 
   try {
     await installCommand.run!({
-      args: { ref: "test/noop@v1", json: true } as never,
+      args: { ref: "test/noop@1.0.0", json: true } as never,
       cmd: installCommand,
       data: undefined,
       rawArgs: [],
@@ -82,17 +82,17 @@ test("end-to-end: cache miss → fetch from bare repo → cache populated", asyn
   }
 
   const out = JSON.parse(stdoutChunks.join(""));
-  expect(out.ref).toBe("test/noop@v1");
+  expect(out.ref).toBe("test/noop@1.0.0");
   expect(out.fetched).toBe(true);
-  expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "v1"));
+  expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "1.0.0"));
   expect(typeof out.resolvedSha).toBe("string");
 
   const versions = await readdir(join(env.registryRoot, "test", "noop"));
-  expect(versions).toEqual(["v1"]);
+  expect(versions).toEqual(["1.0.0"]);
 });
 
 test("cache hit short-circuits — fetched: false", async () => {
-  const dir = join(env.registryRoot, "test", "preinstalled", "v1");
+  const dir = join(env.registryRoot, "test", "preinstalled", "1.0.0");
   await mkdir(dir, { recursive: true });
 
   const stdoutChunks: string[] = [];
@@ -103,7 +103,7 @@ test("cache hit short-circuits — fetched: false", async () => {
 
   try {
     await installCommand.run!({
-      args: { ref: "test/preinstalled@v1", json: true } as never,
+      args: { ref: "test/preinstalled@1.0.0", json: true } as never,
       cmd: installCommand,
       data: undefined,
       rawArgs: [],
