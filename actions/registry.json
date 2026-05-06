@@ -1,0 +1,8 @@
+{
+  "actions": [
+    {
+      "ref": "claude/agent@1.0.0",
+      "description": "Run a Claude Code agent loop via @anthropic-ai/claude-agent-sdk. Sends a prompt, executes the agent's tool-use loop in cwd, and emits the final assistant text, session id, and usage as step outputs."
+    }
+  ]
+}
