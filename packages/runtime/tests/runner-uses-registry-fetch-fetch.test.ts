@@ -24,20 +24,20 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
       cwd: work,
       namespace: "octocat",
       name: "lint",
-      tag: "v1.0.0",
+      tag: "octocat/lint@v1.0.0",
       manifest: "name: lint\ndescription: lint things\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
 
     const registryRoot = join(work, "registry");
     const sha = await fetchActionFromCanonical(
-      { namespace: "octocat", name: "lint", version: "v1.0.0" },
+      { namespace: "octocat", name: "lint", version: "1.0.0" },
       registryRoot,
       { canonicalUrl: `file://${bareRepo}`, tmpRoot: join(work, "tmp") },
     );
 
     expect(sha).toMatch(/^[0-9a-f]{40}$/);
-    const manifestPath = join(registryRoot, "octocat", "lint", "v1.0.0", "aiaction.yaml");
+    const manifestPath = join(registryRoot, "octocat", "lint", "1.0.0", "aiaction.yaml");
     const manifest = await readFile(manifestPath, "utf8");
     expect(manifest).toContain("name: lint");
   });
@@ -48,7 +48,7 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
       cwd: work,
       namespace: "octocat",
       name: "lint",
-      tag: "v1.0.0",
+      tag: "octocat/lint@v1.0.0",
       manifest: "name: lint\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
@@ -56,11 +56,11 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
     const registryRoot = join(work, "registry");
     await expect(
       fetchActionFromCanonical(
-        { namespace: "octocat", name: "lint", version: "v9.9.9-does-not-exist" },
+        { namespace: "octocat", name: "lint", version: "9.9.9-does-not-exist" },
         registryRoot,
         { canonicalUrl: `file://${bareRepo}`, tmpRoot: join(work, "tmp") },
       ),
-    ).rejects.toThrow(/v9\.9\.9-does-not-exist/);
+    ).rejects.toThrow(/9\.9\.9-does-not-exist/);
   });
 
   test("does not leave a partial directory at the cache path on failure", async () => {
@@ -69,7 +69,7 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
       cwd: work,
       namespace: "octocat",
       name: "lint",
-      tag: "v1.0.0",
+      tag: "octocat/lint@v1.0.0",
       manifest: "name: lint\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
@@ -77,14 +77,14 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
     const registryRoot = join(work, "registry");
     await expect(
       fetchActionFromCanonical(
-        { namespace: "octocat", name: "lint", version: "v9.9.9-does-not-exist" },
+        { namespace: "octocat", name: "lint", version: "9.9.9-does-not-exist" },
         registryRoot,
         { canonicalUrl: `file://${bareRepo}`, tmpRoot: join(work, "tmp") },
       ),
     ).rejects.toBeDefined();
 
     await expect(
-      stat(join(registryRoot, "octocat", "lint", "v9.9.9-does-not-exist")),
+      stat(join(registryRoot, "octocat", "lint", "9.9.9-does-not-exist")),
     ).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

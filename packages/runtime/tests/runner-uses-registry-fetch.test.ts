@@ -53,24 +53,24 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
       cwd: work,
       namespace: "octocat",
       name: "lint",
-      tag: "v1.0.0",
+      tag: "octocat/lint@v1.0.0",
       manifest: "name: lint\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
       sources: { "index.mjs": "export default async () => {};\n" },
     });
 
     const result = await ensureCachedAction(
-      { namespace: "octocat", name: "lint", version: "v1.0.0" },
+      { namespace: "octocat", name: "lint", version: "1.0.0" },
       registryRoot,
       cwd,
       { canonicalUrl: `file://${bareRepo}`, tmpRoot: join(work, "tmp") },
     );
 
-    expect(result.dir).toBe(join(registryRoot, "octocat", "lint", "v1.0.0"));
+    expect(result.dir).toBe(join(registryRoot, "octocat", "lint", "1.0.0"));
     expect(result.fetched).toBe(true);
     expect(result.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
 
     const lock = await readFile(join(cwd, ".aiactions", "lock.yaml"), "utf8");
-    expect(lock).toContain("octocat/lint@v1.0.0:");
+    expect(lock).toContain("octocat/lint@1.0.0:");
     expect(lock).toContain(result.resolvedSha!);
   });
 
@@ -98,5 +98,32 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
 
     const marker = await readFile(join(cachedDir, "marker"), "utf8");
     expect(marker.trim()).toBe("user-placed");
+  });
+
+  test("constructs the per-action tag '<ns>/<name>@v<version>' from the coordinate", async () => {
+    const work = await mkdtemp(join(tmpdir(), "aiactions-ensure-"));
+    const registryRoot = join(work, "registry");
+    const cwd = join(work, "project");
+    await mkdir(cwd, { recursive: true });
+
+    const bareRepo = await makeBareRepoWithAction({
+      cwd: work,
+      namespace: "octocat",
+      name: "lint",
+      tag: "octocat/lint@v2.3.4",
+      manifest: "name: lint\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
+      sources: { "index.mjs": "export default async () => {};\n" },
+    });
+
+    const result = await ensureCachedAction(
+      { namespace: "octocat", name: "lint", version: "2.3.4" },
+      registryRoot,
+      cwd,
+      { canonicalUrl: `file://${bareRepo}`, tmpRoot: join(work, "tmp") },
+    );
+
+    expect(result.dir).toBe(join(registryRoot, "octocat", "lint", "2.3.4"));
+    expect(result.fetched).toBe(true);
+    expect(result.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
   });
 });

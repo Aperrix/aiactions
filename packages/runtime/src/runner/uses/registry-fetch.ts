@@ -128,6 +128,7 @@ export async function fetchActionFromCanonical(
   await mkdir(tmpRoot, { recursive: true });
   const tmp = await mkdtemp(join(tmpRoot, "aiactions-fetch-"));
   const repoDir = join(tmp, "_repo");
+  const tag = `${ref.namespace}/${ref.name}@v${ref.version}`;
 
   try {
     try {
@@ -138,7 +139,7 @@ export async function fetchActionFromCanonical(
         "--depth",
         "1",
         "--branch",
-        ref.version,
+        tag,
         canonicalUrl,
         repoDir,
       ]);
