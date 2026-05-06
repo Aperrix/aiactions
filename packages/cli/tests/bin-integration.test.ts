@@ -35,12 +35,12 @@ test("aia action install end-to-end populates the cache", async () => {
     cwd: env.home,
     namespace: "test",
     name: "smoke",
-    tag: "v1",
+    tag: "test/smoke@v1.0.0",
     manifest: "name: smoke\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
     sources: { "index.mjs": "export default async () => {};\n" },
   });
 
-  const result = await runCli(["action", "install", "test/smoke@v1", "--json"], {
+  const result = await runCli(["action", "install", "test/smoke@1.0.0", "--json"], {
     HOME: env.home,
     AIACTIONS_CANONICAL_URL: `file://${bareRepo}`,
   });
@@ -52,11 +52,11 @@ test("aia action install end-to-end populates the cache", async () => {
     dir: string;
     resolvedSha: string | null;
   };
-  expect(out.ref).toBe("test/smoke@v1");
+  expect(out.ref).toBe("test/smoke@1.0.0");
   expect(out.fetched).toBe(true);
 
   const versions = await readdir(join(env.registryRoot, "test", "smoke"));
-  expect(versions).toEqual(["v1"]);
+  expect(versions).toEqual(["1.0.0"]);
 });
 
 test("aia action list end-to-end on populated cache", async () => {
@@ -64,12 +64,12 @@ test("aia action list end-to-end on populated cache", async () => {
     cwd: env.home,
     namespace: "test",
     name: "smoke",
-    tag: "v1",
+    tag: "test/smoke@v1.0.0",
     manifest: "name: smoke\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
     sources: { "index.mjs": "export default async () => {};\n" },
   });
 
-  await runCli(["action", "install", "test/smoke@v1", "--json"], {
+  await runCli(["action", "install", "test/smoke@1.0.0", "--json"], {
     HOME: env.home,
     AIACTIONS_CANONICAL_URL: `file://${bareRepo}`,
   });
@@ -86,7 +86,7 @@ test("aia action list end-to-end on populated cache", async () => {
   expect(out[0]).toMatchObject({
     namespace: "test",
     name: "smoke",
-    version: "v1",
+    version: "1.0.0",
   });
 });
 
@@ -95,17 +95,17 @@ test("aia action uninstall end-to-end with --yes", async () => {
     cwd: env.home,
     namespace: "test",
     name: "smoke",
-    tag: "v1",
+    tag: "test/smoke@v1.0.0",
     manifest: "name: smoke\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
     sources: { "index.mjs": "export default async () => {};\n" },
   });
 
-  await runCli(["action", "install", "test/smoke@v1", "--json"], {
+  await runCli(["action", "install", "test/smoke@1.0.0", "--json"], {
     HOME: env.home,
     AIACTIONS_CANONICAL_URL: `file://${bareRepo}`,
   });
 
-  const result = await runCli(["action", "uninstall", "test/smoke@v1", "--yes", "--json"], {
+  const result = await runCli(["action", "uninstall", "test/smoke@1.0.0", "--yes", "--json"], {
     HOME: env.home,
   });
   expect(result.exitCode).toBe(0);
@@ -114,7 +114,7 @@ test("aia action uninstall end-to-end with --yes", async () => {
     skipped: unknown[];
   };
   expect(out.removed).toHaveLength(1);
-  expect(out.removed[0]?.ref).toBe("test/smoke@v1");
+  expect(out.removed[0]?.ref).toBe("test/smoke@1.0.0");
 
   const listResult = await runCli(["action", "list", "--json"], { HOME: env.home });
   expect(JSON.parse(listResult.stdout)).toEqual([]);

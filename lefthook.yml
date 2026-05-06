@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: regenerate-actions-registry
+      glob: "actions/**"
+      run: bun run scripts/gen-actions-registry.ts
+      stage_fixed: true

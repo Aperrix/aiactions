@@ -1,0 +1,25 @@
+name: registry-check
+
+on:
+  pull_request:
+    paths:
+      - "actions/**"
+      - "scripts/gen-actions-registry.ts"
+      - ".github/workflows/registry-check.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: voidzero-dev/setup-vp@v1
+
+      - name: Install workspace dependencies
+        run: vp install
+
+      - name: Regenerate registry
+        run: bun run scripts/gen-actions-registry.ts
+
+      - name: Verify registry is committed and up-to-date
+        run: git diff --exit-code actions/registry.json

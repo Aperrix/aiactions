@@ -12,11 +12,14 @@
   "scripts": {
     "ready": "bun run gen:schemas && vp check && vp run -r build && vp run -r test",
     "gen:schemas": "bun run scripts/gen-schemas.ts",
-    "postinstall": "bun run gen:schemas"
+    "postinstall": "bun run gen:schemas && lefthook install"
   },
   "devDependencies": {
+    "@aiactions/workflows": "workspace:*",
+    "lefthook": "^2.1.6",
     "typescript": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "yaml": "^2.8.4"
   },
   "overrides": {
     "typescript": "catalog:",

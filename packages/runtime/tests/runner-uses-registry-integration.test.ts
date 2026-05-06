@@ -28,7 +28,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
       cwd: work,
       namespace: "octocat",
       name: "echo",
-      tag: "v1.0.0",
+      tag: "octocat/echo@v1.0.0",
       manifest:
         "schemaVersion: 1\nname: echo\ndescription: echo a value\ninputs:\n  message:\n    description: text to echo\noutputs:\n  echoed:\n    description: the same text\nruns:\n  using: node\n  main: ./index.mjs\n",
       sources: {
@@ -44,7 +44,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
           steps: [
             {
               id: "echoer",
-              uses: "octocat/echo@v1.0.0",
+              uses: "octocat/echo@1.0.0",
               with: { message: "hello" },
             },
             {
@@ -65,7 +65,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
     expect(result.jobs.one?.steps[1]?.stdout).toContain("received=hello");
 
     const lock = await readFile(join(cwd, ".aiactions", "lock.yaml"), "utf8");
-    expect(lock).toContain("octocat/echo@v1.0.0");
+    expect(lock).toContain("octocat/echo@1.0.0");
   });
 
   test("default registryRoot is ~/.aiactions/actions (HOME override)", async () => {
@@ -79,7 +79,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
       cwd: work,
       namespace: "octocat",
       name: "noop",
-      tag: "v1.0.0",
+      tag: "octocat/noop@v1.0.0",
       manifest:
         "schemaVersion: 1\nname: noop\ndescription: x\nruns:\n  using: node\n  main: ./index.mjs\n",
       sources: { "index.mjs": "export async function run() {}\n" },
@@ -94,7 +94,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
           one: {
             steps: [
               {
-                uses: "octocat/noop@v1.0.0",
+                uses: "octocat/noop@1.0.0",
               },
             ],
           },
@@ -108,7 +108,7 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
 
       expect(result.status).toBe("succeeded");
       const cachedManifest = await readFile(
-        join(fakeHome, ".aiactions", "actions", "octocat", "noop", "v1.0.0", "aiaction.yaml"),
+        join(fakeHome, ".aiactions", "actions", "octocat", "noop", "1.0.0", "aiaction.yaml"),
         "utf8",
       );
       expect(cachedManifest).toContain("name: noop");

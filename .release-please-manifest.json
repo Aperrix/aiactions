@@ -1,0 +1,6 @@
+{
+  "packages/runtime": "0.0.0",
+  "packages/workflows": "0.0.0",
+  "packages/cli": "0.0.0",
+  "actions/claude/agent": "1.0.0"
+}
