@@ -32,12 +32,17 @@ Because AIactions draws heavily on Archon:
 
 Write tests when they catch real failure modes or freeze behavior that matters. Writing tests just to tick a TDD checkbox — tautological assertions, tests coupled to implementation details — is explicitly unwanted. Judge every test on merit: would a reviewer miss the failure it catches?
 
-## Branching — feature branches + squash merge
+## Branching — feature branches + scope-aware merge
 
 - **One branch (ideally one `git worktree`) per task or conversation.**
 - **Rebase the branch on `main`** before merging when `main` has moved on.
-- **Squash merge on `main`** — exactly one commit per feature, keeping history linear and the tree clean.
+- **Merge strategy depends on PR scope:**
+  - **Single-component PR** (touches one package or one area only) → **squash merge** on `main`. Exactly one commit per feature, history stays linear.
+  - **Multi-component PR** (touches two or more `packages/*` and/or `actions/<ns>/<name>/*`) → **`git merge --no-ff`** on `main`. Preserves the per-commit Conventional Commit history so `release-please` routes each commit to its correct component by scope, instead of falling back to path-detection and over-bumping unrelated components from a single squash. Branch commits must already be valid Conventional Commits — that is what makes `--no-ff` viable.
+- The trade-off: multi-component merges land 5-15 commits on `main` instead of 1, but each is a typed Conv Commit. release-please sees the full signal; release notes are richer; no manual override of the release PR is ever required.
 - This pairs with `release-please` (which parses `main`'s commit history) and with the worktree guidance in `engineering-principles.md`.
+
+**Lesson driving this rule (MS1.5, 2026-05-06):** the MS1.5 squash collapsed 12 commits across 3 components (`@aiactions/runtime`, `@aiactions/cli`, `claude/agent`) into one `feat(registry)!:` commit. release-please path-routed the BREAKING flag to every package whose files changed and proposed `claude/agent: 1.0.0 → 2.0.0` even though the rename was metadata-only. Required a manual override on the release PR. With `--no-ff`, each component's tightly-scoped commits would have driven precise per-component bumps with no override.
 
 ## Commits — Conventional Commits
 
