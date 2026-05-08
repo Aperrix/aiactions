@@ -23,6 +23,7 @@ test("RegistryCoordinate, EnsureCachedActionOptions, EnsureCachedActionResult ar
     dir: "/tmp/x",
     fetched: false,
     resolvedSha: null,
+    resolvedVersion: "1.0.0",
   } satisfies runtime.EnsureCachedActionResult;
 
   expect(coord.namespace).toBe("test");
