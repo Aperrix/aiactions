@@ -35,29 +35,29 @@ async function exists(p: string): Promise<boolean> {
 }
 
 test("ref + --yes → removes entry and prunes empty parents", async () => {
-  await pre("claude", "agent", "v1");
+  await pre("claude", "agent", "1");
   await uninstallCommand.run!({
     args: { ref: "claude/agent@v1", yes: true, json: false } as never,
     cmd: uninstallCommand,
     data: undefined,
     rawArgs: [],
   });
-  expect(await exists(join(env.registryRoot, "claude", "agent", "v1"))).toBe(false);
+  expect(await exists(join(env.registryRoot, "claude", "agent", "1"))).toBe(false);
   expect(await exists(join(env.registryRoot, "claude", "agent"))).toBe(false);
   expect(await exists(join(env.registryRoot, "claude"))).toBe(false);
 });
 
 test("ref + --yes preserves sibling versions", async () => {
-  await pre("claude", "agent", "v1");
-  await pre("claude", "agent", "v2");
+  await pre("claude", "agent", "1");
+  await pre("claude", "agent", "2");
   await uninstallCommand.run!({
     args: { ref: "claude/agent@v1", yes: true, json: false } as never,
     cmd: uninstallCommand,
     data: undefined,
     rawArgs: [],
   });
-  expect(await exists(join(env.registryRoot, "claude", "agent", "v1"))).toBe(false);
-  expect(await exists(join(env.registryRoot, "claude", "agent", "v2"))).toBe(true);
+  expect(await exists(join(env.registryRoot, "claude", "agent", "1"))).toBe(false);
+  expect(await exists(join(env.registryRoot, "claude", "agent", "2"))).toBe(true);
 });
 
 test("ref absent → NotFoundError", async () => {
@@ -83,7 +83,7 @@ test("malformed ref → UsageError", async () => {
 });
 
 test("no-arg + non-TTY → UsageError (refuse destructive op)", async () => {
-  await pre("claude", "agent", "v1");
+  await pre("claude", "agent", "1");
   await expect(
     uninstallCommand.run!({
       args: { ref: "", yes: false, json: false } as never,
@@ -95,7 +95,7 @@ test("no-arg + non-TTY → UsageError (refuse destructive op)", async () => {
 });
 
 test("ref + non-TTY + no --yes → UsageError", async () => {
-  await pre("claude", "agent", "v1");
+  await pre("claude", "agent", "1");
   await expect(
     uninstallCommand.run!({
       args: { ref: "claude/agent@v1", yes: false, json: false } as never,
@@ -118,7 +118,7 @@ test("--json without ref → UsageError", async () => {
 });
 
 test("ref + --yes + --json → emits JSON receipt", async () => {
-  const dir = await pre("claude", "agent", "v1");
+  const dir = await pre("claude", "agent", "1");
   const stdoutChunks: string[] = [];
   const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((c) => {
     stdoutChunks.push(String(c));
