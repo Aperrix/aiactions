@@ -47,11 +47,16 @@ async function installRef(
           ref: refLabel,
           dir: result.dir,
           fetched: result.fetched,
+          resolvedVersion: result.resolvedVersion,
           resolvedSha: result.resolvedSha,
         })}\n`,
       );
     } else if (!opts.interactive) {
-      process.stderr.write(`${result.fetched ? "✓ installed" : "✓ already cached"} ${refLabel}\n`);
+      const tail =
+        result.resolvedVersion !== ref.version ? ` (resolved as ${result.resolvedVersion})` : "";
+      process.stderr.write(
+        `${result.fetched ? "✓ installed" : "✓ already cached"} ${refLabel}${tail}\n`,
+      );
     }
   } catch (err) {
     spinner?.stop(`failed: ${refLabel}`, 1);

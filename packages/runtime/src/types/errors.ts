@@ -62,3 +62,15 @@ export class ActionManifestError extends RuntimeError {}
  * event when one becomes available.
  */
 export class ActionProtocolError extends RuntimeError {}
+
+/**
+ * Raised when `readLockfile` finds a well-formed JSON file whose
+ * `version` field differs from the current schema version. The message
+ * instructs the user to delete `.aiactions/lock.json` and re-run.
+ */
+export class LockfileVersionMismatch extends Error {
+  override readonly name = "LockfileVersionMismatch";
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+  }
+}

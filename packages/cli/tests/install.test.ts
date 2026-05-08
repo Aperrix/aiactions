@@ -85,10 +85,48 @@ test("end-to-end: cache miss → fetch from bare repo → cache populated", asyn
   expect(out.ref).toBe("test/noop@1.0.0");
   expect(out.fetched).toBe(true);
   expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "1.0.0"));
+  expect(out.resolvedVersion).toBe("1.0.0"); // NEW
   expect(typeof out.resolvedSha).toBe("string");
 
   const versions = await readdir(join(env.registryRoot, "test", "noop"));
   expect(versions).toEqual(["1.0.0"]);
+});
+
+test("install with major-only ref — resolvedVersion shows the picked concrete", async () => {
+  const bareRepo = await makeBareRepoWithAction({
+    cwd: env.home,
+    namespace: "test",
+    name: "noop",
+    tag: "test/noop@v1.0.0",
+    manifest: "name: noop\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n",
+    sources: { "index.mjs": "export default async () => {};\n" },
+    extraTags: ["test/noop@v1.2.0"],
+  });
+
+  process.env.AIACTIONS_CANONICAL_URL = `file://${bareRepo}`;
+
+  const stdoutChunks: string[] = [];
+  const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+    stdoutChunks.push(String(c));
+    return true;
+  });
+
+  try {
+    await installCommand.run!({
+      args: { ref: "test/noop@v1", json: true } as never,
+      cmd: installCommand,
+      data: undefined,
+      rawArgs: [],
+    });
+  } finally {
+    stdoutSpy.mockRestore();
+  }
+
+  const out = JSON.parse(stdoutChunks.join(""));
+  expect(out.ref).toBe("test/noop@v1");
+  expect(out.resolvedVersion).toBe("1.2.0");
+  expect(out.fetched).toBe(true);
+  expect(out.dir).toBe(join(env.registryRoot, "test", "noop", "1.2.0"));
 });
 
 test("cache hit short-circuits — fetched: false", async () => {

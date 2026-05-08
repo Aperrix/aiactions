@@ -29,6 +29,8 @@ export interface MakeBareRepoOptions {
   readonly manifest: string;
   /** Additional files inside `actions/<ns>/<name>/`, keyed by relative path. */
   readonly sources: Readonly<Record<string, string>>;
+  /** Extra tag names pointing at the same head, seeded after the primary tag. */
+  readonly extraTags?: readonly string[];
 }
 
 const run = async (cwd: string, ...args: string[]): Promise<void> => {
@@ -62,6 +64,10 @@ export async function makeBareRepoWithAction(options: MakeBareRepoOptions): Prom
   await run(work, "add", ".");
   await run(work, "commit", "-m", `add ${options.namespace}/${options.name}`);
   await run(work, "tag", options.tag);
+
+  for (const extra of options.extraTags ?? []) {
+    await run(work, "tag", extra);
+  }
 
   const bareRepo = join(options.cwd, "repo.git");
   await pExecFile("git", ["clone", "--bare", work, bareRepo]);
