@@ -2,22 +2,77 @@ import { ensureCachedAction, type EnsureCachedActionOptions } from "@aiactions/r
 import * as clack from "@clack/prompts";
 import { defineCommand } from "citty";
 
-import { CliError } from "../../lib/errors.ts";
+import { CliError, NotFoundError, UsageError } from "../../lib/errors.ts";
 import { EXIT } from "../../lib/exit-codes.ts";
 import { isInteractive } from "../../lib/output.ts";
 import { parseRegistryRef } from "../../lib/parse-registry-ref.ts";
+import { parseShortRef } from "../../lib/parse-short-ref.ts";
+import {
+  fetchRegistry,
+  groupByCoord,
+  resolveLatest,
+  resolveRegistryUrl,
+} from "../../lib/registry.ts";
 import { resolveRegistryRoot } from "../../lib/registry-root.ts";
+
+interface InstallOpts {
+  readonly registryRoot: string;
+  readonly canonicalUrl: string | undefined;
+  readonly interactive: boolean;
+  readonly json: boolean;
+}
+
+async function installRef(
+  refLabel: string,
+  ref: { namespace: string; name: string; version: string },
+  opts: InstallOpts,
+): Promise<void> {
+  const ensureOpts: EnsureCachedActionOptions = opts.canonicalUrl
+    ? { canonicalUrl: opts.canonicalUrl }
+    : {};
+
+  let spinner: ReturnType<typeof clack.spinner> | undefined;
+  if (opts.interactive) {
+    spinner = clack.spinner();
+    spinner.start(`fetching ${refLabel}`);
+  }
+
+  try {
+    const result = await ensureCachedAction(ref, opts.registryRoot, process.cwd(), ensureOpts);
+    spinner?.stop(result.fetched ? `installed ${refLabel}` : `already cached ${refLabel}`);
+
+    if (opts.json) {
+      process.stdout.write(
+        `${JSON.stringify({
+          ref: refLabel,
+          dir: result.dir,
+          fetched: result.fetched,
+          resolvedSha: result.resolvedSha,
+        })}\n`,
+      );
+    } else if (!opts.interactive) {
+      process.stderr.write(`${result.fetched ? "✓ installed" : "✓ already cached"} ${refLabel}\n`);
+    }
+  } catch (err) {
+    spinner?.stop(`failed: ${refLabel}`, 1);
+    throw new CliError(
+      EXIT.RUNTIME,
+      `install failed for ${refLabel}: ${(err as Error).message}`,
+      err,
+    );
+  }
+}
 
 export const installCommand = defineCommand({
   meta: {
     name: "install",
-    description: "Install an action from the registry into the local cache",
+    description: "Install one or more actions from the registry into the local cache",
   },
   args: {
     ref: {
       type: "positional",
-      description: "Registry coordinate '<ns>/<name>@<ver>'",
-      required: true,
+      description: "Registry coordinate '<ns>/<name>' or '<ns>/<name>@<ver>' (omit for picker)",
+      required: false,
     },
     json: {
       type: "boolean",
@@ -26,48 +81,69 @@ export const installCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const ref = parseRegistryRef(args.ref);
     const registryRoot = resolveRegistryRoot();
     const interactive = isInteractive(args.json);
-
     const canonicalUrl = process.env.AIACTIONS_CANONICAL_URL;
-    const options: EnsureCachedActionOptions = canonicalUrl ? { canonicalUrl } : {};
+    const baseOpts: InstallOpts = { registryRoot, canonicalUrl, interactive, json: args.json };
 
-    let spinner: ReturnType<typeof clack.spinner> | undefined;
-    if (interactive) {
-      spinner = clack.spinner();
-      spinner.start(`fetching ${args.ref}`);
+    // Flow A — explicit '<ns>/<name>@<ver>'
+    if (args.ref && args.ref.includes("@")) {
+      const ref = parseRegistryRef(args.ref);
+      await installRef(
+        args.ref,
+        { namespace: ref.namespace, name: ref.name, version: ref.version },
+        baseOpts,
+      );
+      return;
     }
 
-    try {
-      const result = await ensureCachedAction(
-        { namespace: ref.namespace, name: ref.name, version: ref.version },
-        registryRoot,
-        process.cwd(),
-        options,
-      );
-      spinner?.stop(result.fetched ? `installed ${args.ref}` : `already cached ${args.ref}`);
-
-      if (args.json) {
-        process.stdout.write(
-          `${JSON.stringify({
-            ref: args.ref,
-            dir: result.dir,
-            fetched: result.fetched,
-            resolvedSha: result.resolvedSha,
-          })}\n`,
-        );
-      } else if (!interactive) {
-        process.stderr.write(
-          `${result.fetched ? "✓ installed" : "✓ already cached"} ${args.ref}\n`,
+    // Flow B — short '<ns>/<name>'
+    if (args.ref) {
+      const short = parseShortRef(args.ref);
+      const reg = await fetchRegistry(resolveRegistryUrl(process.env));
+      const entry = resolveLatest(reg, short.ns, short.name);
+      if (!entry) {
+        throw new NotFoundError(
+          `no action '${short.ns}/${short.name}' in registry. Run 'aia action list' to see available actions.`,
         );
       }
-    } catch (err) {
-      spinner?.stop(`failed: ${args.ref}`, 1);
-      throw new CliError(
-        EXIT.RUNTIME,
-        `install failed for ${args.ref}: ${(err as Error).message}`,
-        err,
+      const full = parseRegistryRef(entry.ref);
+      await installRef(
+        entry.ref,
+        { namespace: full.namespace, name: full.name, version: full.version },
+        baseOpts,
+      );
+      return;
+    }
+
+    // Flow C — no arg → picker
+    if (!interactive) {
+      throw new UsageError("interactive picker requires a TTY. Pass an explicit ref.");
+    }
+    const reg = await fetchRegistry(resolveRegistryUrl(process.env));
+    const grouped = groupByCoord(reg);
+    if (grouped.size === 0) {
+      process.stderr.write("registry is empty\n");
+      return;
+    }
+    const options = Array.from(grouped.entries()).map(([_coord, entries]) => ({
+      value: entries[0]!.ref,
+      label: `${entries[0]!.ref}  — ${entries[0]!.description}`,
+    }));
+    const picked = await clack.multiselect({
+      message: "select actions to install (latest version)",
+      options,
+      required: false,
+    });
+    if (clack.isCancel(picked) || !Array.isArray(picked) || picked.length === 0) {
+      return;
+    }
+    for (const refLabel of picked as string[]) {
+      const ref = parseRegistryRef(refLabel);
+      await installRef(
+        refLabel,
+        { namespace: ref.namespace, name: ref.name, version: ref.version },
+        baseOpts,
       );
     }
   },

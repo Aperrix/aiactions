@@ -49,7 +49,7 @@ test("rejects local ref with UsageError", async () => {
       data: undefined,
       rawArgs: [],
     }),
-  ).rejects.toThrow(/install only supports registry refs/u);
+  ).rejects.toThrow(/expected '<ns>\/<name>'/u);
 });
 
 test("end-to-end: cache miss → fetch from bare repo → cache populated", async () => {
