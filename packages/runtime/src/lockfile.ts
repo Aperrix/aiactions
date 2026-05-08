@@ -3,13 +3,15 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 
 import type { RegistryCoordinate } from "./runner/uses/registry-fetch.ts";
+import { LockfileVersionMismatch } from "./types/errors.ts";
 
 const LOCKFILE_DIR = ".aiactions";
 const LOCKFILE_FILE = "lock.json";
-const CURRENT_VERSION = 1 as const;
+const CURRENT_VERSION = 2 as const;
 
 /** A single pinned action entry. */
 export interface LockfileEntry {
+  readonly resolvedVersion: string;
   readonly resolvedSha: string;
 }
 
@@ -23,16 +25,18 @@ export interface LockfileShape {
 export interface UpsertLockfileEntryRequest {
   readonly cwd: string;
   readonly ref: RegistryCoordinate;
+  readonly resolvedVersion: string;
   readonly resolvedSha: string;
 }
 
 const lockfileEntrySchema = z
   .object({
-    resolvedSha: z.string(),
+    resolvedVersion: z.string().min(1),
+    resolvedSha: z.string().min(1),
   })
   .strict();
 
-const lockfileSchemaV1 = z
+const lockfileSchemaV2 = z
   .object({
     version: z.literal(CURRENT_VERSION),
     actions: z.record(z.string(), lockfileEntrySchema),
@@ -45,8 +49,10 @@ const createEmpty = (): LockfileShape => ({ version: CURRENT_VERSION, actions: {
 
 /**
  * Read `<cwd>/.aiactions/lock.json`. Returns an empty struct on any
- * recoverable error (missing file, malformed JSON, schema mismatch,
- * version mismatch). Throws on non-recoverable FS errors (EACCES, EIO).
+ * recoverable parse error (missing file, malformed JSON, schema-shape
+ * mismatch). Throws `LockfileVersionMismatch` when the file parses as
+ * JSON but its `version` field disagrees with the current schema —
+ * that's a meaningful upgrade event the caller should surface to the user.
  */
 export async function readLockfile(cwd: string): Promise<LockfileShape> {
   const path = lockfilePath(cwd);
@@ -64,7 +70,23 @@ export async function readLockfile(cwd: string): Promise<LockfileShape> {
   } catch {
     return createEmpty();
   }
-  const result = lockfileSchemaV1.safeParse(parsed);
+  // Detect explicit version mismatch BEFORE the schema parse so we can
+  // raise an actionable error instead of silently dropping the user's
+  // pins. Other shape mismatches (missing fields, wrong types) keep
+  // the soft-empty behaviour to recover from git merge conflict markers.
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    "version" in parsed &&
+    typeof (parsed as { version: unknown }).version === "number" &&
+    (parsed as { version: number }).version !== CURRENT_VERSION
+  ) {
+    const got = (parsed as { version: number }).version;
+    throw new LockfileVersionMismatch(
+      `lockfile uses schema v${got}, expected v${CURRENT_VERSION}. Delete .aiactions/lock.json and re-run.`,
+    );
+  }
+  const result = lockfileSchemaV2.safeParse(parsed);
   if (!result.success) return createEmpty();
   return result.data;
 }
@@ -78,7 +100,7 @@ export async function upsertLockfileEntry(req: UpsertLockfileEntryRequest): Prom
   const key = `${req.ref.namespace}/${req.ref.name}@${req.ref.version}`;
   const newActions: Record<string, LockfileEntry> = {
     ...lock.actions,
-    [key]: { resolvedSha: req.resolvedSha },
+    [key]: { resolvedVersion: req.resolvedVersion, resolvedSha: req.resolvedSha },
   };
   await writeLockfile(req.cwd, { version: CURRENT_VERSION, actions: newActions });
 }
