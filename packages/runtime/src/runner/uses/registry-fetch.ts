@@ -20,6 +20,23 @@ import { upsertLockfileEntry } from "../../lockfile.ts";
 
 const pExecFile = promisify(execFile);
 
+const EXACT_SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/u;
+const MAJOR_ONLY_RE = /^\d+$/u;
+
+/** Classification of a parsed version literal for resolution routing. */
+export type VersionClass = "exact" | "major" | "branch";
+
+/**
+ * Classify a (post-parser-strip) version literal so the resolver knows
+ * whether to fetch directly (`exact` or `branch`) or to first list the
+ * canonical repo's tags and pick the highest matching major (`major`).
+ */
+export function classifyVersion(version: string): VersionClass {
+  if (EXACT_SEMVER_RE.test(version)) return "exact";
+  if (MAJOR_ONLY_RE.test(version)) return "major";
+  return "branch";
+}
+
 /** Coordinate fragment shared by all entry points. */
 export interface RegistryCoordinate {
   readonly namespace: string;
