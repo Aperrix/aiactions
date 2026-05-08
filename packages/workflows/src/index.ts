@@ -8,6 +8,7 @@ export * from "./schema/job.ts";
 export * from "./schema/workflow.ts";
 export * from "./schema/action-manifest.ts";
 export * from "./schema/topology.ts";
+export * from "./schema/registry.ts";
 
 export * from "./parser/parse-workflow.ts";
 export * from "./parser/parse-action.ts";
