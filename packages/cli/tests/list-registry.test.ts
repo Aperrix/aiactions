@@ -60,7 +60,7 @@ test("list flags outdated cached versions", async () => {
   });
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toMatch(
-    /foo\/bar@2\.0\.0.*\[installed,\s*registry has @2\.0\.0\].*has @1\.0\.0/,
+    /foo\/bar@2\.0\.0.*\[installed,\s*registry has @2\.0\.0,\s*cache has @1\.0\.0\]/,
   );
 });
 

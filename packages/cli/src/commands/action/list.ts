@@ -72,7 +72,7 @@ function renderHuman(rows: ListRow[]): string {
       if (matchesLatest) {
         badge = "  [installed]";
       } else {
-        badge = `  [installed, registry has @${r.latestRegistry}] cache has @${r.installedVersions[0]}`;
+        badge = `  [installed, registry has @${r.latestRegistry}, cache has @${r.installedVersions[0]}]`;
       }
     }
     lines.push(`${head}${desc}${badge}`);
