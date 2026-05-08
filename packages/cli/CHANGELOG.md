@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.1.0...@aiactions/cli@v1.2.0) (2026-05-08)
+
+
+### Features
+
+* **cli:** include resolvedVersion in install JSON receipt ([13bac25](https://github.com/Aperrix/aiactions/commit/13bac253822dde339c1b186e99e5bb751faa5d3f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @aiactions/runtime bumped to 3.0.0
+    * @aiactions/workflows bumped to 1.0.1
+
 ## [1.1.0](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.0.0...@aiactions/cli@v1.1.0) (2026-05-08)
 
 ### Features
