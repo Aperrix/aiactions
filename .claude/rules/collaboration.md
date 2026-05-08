@@ -44,6 +44,14 @@ Write tests when they catch real failure modes or freeze behavior that matters. 
 
 **Lesson driving this rule (MS1.5, 2026-05-06):** the MS1.5 squash collapsed 12 commits across 3 components (`@aiactions/runtime`, `@aiactions/cli`, `claude/agent`) into one `feat(registry)!:` commit. release-please path-routed the BREAKING flag to every package whose files changed and proposed `claude/agent: 1.0.0 → 2.0.0` even though the rename was metadata-only. Required a manual override on the release PR. With `--no-ff`, each component's tightly-scoped commits would have driven precise per-component bumps with no override.
 
+## Isolate fmt-only changes from feature squash
+
+`oxfmt` (Vite+ default) reformats files when invoked. If formatting drift exists in files _outside_ the feature's scope and ends up included in the feature's squash commit, release-please path-attributes the entire `feat(...)` impact to every package whose files were touched — even by formatting alone.
+
+**Rule:** Before squashing a single-component feature branch, verify the squash diff only touches files that belong to the feature's component. If `vp fmt` produced reformats outside that scope (e.g. release-please-managed `CHANGELOG.md` in unrelated packages), commit those reformats _separately_ on `main` — `style(fmt):` or `chore(fmt):` scope, before or after the feature, never inside the same squash. Run `vp fmt` on `main` first to flush drift, then start the feature branch.
+
+**Lesson driving this rule (MS1.7, 2026-05-08):** the MS1.7 squash included an `oxfmt` re-flow of `packages/runtime/CHANGELOG.md` (pre-existing drift cleaned during the same `vp run ready` cycle that fixed an unrelated type error). release-please path-attributed the `feat(cli)` squash to `@aiactions/runtime` and proposed a minor bump (1.0.0 → 1.1.0) even though runtime's behaviour did not change in MS1.7 — only its workspace dep on `@aiactions/workflows` did. Required a manual override on the release PR's manifest, `package.json`, and `CHANGELOG.md` to pin runtime at the dep-only patch bump (1.0.0 → 1.0.1). Pre-flushing the fmt drift on `main` would have removed `packages/runtime/CHANGELOG.md` from the squash diff entirely and avoided the override.
+
 ## Commits — Conventional Commits
 
 Required format so that `release-please` can generate changelogs automatically: https://www.conventionalcommits.org/
