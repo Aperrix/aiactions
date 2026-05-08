@@ -18,7 +18,7 @@ import { promisify } from "node:util";
 import { rcompare as semverRcompare } from "semver";
 
 import { ActionResolutionError } from "../../types/errors.ts";
-import { upsertLockfileEntry } from "../../lockfile.ts";
+import { readLockfile, upsertLockfileEntry } from "../../lockfile.ts";
 
 const pExecFile = promisify(execFile);
 
@@ -222,8 +222,11 @@ export interface EnsureCachedActionResult {
   readonly dir: string;
   /** Whether a fetch was performed (true) or the cache was already populated (false). */
   readonly fetched: boolean;
-  /** Resolved git SHA when `fetched` is true; `null` otherwise. */
+  /** Resolved git SHA when fetched; `null` on cache-hit without a lockfile pin. */
   readonly resolvedSha: string | null;
+  /** The concrete semver that was used for the cache directory. For exact/branch
+   * refs this equals `ref.version`; for major-range refs this is the picked patch. */
+  readonly resolvedVersion: string;
 }
 
 /** Optional knobs forwarded to `fetchActionFromCanonical` (test injection). */
@@ -236,15 +239,17 @@ export interface EnsureCachedActionOptions extends FetchActionFromCanonicalOptio
 }
 
 /**
- * Existence-first cache lookup. If `<registryRoot>/<ns>/<name>/<ver>/`
- * exists, returns it as-is (no fetch, no lockfile write — the entry was
- * either user-placed or fetched on a prior run).
+ * Existence-first cache lookup with major-range resolution.
  *
- * On cache miss, delegates to `fetchActionFromCanonical`, then writes a
- * lockfile entry recording the resolved SHA via `upsertLockfileEntry`.
+ * Resolution order:
+ * 1. Lockfile pin present → use the pinned `resolvedVersion` for the cache
+ *    directory; re-fetch on cache miss without hitting ls-remote again.
+ * 2. No pin + version is major-only (e.g. `"1"`) → `resolveMajorRange` via
+ *    `git ls-remote`, fetch the chosen concrete tag, write the lockfile pin.
+ * 3. No pin + exact semver or branch → existing direct-fetch path; lockfile
+ *    records the literal version as both `resolvedVersion` and key.
  *
- * @throws {ActionResolutionError} when the fetch path fails. The cache
- *   path is left untouched (atomic rename guarantee).
+ * @throws {ActionResolutionError} when any fetch or ls-remote step fails.
  */
 export async function ensureCachedAction(
   ref: RegistryCoordinate,
@@ -252,20 +257,115 @@ export async function ensureCachedAction(
   cwd: string,
   options: EnsureCachedActionOptions = {},
 ): Promise<EnsureCachedActionResult> {
-  const targetDir = join(registryRoot, ref.namespace, ref.name, ref.version);
+  const canonicalUrl = options.canonicalUrl ?? DEFAULT_CANONICAL_URL;
+  const lockKey = `${ref.namespace}/${ref.name}@${ref.version}`;
+  const lock = await readLockfile(cwd);
+  const lockEntry = lock.actions[lockKey];
 
+  // Branch 1 — lockfile pin already exists. Use the pinned concrete
+  // version for the cache directory; on miss, re-fetch with the pinned
+  // version literal as the tag.
+  if (lockEntry) {
+    const pinnedDir = join(registryRoot, ref.namespace, ref.name, lockEntry.resolvedVersion);
+    try {
+      const s = await stat(pinnedDir);
+      if (s.isDirectory()) {
+        return {
+          dir: pinnedDir,
+          fetched: false,
+          resolvedSha: lockEntry.resolvedSha,
+          resolvedVersion: lockEntry.resolvedVersion,
+        };
+      }
+    } catch (err) {
+      const errno = (err as NodeJS.ErrnoException).code;
+      if (errno !== "ENOENT") throw err;
+    }
+    await fetchActionFromCanonical(
+      { ...ref, version: lockEntry.resolvedVersion },
+      registryRoot,
+      options,
+    );
+    return {
+      dir: pinnedDir,
+      fetched: true,
+      resolvedSha: lockEntry.resolvedSha,
+      resolvedVersion: lockEntry.resolvedVersion,
+    };
+  }
+
+  // Branch 2 — no lockfile pin. Classify the version literal and route.
+  const klass = classifyVersion(ref.version);
+  if (klass === "major") {
+    const resolved = await resolveMajorRange(ref, canonicalUrl);
+    const cacheDir = join(registryRoot, ref.namespace, ref.name, resolved.resolvedVersion);
+    try {
+      const s = await stat(cacheDir);
+      if (s.isDirectory()) {
+        await upsertLockfileEntry({
+          cwd,
+          ref,
+          resolvedVersion: resolved.resolvedVersion,
+          resolvedSha: resolved.resolvedSha,
+        });
+        return {
+          dir: cacheDir,
+          fetched: false,
+          resolvedSha: resolved.resolvedSha,
+          resolvedVersion: resolved.resolvedVersion,
+        };
+      }
+    } catch (err) {
+      const errno = (err as NodeJS.ErrnoException).code;
+      if (errno !== "ENOENT") throw err;
+    }
+    const fetchedSha = await fetchActionFromCanonical(
+      { ...ref, version: resolved.resolvedVersion },
+      registryRoot,
+      options,
+    );
+    await upsertLockfileEntry({
+      cwd,
+      ref,
+      resolvedVersion: resolved.resolvedVersion,
+      resolvedSha: fetchedSha,
+    });
+    return {
+      dir: cacheDir,
+      fetched: true,
+      resolvedSha: fetchedSha,
+      resolvedVersion: resolved.resolvedVersion,
+    };
+  }
+
+  // Exact + branch — pass through to the existing fetch path; resolved
+  // version is just the literal the caller supplied.
+  const targetDir = join(registryRoot, ref.namespace, ref.name, ref.version);
   try {
     const s = await stat(targetDir);
     if (s.isDirectory()) {
-      return { dir: targetDir, fetched: false, resolvedSha: null };
+      return {
+        dir: targetDir,
+        fetched: false,
+        resolvedSha: null,
+        resolvedVersion: ref.version,
+      };
     }
   } catch (err) {
     const errno = (err as NodeJS.ErrnoException).code;
     if (errno !== "ENOENT") throw err;
   }
-
   const resolvedSha = await fetchActionFromCanonical(ref, registryRoot, options);
-  await upsertLockfileEntry({ cwd, ref, resolvedSha });
-
-  return { dir: targetDir, fetched: true, resolvedSha };
+  await upsertLockfileEntry({
+    cwd,
+    ref,
+    resolvedVersion: ref.version,
+    resolvedSha,
+  });
+  return {
+    dir: targetDir,
+    fetched: true,
+    resolvedSha,
+    resolvedVersion: ref.version,
+  };
 }
