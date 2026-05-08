@@ -10,17 +10,13 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { actionManifestSchema } from "@aiactions/workflows";
+import {
+  actionManifestSchema,
+  registrySchema,
+  type Registry,
+  type RegistryEntry,
+} from "@aiactions/workflows";
 import { parse as parseYaml } from "yaml";
-
-export interface RegistryEntry {
-  readonly ref: string;
-  readonly description: string;
-}
-
-export interface Registry {
-  readonly actions: RegistryEntry[];
-}
 
 interface PackageJson {
   readonly name: string;
@@ -68,7 +64,8 @@ export async function emitRegistry(actionsDir: string): Promise<Registry> {
   }
 
   entries.sort((a, b) => a.ref.localeCompare(b.ref));
-  return { actions: entries };
+  const out: Registry = { actions: entries };
+  return registrySchema.parse(out);
 }
 
 const ROOT = resolve(import.meta.dirname, "..");

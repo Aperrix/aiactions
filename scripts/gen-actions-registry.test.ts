@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
+import { registrySchema } from "@aiactions/workflows";
+
 import { emitRegistry } from "./gen-actions-registry.ts";
 
 let work: string;
@@ -105,4 +107,11 @@ test("ignores stray files at the namespace and name levels", async () => {
   await writeFile(join(work, "claude", "another-stray.txt"), "");
   const reg = await emitRegistry(work);
   expect(reg.actions).toHaveLength(1);
+});
+
+test("emitted registry conforms to registrySchema", async () => {
+  await makeAction("claude", "agent", { version: "1.0.0", description: "Agent loop" });
+  await makeAction("openai", "review", { version: "0.2.0", description: "Reviewer" });
+  const reg = await emitRegistry(work);
+  expect(() => registrySchema.parse(reg)).not.toThrow();
 });
