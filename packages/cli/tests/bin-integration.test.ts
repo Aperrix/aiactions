@@ -4,16 +4,24 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
 import { makeBareRepoWithAction } from "./fixtures/make-bare-repo.ts";
+import {
+  jsonRegistry,
+  startRegistryServer,
+  type RegistryServer,
+} from "./fixtures/registry-server.ts";
 import { runCli } from "./fixtures/run-cli.ts";
 import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
 
 let env: TempHome;
+let registry: RegistryServer | undefined;
 
 beforeEach(async () => {
   env = await makeTempHome();
 });
 
 afterEach(async () => {
+  if (registry) await registry.close();
+  registry = undefined;
   await env.cleanup();
 });
 
@@ -74,19 +82,31 @@ test("aia action list end-to-end on populated cache", async () => {
     AIACTIONS_CANONICAL_URL: `file://${bareRepo}`,
   });
 
-  const result = await runCli(["action", "list", "--json"], { HOME: env.home });
+  registry = await startRegistryServer(jsonRegistry({ actions: [] }));
+  const result = await runCli(["action", "list", "--json"], {
+    HOME: env.home,
+    AIACTIONS_REGISTRY_URL: registry.url,
+  });
   expect(result.exitCode).toBe(0);
-  const out = JSON.parse(result.stdout) as Array<{
-    namespace: string;
-    name: string;
-    version: string;
-    dir: string;
-  }>;
-  expect(out).toHaveLength(1);
-  expect(out[0]).toMatchObject({
-    namespace: "test",
-    name: "smoke",
-    version: "1.0.0",
+  const out = JSON.parse(result.stdout) as {
+    registry: { url: string; fetchedAt: string } | null;
+    registryError: string | null;
+    entries: Array<{
+      coord: string;
+      latestRegistry: string | null;
+      installedVersions: string[];
+      description: string | null;
+      localOnly: boolean;
+    }>;
+  };
+  expect(out.registry).not.toBeNull();
+  expect(out.registryError).toBeNull();
+  expect(out.entries).toHaveLength(1);
+  expect(out.entries[0]).toMatchObject({
+    coord: "test/smoke",
+    latestRegistry: null,
+    installedVersions: ["1.0.0"],
+    localOnly: true,
   });
 });
 
@@ -116,6 +136,11 @@ test("aia action uninstall end-to-end with --yes", async () => {
   expect(out.removed).toHaveLength(1);
   expect(out.removed[0]?.ref).toBe("test/smoke@1.0.0");
 
-  const listResult = await runCli(["action", "list", "--json"], { HOME: env.home });
-  expect(JSON.parse(listResult.stdout)).toEqual([]);
+  registry = await startRegistryServer(jsonRegistry({ actions: [] }));
+  const listResult = await runCli(["action", "list", "--json"], {
+    HOME: env.home,
+    AIACTIONS_REGISTRY_URL: registry.url,
+  });
+  const parsed = JSON.parse(listResult.stdout) as { entries: unknown[] };
+  expect(parsed.entries).toEqual([]);
 });
