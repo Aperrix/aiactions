@@ -1,10 +1,11 @@
 import { defineCommand, runCommand, showUsage } from "citty";
 
+import packageJson from "../package.json" with { type: "json" };
 import { subCommands } from "./commands/index.ts";
 import { CliError } from "./lib/errors.ts";
 import { EXIT } from "./lib/exit-codes.ts";
 
-const VERSION = "0.0.0";
+const VERSION = packageJson.version;
 
 const main = defineCommand({
   meta: {
@@ -16,12 +17,13 @@ const main = defineCommand({
 });
 
 const rawArgs = process.argv.slice(2);
+const firstArg = rawArgs[0];
 
 try {
-  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+  if (rawArgs.length === 0 || firstArg === "--help" || firstArg === "-h") {
     await showUsage(main);
     process.exit(0);
-  } else if (rawArgs.length === 1 && rawArgs[0] === "--version") {
+  } else if (firstArg === "--version") {
     process.stdout.write(`${VERSION}\n`);
     process.exit(0);
   } else {

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
+import packageJson from "../package.json" with { type: "json" };
 import { makeBareRepoWithAction } from "./fixtures/make-bare-repo.ts";
 import {
   jsonRegistry,
@@ -28,7 +29,7 @@ afterEach(async () => {
 test("aia --version prints the package version", async () => {
   const result = await runCli(["--version"]);
   expect(result.exitCode).toBe(0);
-  expect(result.stdout.trim()).toBe("0.0.0");
+  expect(result.stdout.trim()).toBe(packageJson.version);
 });
 
 test("aia --help prints USAGE block", async () => {
