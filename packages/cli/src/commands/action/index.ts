@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
 
+import { checkCommand } from "./check.ts";
 import { installCommand } from "./install.ts";
 import { listCommand } from "./list.ts";
 import { uninstallCommand } from "./uninstall.ts";
@@ -10,6 +11,7 @@ export const actionCommand = defineCommand({
     description: "Manage AIactions actions cached locally",
   },
   subCommands: {
+    check: checkCommand,
     install: installCommand,
     list: listCommand,
     uninstall: uninstallCommand,

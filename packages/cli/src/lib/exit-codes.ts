@@ -10,6 +10,7 @@ export const EXIT = {
   NOT_FOUND: 4,
   CONFLICT: 5,
   REGISTRY: 6,
+  SCHEMA: 7,
 } as const;
 
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT];

@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
@@ -144,4 +144,29 @@ test("aia action uninstall end-to-end with --yes", async () => {
   });
   const parsed = JSON.parse(listResult.stdout) as { entries: unknown[] };
   expect(parsed.entries).toEqual([]);
+});
+
+test("aia action check <valid> exits 0 with success line on stdout", async () => {
+  const path = join(env.home, "aiaction.yaml");
+  await writeFile(
+    path,
+    "schemaVersion: 1\nname: smoke\ndescription: x\nruns:\n  using: node\n  main: ./index.mjs\n",
+  );
+
+  const result = await runCli(["action", "check", path], { HOME: env.home });
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toMatch(/manifest valid/);
+});
+
+test("aia action check <invalid> exits 7 with error lines on stderr", async () => {
+  const path = join(env.home, "aiaction.yaml");
+  await writeFile(
+    path,
+    "schemaVersion: 2\nname: Bad Name\ndescription: x\nruns:\n  using: node\n  main: index.js\n",
+  );
+
+  const result = await runCli(["action", "check", path], { HOME: env.home });
+  expect(result.exitCode).toBe(7);
+  expect(result.stderr).toMatch(/✗/);
+  expect(result.stderr).toMatch(/schemaVersion/);
 });

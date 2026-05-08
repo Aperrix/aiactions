@@ -1,0 +1,6 @@
+schemaVersion: 1
+name: smoke
+description: Smoke fixture for MS1.7 check tests.
+runs:
+  using: node
+  main: ./index.mjs

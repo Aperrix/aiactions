@@ -1,0 +1,6 @@
+schemaVersion: 2
+name: Bad Name
+description: Intentionally broken for tests.
+runs:
+  using: node
+  main: index.js
