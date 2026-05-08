@@ -46,7 +46,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@aiactions/workflows": "workspace:*",
-        "yaml": "^2.8.4",
+        "zod": "^4.4.3",
       },
     },
     "packages/workflows": {

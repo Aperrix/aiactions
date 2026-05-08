@@ -69,8 +69,8 @@ describe.skipIf(!POSIX)("ensureCachedAction", () => {
     expect(result.fetched).toBe(true);
     expect(result.resolvedSha).toMatch(/^[0-9a-f]{40}$/);
 
-    const lock = await readFile(join(cwd, ".aiactions", "lock.yaml"), "utf8");
-    expect(lock).toContain("octocat/lint@1.0.0:");
+    const lock = await readFile(join(cwd, ".aiactions", "lock.json"), "utf8");
+    expect(lock).toContain('"octocat/lint@1.0.0"');
     expect(lock).toContain(result.resolvedSha!);
   });
 

@@ -2,23 +2,21 @@
  * Registry-fetch primitives — fetch an action from the canonical
  * AIactions monorepo via `git sparse-checkout`, cache it under
  * `~/.aiactions/actions/<ns>/<name>/<ver>/`, and record the resolved
- * SHA in `<cwd>/.aiactions/lock.yaml`.
+ * SHA in `<cwd>/.aiactions/lock.json`.
  *
  * Public surface (built incrementally over MS1.2 plan tasks):
- * - `appendLockfileEntry` — write-only lockfile upsert (Task 2).
  * - `fetchActionFromCanonical` — the git plumbing (Task 3).
  * - `ensureCachedAction` — existence-first cache + delegating fetch (Task 4).
  */
 
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
 import { tmpdir as osTmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-
 import { ActionResolutionError } from "../../types/errors.ts";
+import { upsertLockfileEntry } from "../../lockfile.ts";
 
 const pExecFile = promisify(execFile);
 
@@ -27,67 +25,6 @@ export interface RegistryCoordinate {
   readonly namespace: string;
   readonly name: string;
   readonly version: string;
-}
-
-const lockfileRelativePath = (cwd: string): string => join(cwd, ".aiactions", "lock.yaml");
-
-interface LockfileShape {
-  actions?: Record<string, { "resolved-sha": string; "fetched-at": string }>;
-}
-
-/** Caller input for `appendLockfileEntry`. */
-export interface AppendLockfileEntryRequest {
-  /** Workflow working directory; lockfile lives at `<cwd>/.aiactions/lock.yaml`. */
-  readonly cwd: string;
-  /** Action coordinate. */
-  readonly ref: RegistryCoordinate;
-  /** Resolved git SHA (40 lowercase hex chars). */
-  readonly resolvedSha: string;
-  /** Timestamp recorded under `fetched-at`. */
-  readonly fetchedAt: Date;
-}
-
-/**
- * Upsert an entry into `<cwd>/.aiactions/lock.yaml`. Creates the file
- * (and the parent `.aiactions/` directory) when missing. Existing
- * unrelated entries are preserved; an entry for the same ref is
- * overwritten.
- *
- * The serialised entry quotes the SHA and timestamp string-style to keep
- * YAML 1.2's number-coercion rules from biting later.
- */
-export async function appendLockfileEntry(request: AppendLockfileEntryRequest): Promise<void> {
-  const path = lockfileRelativePath(request.cwd);
-  const dir = dirname(path);
-  await mkdir(dir, { recursive: true });
-
-  let parsed: LockfileShape = {};
-  try {
-    const raw = await readFile(path, "utf8");
-    parsed = (parseYaml(raw) as LockfileShape | null) ?? {};
-  } catch (err) {
-    const errno = (err as NodeJS.ErrnoException).code;
-    if (errno !== "ENOENT") throw err;
-  }
-
-  const key = `${request.ref.namespace}/${request.ref.name}@${request.ref.version}`;
-  const actions = parsed.actions ?? {};
-  actions[key] = {
-    "resolved-sha": request.resolvedSha,
-    "fetched-at": request.fetchedAt.toISOString(),
-  };
-
-  const sortedActions: Record<string, { "resolved-sha": string; "fetched-at": string }> = {};
-  for (const k of Object.keys(actions).sort()) {
-    sortedActions[k] = actions[k]!;
-  }
-
-  const next: LockfileShape = { actions: sortedActions };
-  const yamlOut = stringifyYaml(next, {
-    defaultStringType: "QUOTE_SINGLE",
-    defaultKeyType: "PLAIN",
-  });
-  await writeFile(path, yamlOut, "utf8");
 }
 
 /** Optional knobs for `fetchActionFromCanonical`. */
@@ -220,7 +157,10 @@ export interface EnsureCachedActionResult {
 
 /** Optional knobs forwarded to `fetchActionFromCanonical` (test injection). */
 export interface EnsureCachedActionOptions extends FetchActionFromCanonicalOptions {
-  /** Clock injected for the lockfile timestamp. Defaults to `() => new Date()`. */
+  /**
+   * @deprecated Unused since MS1.8 — lockfile no longer records timestamps.
+   * Field kept for one minor release for backward source compatibility.
+   */
   readonly now?: () => Date;
 }
 
@@ -230,7 +170,7 @@ export interface EnsureCachedActionOptions extends FetchActionFromCanonicalOptio
  * either user-placed or fetched on a prior run).
  *
  * On cache miss, delegates to `fetchActionFromCanonical`, then writes a
- * lockfile entry recording the resolved SHA and the wall-clock timestamp.
+ * lockfile entry recording the resolved SHA via `upsertLockfileEntry`.
  *
  * @throws {ActionResolutionError} when the fetch path fails. The cache
  *   path is left untouched (atomic rename guarantee).
@@ -254,8 +194,7 @@ export async function ensureCachedAction(
   }
 
   const resolvedSha = await fetchActionFromCanonical(ref, registryRoot, options);
-  const fetchedAt = options.now ? options.now() : new Date();
-  await appendLockfileEntry({ cwd, ref, resolvedSha, fetchedAt });
+  await upsertLockfileEntry({ cwd, ref, resolvedSha });
 
   return { dir: targetDir, fetched: true, resolvedSha };
 }

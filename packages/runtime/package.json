@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "@aiactions/workflows": "workspace:*",
-    "yaml": "^2.8.4"
+    "zod": "^4.4.3"
   }
 }

@@ -64,8 +64,8 @@ describe.skipIf(!POSIX)("runWorkflow — registry fetch end-to-end", () => {
     expect(result.status).toBe("succeeded");
     expect(result.jobs.one?.steps[1]?.stdout).toContain("received=hello");
 
-    const lock = await readFile(join(cwd, ".aiactions", "lock.yaml"), "utf8");
-    expect(lock).toContain("octocat/echo@1.0.0");
+    const lock = await readFile(join(cwd, ".aiactions", "lock.json"), "utf8");
+    expect(lock).toContain('"octocat/echo@1.0.0"');
   });
 
   test("default registryRoot is ~/.aiactions/actions (HOME override)", async () => {
