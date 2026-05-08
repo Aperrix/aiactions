@@ -24,8 +24,12 @@ export type RefKind = (typeof RefKind)[keyof typeof RefKind];
 
 /**
  * Parsed registry ref of the form `<namespace>/<name>@<version>`.
- * `version` is kept opaque at this layer — the resolver decides whether
- * it is a semver, tag, or branch.
+ * `version` is the user-supplied version literal with a single leading
+ * `v` stripped when followed by a digit (`v1`, `v1.2.3` → `1`, `1.2.3`)
+ * so that downstream consumers (registry lookup, lockfile key, cache
+ * directory) all share the same canonical bare-semver form. Branch-like
+ * literals such as `main` or `vNext` (no digit after the `v`) pass
+ * through untouched.
  */
 export interface RegistryRef {
   readonly kind: typeof RefKind.registry;
@@ -50,6 +54,7 @@ export interface LocalRef {
 export type UsesRef = RegistryRef | LocalRef;
 
 const REGISTRY_RE = /^([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)@([^@/\s]+)$/;
+const LEADING_V_BEFORE_DIGIT_RE = /^v(?=\d)/;
 const FILE_SCHEME = "file://";
 const RELATIVE_PREFIX_RE = /^\.\.?\//;
 const ALL_DOTS_RE = /^\.+$/;
@@ -108,7 +113,7 @@ export const usesRefSchema = z
         raw: value,
         namespace: namespace ?? "",
         name: name ?? "",
-        version: version ?? "",
+        version: (version ?? "").replace(LEADING_V_BEFORE_DIGIT_RE, ""),
       };
     }
 

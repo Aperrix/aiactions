@@ -36,12 +36,26 @@ describe("usesRefSchema — registry form", () => {
     if (result.success && result.data.kind === RefKind.registry) {
       expect(result.data.namespace).toBe("my-org");
       expect(result.data.name).toBe("my-action");
-      expect(result.data.version).toBe("v1");
+      expect(result.data.version).toBe("1");
     }
   });
 
-  test("preserves opaque version strings (semver, tag, prerelease)", () => {
-    for (const ver of ["1", "1.0.0", "v2", "1.2.3-beta", "main", "abc123"]) {
+  test("strips a single leading 'v' when followed by a digit (semver-style)", () => {
+    for (const [input, expected] of [
+      ["v1", "1"],
+      ["v1.0.0", "1.0.0"],
+      ["v2.3.4-beta.1", "2.3.4-beta.1"],
+    ] as const) {
+      const result = usesRefSchema.safeParse(`org/name@${input}`);
+      expect(result.success).toBe(true);
+      if (result.success && result.data.kind === RefKind.registry) {
+        expect(result.data.version).toBe(expected);
+      }
+    }
+  });
+
+  test("preserves opaque version strings that aren't a v-prefixed semver", () => {
+    for (const ver of ["1", "1.0.0", "1.2.3-beta", "main", "abc123", "vNext"]) {
       const result = usesRefSchema.safeParse(`org/name@${ver}`);
       expect(result.success).toBe(true);
       if (result.success && result.data.kind === RefKind.registry) {

@@ -3,14 +3,14 @@ import { expect, test } from "vite-plus/test";
 import { UsageError } from "../src/lib/errors.ts";
 import { parseRegistryRef } from "../src/lib/parse-registry-ref.ts";
 
-test("parses a well-formed registry ref", () => {
+test("parses a well-formed registry ref and strips the leading 'v' from the version", () => {
   const ref = parseRegistryRef("claude/agent@v1");
   expect(ref).toEqual({
     kind: "registry",
     raw: "claude/agent@v1",
     namespace: "claude",
     name: "agent",
-    version: "v1",
+    version: "1",
   });
 });
 
