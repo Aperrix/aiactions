@@ -9,6 +9,7 @@ export const EXIT = {
   USAGE: 2,
   NOT_FOUND: 4,
   CONFLICT: 5,
+  REGISTRY: 6,
 } as const;
 
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT];

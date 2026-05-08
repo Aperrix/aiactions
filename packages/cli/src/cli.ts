@@ -1,20 +1,34 @@
-import { defineCommand, runMain } from "citty";
+import { defineCommand, runCommand, showUsage } from "citty";
 
+import packageJson from "../package.json" with { type: "json" };
 import { subCommands } from "./commands/index.ts";
 import { CliError } from "./lib/errors.ts";
 import { EXIT } from "./lib/exit-codes.ts";
 
+const VERSION = packageJson.version;
+
 const main = defineCommand({
   meta: {
     name: "aia",
-    version: "0.0.0",
+    version: VERSION,
     description: "AIactions CLI",
   },
   subCommands,
 });
 
+const rawArgs = process.argv.slice(2);
+const firstArg = rawArgs[0];
+
 try {
-  await runMain(main);
+  if (rawArgs.length === 0 || firstArg === "--help" || firstArg === "-h") {
+    await showUsage(main);
+    process.exit(0);
+  } else if (firstArg === "--version") {
+    process.stdout.write(`${VERSION}\n`);
+    process.exit(0);
+  } else {
+    await runCommand(main, { rawArgs });
+  }
 } catch (err) {
   if (err instanceof CliError) {
     process.stderr.write(`✖ ${err.message}\n`);

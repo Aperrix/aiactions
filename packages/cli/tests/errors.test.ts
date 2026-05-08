@@ -1,6 +1,12 @@
 import { expect, test } from "vite-plus/test";
 
-import { CliError, NotFoundError, UsageError } from "../src/lib/errors.ts";
+import {
+  CliError,
+  NotFoundError,
+  RegistryFetchError,
+  RegistryValidationError,
+  UsageError,
+} from "../src/lib/errors.ts";
 import { EXIT } from "../src/lib/exit-codes.ts";
 
 test("EXIT codes are stable integers", () => {
@@ -30,4 +36,16 @@ test("NotFoundError forces EXIT.NOT_FOUND code", () => {
   const err = new NotFoundError("missing");
   expect(err.code).toBe(EXIT.NOT_FOUND);
   expect(err).toBeInstanceOf(CliError);
+});
+
+test("RegistryFetchError carries EXIT.REGISTRY", () => {
+  const err = new RegistryFetchError("network down");
+  expect(err.code).toBe(EXIT.REGISTRY);
+  expect(err.name).toBe("RegistryFetchError");
+});
+
+test("RegistryValidationError carries EXIT.REGISTRY", () => {
+  const err = new RegistryValidationError("zod said no");
+  expect(err.code).toBe(EXIT.REGISTRY);
+  expect(err.name).toBe("RegistryValidationError");
 });

@@ -32,3 +32,19 @@ export class NotFoundError extends CliError {
     this.name = "NotFoundError";
   }
 }
+
+/** Thrown when the registry HTTP fetch fails (network, non-2xx, timeout). */
+export class RegistryFetchError extends CliError {
+  constructor(message: string, cause?: unknown) {
+    super(EXIT.REGISTRY, message, cause);
+    this.name = "RegistryFetchError";
+  }
+}
+
+/** Thrown when the fetched registry JSON is malformed or fails Zod validation. */
+export class RegistryValidationError extends CliError {
+  constructor(message: string, cause?: unknown) {
+    super(EXIT.REGISTRY, message, cause);
+    this.name = "RegistryValidationError";
+  }
+}
