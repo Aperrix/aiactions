@@ -233,14 +233,14 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
 ### 7.7. `@aiactions/paths`
 
 - **Role.** XDG path resolution, environment-variable parsing, structured logger, telemetry event bus. The "platform-services" layer.
-- **Public API.** `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `createLogger(module?: string): Logger`, `rootLogger: Logger`, `telemetryBus`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`.
+- **Public API.** `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `createLogger(module?: string): Logger`, `rootLogger: Logger`, `createEventBus<EventMap>(): EventBus<EventMap>`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`.
 - **Internal layout.**
   ```
   src/
     paths.ts
     env.ts
     logger.ts
-    telemetry-bus.ts
+    event-bus.ts
     index.ts
   ```
 - **Internal deps.** None.

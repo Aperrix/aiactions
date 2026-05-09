@@ -1,15 +1,15 @@
 import { describe, expect, test } from "vite-plus/test";
 
-import { createTelemetryBus } from "../src/telemetry-bus.ts";
+import { createEventBus } from "../src/event-bus.ts";
 
 interface TestEvents {
   "registry.fetch.started": { ref: string };
   "registry.fetch.completed": { ref: string; durationMs: number };
 }
 
-describe("createTelemetryBus", () => {
+describe("createEventBus", () => {
   test("dispatches emitted events to subscribed handlers", () => {
-    const bus = createTelemetryBus<TestEvents>();
+    const bus = createEventBus<TestEvents>();
     const received: Array<{ ref: string }> = [];
 
     bus.on("registry.fetch.started", (payload) => {
@@ -22,7 +22,7 @@ describe("createTelemetryBus", () => {
   });
 
   test("dispatches in registration order to multiple handlers", () => {
-    const bus = createTelemetryBus<TestEvents>();
+    const bus = createEventBus<TestEvents>();
     const order: number[] = [];
 
     bus.on("registry.fetch.started", () => order.push(1));
@@ -35,13 +35,13 @@ describe("createTelemetryBus", () => {
   });
 
   test("emit on event with zero handlers is a no-op", () => {
-    const bus = createTelemetryBus<TestEvents>();
+    const bus = createEventBus<TestEvents>();
 
     expect(() => bus.emit("registry.fetch.completed", { ref: "x", durationMs: 1 })).not.toThrow();
   });
 
   test("on() returns an unsubscribe function", () => {
-    const bus = createTelemetryBus<TestEvents>();
+    const bus = createEventBus<TestEvents>();
     let calls = 0;
 
     const unsubscribe = bus.on("registry.fetch.started", () => {
@@ -56,7 +56,7 @@ describe("createTelemetryBus", () => {
   });
 
   test("handler errors propagate to the emitter (no swallowing)", () => {
-    const bus = createTelemetryBus<TestEvents>();
+    const bus = createEventBus<TestEvents>();
 
     bus.on("registry.fetch.started", () => {
       throw new Error("handler failed");

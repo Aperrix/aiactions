@@ -1,17 +1,19 @@
 /**
- * Typed synchronous event bus. Subscribers register a handler with `on`;
- * publishers emit events with a typed payload.
+ * Typed in-process synchronous event bus. Subscribers register a handler
+ * with `on`; publishers emit events with a typed payload.
  *
  * Dispatch is synchronous and ordered by registration. Errors thrown by a
  * handler propagate to the emitter — there is no swallowing or aggregation.
+ *
+ * NOT analytics. For outbound product telemetry to PostHog, see `telemetry.ts`.
  */
 
-export interface TelemetryBus<EventMap extends object> {
+export interface EventBus<EventMap extends object> {
   on<K extends keyof EventMap>(event: K, handler: (payload: EventMap[K]) => void): () => void;
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void;
 }
 
-export function createTelemetryBus<EventMap extends object>(): TelemetryBus<EventMap> {
+export function createEventBus<EventMap extends object>(): EventBus<EventMap> {
   const handlers = new Map<keyof EventMap, Set<(payload: EventMap[keyof EventMap]) => void>>();
 
   return {
