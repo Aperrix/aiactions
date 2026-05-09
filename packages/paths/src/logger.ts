@@ -27,9 +27,11 @@ const ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
 export function createLogger(options: LoggerOptions = {}): Logger {
   const env = loadEnv();
   const minLevel: LogLevel = options.minLevel ?? (env.debug ? "debug" : "info");
-  const sink = options.sink ?? ((line: string) => {
-    process.stderr.write(line);
-  });
+  const sink =
+    options.sink ??
+    ((line: string) => {
+      process.stderr.write(line);
+    });
 
   const emit = (level: LogLevel, msg: string, meta?: Record<string, unknown>) => {
     if (ORDER[level] < ORDER[minLevel]) return;
