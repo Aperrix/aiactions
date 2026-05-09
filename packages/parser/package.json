@@ -2,6 +2,7 @@
   "name": "@aiactions/parser",
   "version": "1.0.0",
   "private": true,
+  "description": "AIactions YAML → AST parser — converts workflow and action-manifest documents into typed objects, plus semantic validation beyond what zod alone expresses (cycles, dangling needs, refs).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

@@ -2,6 +2,7 @@
   "name": "@aiactions/discovery",
   "version": "1.0.0",
   "private": true,
+  "description": "Workflow file discovery for AIactions — walks the project and home roots, parses every `.yml`/`.yaml` it finds, and surfaces per-file errors without aborting the scan.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

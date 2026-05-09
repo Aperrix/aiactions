@@ -2,6 +2,7 @@
   "name": "@aiactions/paths",
   "version": "0.1.0",
   "private": true,
+  "description": "Platform-services layer for AIactions — XDG path resolution (`~/.aiactions/`), environment-variable parsing, structured logger, and telemetry event bus.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

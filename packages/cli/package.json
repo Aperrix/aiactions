@@ -2,6 +2,7 @@
   "name": "@aiactions/cli",
   "version": "1.2.1",
   "private": true,
+  "description": "AIactions CLI binary — `aia` command translating argv into brick or core calls and formatting results as JSON receipts or human-readable output.",
   "bin": {
     "aia": "./bin/aia.mjs"
   },

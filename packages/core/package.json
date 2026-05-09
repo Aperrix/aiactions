@@ -2,6 +2,7 @@
   "name": "@aiactions/core",
   "version": "1.0.0",
   "private": true,
+  "description": "Stateful orchestrators for AIactions — workflow runner state machine and install pipeline composing the schema, parser, registry, expression, exec, paths, and git bricks.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
