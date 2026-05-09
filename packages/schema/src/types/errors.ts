@@ -1,14 +1,25 @@
 /**
- * Workflow error hierarchy. All errors thrown by `@aiactions/workflows`
- * extend `WorkflowError`, which carries a stable `code` field for
- * programmatic discrimination + an optional `cause` for chaining.
+ * Root of the AIactions error hierarchy. `AIactionsError` is the abstract
+ * base that every typed error in the system extends; concrete subclasses
+ * live in the package that raises them (`ExpressionError` in
+ * `@aiactions/expression`, `ExecError` in `@aiactions/exec`,
+ * `RegistryError` + `RegistryFetchError`/`RegistryResolveError` in
+ * `@aiactions/registry`, `RunnerError` + `JobError`/`StepError`/
+ * `OrchestrationError` in `@aiactions/core`). The CLI catches
+ * `AIactionsError` at the outermost boundary and maps the concrete
+ * subclass to an exit code via the `EXIT` table — see spec section 10.1.
+ *
+ * The schema-side hierarchy below covers errors raised before any
+ * process is spawned: parse, schema, and graph-invariant validation
+ * failures. They carry a stable `code` field for programmatic
+ * discrimination plus an optional `cause` for chaining.
  *
  * Contents:
  * - `AIactionsError` abstract base — parent of every typed error in AIactions.
- * - `WorkflowErrorCode` const + type — enum of known error codes.
+ * - `WorkflowErrorCode` const + type — enum of known workflow error codes.
  * - `ValidationIssueCode` const + type — enum of graph-invariant codes.
  * - `ValidationIssue` interface — per-issue payload from graph validation.
- * - `WorkflowError` base class.
+ * - `WorkflowError` base class — extends `AIactionsError`.
  * - `WorkflowParseError` — file I/O or YAML syntax failure.
  * - `WorkflowSchemaError` — Zod schema (shape) failure.
  * - `WorkflowValidationError` — graph-invariant violation.
