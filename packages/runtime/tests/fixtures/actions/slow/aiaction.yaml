@@ -1,6 +1,0 @@
-schemaVersion: 1
-name: slow
-description: Sleeps long enough that the test can abort or time out.
-runs:
-  using: node
-  main: ./index.mjs

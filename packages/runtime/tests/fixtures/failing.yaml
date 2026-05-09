@@ -1,9 +1,0 @@
-name: fail-cascade
-jobs:
-  setup:
-    steps:
-      - run: exit 1
-  finalize:
-    needs: [setup]
-    steps:
-      - run: echo unreachable

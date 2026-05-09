@@ -8,9 +8,9 @@
  * Run with: bun scripts/smoke-claude-agent.ts
  */
 
-import { runWorkflow } from "../packages/runtime/src/index.ts";
+import { runWorkflow } from "../packages/core/src/index.ts";
 import { parseWorkflow } from "../packages/parser/src/index.ts";
-import type { RuntimeEvent } from "../packages/runtime/src/index.ts";
+import type { RuntimeEvent, StepResult } from "../packages/schema/src/index.ts";
 import { dirname, join } from "node:path";
 
 const REPO_ROOT = dirname(import.meta.dirname);
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
   // Extract outputs from the smoke job
   const smokeJob = result.jobs["smoke"];
   if (smokeJob) {
-    const askStep = smokeJob.steps.find((s) => s.id === "ask");
+    const askStep = smokeJob.steps.find((s: StepResult) => s.id === "ask");
     console.log();
     console.log("=== Step outputs (ask) ===");
     if (askStep) {

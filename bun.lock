@@ -117,20 +117,6 @@
         "@types/semver": "^7.7.1",
       },
     },
-    "packages/runtime": {
-      "name": "@aiactions/runtime",
-      "version": "3.0.1",
-      "dependencies": {
-        "@aiactions/git": "workspace:*",
-        "@aiactions/parser": "workspace:*",
-        "@aiactions/schema": "workspace:*",
-        "semver": "^7.8.0",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@types/semver": "^7.7.1",
-      },
-    },
     "packages/schema": {
       "name": "@aiactions/schema",
       "version": "1.0.0",
@@ -168,8 +154,6 @@
     "@aiactions/paths": ["@aiactions/paths@workspace:packages/paths"],
 
     "@aiactions/registry": ["@aiactions/registry@workspace:packages/registry"],
-
-    "@aiactions/runtime": ["@aiactions/runtime@workspace:packages/runtime"],
 
     "@aiactions/schema": ["@aiactions/schema@workspace:packages/schema"],
 
