@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  captureActionInstalled,
   captureWorkflowInvoked,
   getOrCreateTelemetryId,
   isTelemetryDisabled,
@@ -87,5 +88,47 @@ describe("captureWorkflowInvoked", () => {
     } finally {
       delete process.env.AIA_TELEMETRY_DISABLED;
     }
+  });
+});
+
+describe("captureActionInstalled", () => {
+  test("never throws on synchronous portion when telemetry is enabled", () => {
+    expect(() =>
+      captureActionInstalled({
+        namespace: "claude",
+        name: "agent",
+        version: "v1",
+        source: "canonical",
+      }),
+    ).not.toThrow();
+  });
+
+  test("never throws when telemetry-disabled is set", () => {
+    process.env.AIA_TELEMETRY_DISABLED = "1";
+    try {
+      expect(() =>
+        captureActionInstalled({
+          namespace: "claude",
+          name: "agent",
+          version: "v1",
+          source: "canonical",
+        }),
+      ).not.toThrow();
+    } finally {
+      delete process.env.AIA_TELEMETRY_DISABLED;
+    }
+  });
+
+  test("accepts optional resolvedVersion and aiactionsVersion", () => {
+    expect(() =>
+      captureActionInstalled({
+        namespace: "claude",
+        name: "agent",
+        version: "v1",
+        resolvedVersion: "1.2.3",
+        source: "canonical",
+        aiactionsVersion: "1.2.1",
+      }),
+    ).not.toThrow();
   });
 });

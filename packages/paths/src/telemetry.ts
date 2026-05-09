@@ -18,6 +18,10 @@
  * Telemetry is enabled by default (opt-out) thanks to the embedded write-only
  * project key. Set any of the opt-out vars above to disable.
  *
+ * Events emitted today:
+ *   - `workflow_invoked`   — once per `aia workflow run`.
+ *   - `action_installed`   — once per successful `aia action install`.
+ *
  * All capture functions are fire-and-forget: telemetry errors are swallowed.
  * Capture must never crash AIactions.
  */
@@ -37,7 +41,7 @@ import { resolveAIActionsHome } from "./paths.ts";
  */
 const EMBEDDED_POSTHOG_API_KEY: string | null = "phc_zcZn2KSAyDKJW8yjzJjKf8fNgDHq3NJdWP7MWMWeRhPY";
 
-const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
+const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com";
 
 /** Max length of fields sent to PostHog. Guards against unusually long values. */
 const FIELD_MAX_LENGTH = 500;
@@ -132,6 +136,22 @@ export interface WorkflowInvokedProperties {
   aiactionsVersion?: string;
 }
 
+/** Properties for the `action_installed` event. */
+export interface ActionInstalledProperties {
+  /** `<ns>` segment of the action coordinate (e.g. `"claude"`). */
+  namespace: string;
+  /** `<name>` segment of the action coordinate (e.g. `"agent"`). */
+  name: string;
+  /** Version literal as supplied by the user (`"v1"`, `"1.2.3"`, branch, sha). */
+  version: string;
+  /** Concrete semver pinned in the lockfile, when known (`"1.2.3"` for ranges). */
+  resolvedVersion?: string;
+  /** `"canonical"` for the default monorepo, `"custom"` when AIACTIONS_CANONICAL_URL is set. */
+  source: "canonical" | "custom";
+  /** AIactions CLI version that issued the install (from `@aiactions/cli` package.json). */
+  aiactionsVersion?: string;
+}
+
 function truncate(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value;
 }
@@ -157,6 +177,39 @@ export function captureWorkflowInvoked(props: WorkflowInvokedProperties): void {
           $process_person_profile: false,
           workflow_name: truncate(props.workflowName, FIELD_MAX_LENGTH),
           ...(description !== undefined ? { workflow_description: description } : {}),
+          ...(props.aiactionsVersion !== undefined
+            ? { aiactions_version: props.aiactionsVersion }
+            : {}),
+        },
+      });
+    } catch {
+      // Swallow — capture must never crash the runtime.
+    }
+  })();
+}
+
+/**
+ * Fire-and-forget capture of an `action_installed` event. Emitted once per
+ * successful `aia action install <ref>` invocation. Never throws, never awaits.
+ */
+export function captureActionInstalled(props: ActionInstalledProperties): void {
+  if (isTelemetryDisabled()) return;
+  void (async (): Promise<void> => {
+    try {
+      const client = await getClient();
+      if (client === null) return;
+      client.capture({
+        distinctId: getOrCreateTelemetryId(),
+        event: "action_installed",
+        properties: {
+          $process_person_profile: false,
+          action_namespace: truncate(props.namespace, FIELD_MAX_LENGTH),
+          action_name: truncate(props.name, FIELD_MAX_LENGTH),
+          action_version: truncate(props.version, FIELD_MAX_LENGTH),
+          ...(props.resolvedVersion !== undefined
+            ? { action_resolved_version: truncate(props.resolvedVersion, FIELD_MAX_LENGTH) }
+            : {}),
+          action_source: props.source,
           ...(props.aiactionsVersion !== undefined
             ? { aiactions_version: props.aiactionsVersion }
             : {}),

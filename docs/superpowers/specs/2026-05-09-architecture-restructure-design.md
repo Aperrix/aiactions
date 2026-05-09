@@ -233,7 +233,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
 ### 7.7. `@aiactions/paths`
 
 - **Role.** XDG path resolution, environment-variable parsing, structured logger, telemetry event bus. The "platform-services" layer.
-- **Public API.** `resolveAIActionsHome(): string`, `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `createLogger(module?: string): Logger`, `rootLogger: Logger`, `createEventBus<EventMap>(): EventBus<EventMap>`, `captureWorkflowInvoked(props)`, `shutdownTelemetry()`, `isTelemetryDisabled()`, `getOrCreateTelemetryId()`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`. Telemetry env vars (read directly): `AIA_POSTHOG_API_KEY`, `AIA_POSTHOG_HOST`, `AIA_TELEMETRY_DISABLED`, `DO_NOT_TRACK`.
+- **Public API.** `resolveAIActionsHome(): string`, `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `createLogger(module?: string): Logger`, `rootLogger: Logger`, `createEventBus<EventMap>(): EventBus<EventMap>`, `captureWorkflowInvoked(props)`, `captureActionInstalled(props)`, `shutdownTelemetry()`, `isTelemetryDisabled()`, `getOrCreateTelemetryId()`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`. Telemetry env vars (read directly): `AIA_POSTHOG_API_KEY`, `AIA_POSTHOG_HOST`, `AIA_TELEMETRY_DISABLED`, `DO_NOT_TRACK`.
 - **Internal layout.**
   ```
   src/
@@ -246,7 +246,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
   ```
 - **Internal deps.** None.
 - **External deps.** `pino`, `pino-pretty` (structured logger), `posthog-node` (anonymous outbound analytics). Stdlib otherwise. Pino-pretty runs as a destination stream so the logger survives `tsdown` single-file bundling.
-- **Telemetry policy.** Enabled by default (opt-out). The AIactions project's write-only `phc_*` PostHog key is embedded in `telemetry.ts`; `phc_*` keys can only write events, never read data, and are safe to ship in source. End users can opt out via `AIA_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`, or override the project via `AIA_POSTHOG_API_KEY` (e.g. for self-hosted PostHog). Anonymous UUID at `<aiActionsHome>/telemetry-id`. Single event today: `workflow_invoked` (workflow name + truncated description + aiactions version). `$process_person_profile: false` keeps events in PostHog's anonymous tier (no person profile ever created).
+- **Telemetry policy.** Enabled by default (opt-out). The AIactions project's write-only `phc_*` PostHog key is embedded in `telemetry.ts`; `phc_*` keys can only write events, never read data, and are safe to ship in source. End users can opt out via `AIA_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`, or override the project via `AIA_POSTHOG_API_KEY` (e.g. for self-hosted PostHog). Anonymous UUID at `<aiActionsHome>/telemetry-id`. Events emitted today: `workflow_invoked` (workflow name + truncated description + aiactions version), `action_installed` (action namespace/name/version + resolved version + canonical-or-custom source + aiactions version). `$process_person_profile: false` keeps events in PostHog's anonymous tier (no person profile ever created).
 
 ### 7.8. `@aiactions/git`
 
