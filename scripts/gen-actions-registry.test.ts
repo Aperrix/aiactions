@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
-import { registrySchema } from "@aiactions/workflows";
+import { registrySchema } from "@aiactions/schema";
 
 import { emitRegistry } from "./gen-actions-registry.ts";
 

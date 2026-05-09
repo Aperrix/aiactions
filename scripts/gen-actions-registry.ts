@@ -15,7 +15,7 @@ import {
   registrySchema,
   type Registry,
   type RegistryEntry,
-} from "@aiactions/workflows";
+} from "@aiactions/schema";
 import { parse as parseYaml } from "yaml";
 
 interface PackageJson {
