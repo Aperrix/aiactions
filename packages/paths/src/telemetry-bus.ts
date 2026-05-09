@@ -16,9 +16,12 @@ export function createTelemetryBus<EventMap extends object>(): TelemetryBus<Even
 
   return {
     on(event, handler) {
-      const set = handlers.get(event) ?? new Set();
+      let set = handlers.get(event);
+      if (set === undefined) {
+        set = new Set();
+        handlers.set(event, set);
+      }
       set.add(handler as (payload: EventMap[keyof EventMap]) => void);
-      handlers.set(event, set);
       return () => {
         set.delete(handler as (payload: EventMap[keyof EventMap]) => void);
       };
