@@ -5,3 +5,5 @@ export * from "./schemas/registry.ts";
 export * from "./schemas/action-manifest.ts";
 export * from "./schemas/workflow.ts";
 export * from "./types/errors.ts";
+export * from "./types/run.ts";
+export * from "./types/events.ts";

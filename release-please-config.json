@@ -10,7 +10,10 @@
     "packages/schema": { "component": "@aiactions/schema" },
     "packages/parser": { "component": "@aiactions/parser" },
     "packages/discovery": { "component": "@aiactions/discovery" },
-    "packages/runtime": { "component": "@aiactions/runtime" },
+    "packages/expression": { "component": "@aiactions/expression" },
+    "packages/exec": { "component": "@aiactions/exec" },
+    "packages/registry": { "component": "@aiactions/registry" },
+    "packages/core": { "component": "@aiactions/core" },
     "packages/cli": { "component": "@aiactions/cli" },
     "actions/claude/agent": { "component": "claude/agent", "release-as": "1.0.0" }
   },

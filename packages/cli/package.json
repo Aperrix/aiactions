@@ -14,7 +14,7 @@
   "dependencies": {
     "@aiactions/parser": "workspace:*",
     "@aiactions/paths": "workspace:*",
-    "@aiactions/runtime": "workspace:*",
+    "@aiactions/registry": "workspace:*",
     "@aiactions/schema": "workspace:*",
     "@clack/prompts": "^0.10.1",
     "citty": "^0.1.6",

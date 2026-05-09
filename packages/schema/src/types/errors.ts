@@ -1,17 +1,51 @@
 /**
- * Workflow error hierarchy. All errors thrown by `@aiactions/workflows`
- * extend `WorkflowError`, which carries a stable `code` field for
- * programmatic discrimination + an optional `cause` for chaining.
+ * Root of the AIactions error hierarchy. `AIactionsError` is the abstract
+ * base that every typed error in the system extends; concrete subclasses
+ * live in the package that raises them (`ExpressionError` in
+ * `@aiactions/expression`, `ExecError` in `@aiactions/exec`,
+ * `RegistryError` + `RegistryFetchError`/`RegistryResolveError` in
+ * `@aiactions/registry`, `RunnerError` + `JobError`/`StepError`/
+ * `OrchestrationError` in `@aiactions/core`). The CLI catches
+ * `AIactionsError` at the outermost boundary and maps the concrete
+ * subclass to an exit code via the `EXIT` table — see spec section 10.1.
+ *
+ * The schema-side hierarchy below covers errors raised before any
+ * process is spawned: parse, schema, and graph-invariant validation
+ * failures. They carry a stable `code` field for programmatic
+ * discrimination plus an optional `cause` for chaining.
  *
  * Contents:
- * - `WorkflowErrorCode` const + type — enum of known error codes.
+ * - `AIactionsError` abstract base — parent of every typed error in AIactions.
+ * - `WorkflowErrorCode` const + type — enum of known workflow error codes.
  * - `ValidationIssueCode` const + type — enum of graph-invariant codes.
  * - `ValidationIssue` interface — per-issue payload from graph validation.
- * - `WorkflowError` base class.
+ * - `WorkflowError` base class — extends `AIactionsError`.
  * - `WorkflowParseError` — file I/O or YAML syntax failure.
  * - `WorkflowSchemaError` — Zod schema (shape) failure.
  * - `WorkflowValidationError` — graph-invariant violation.
  */
+
+/**
+ * Abstract base class for every typed error raised inside AIactions
+ * packages. Concrete subclasses live in the package that produces them
+ * (`ExpressionError` in `@aiactions/expression`, `ExecError` in
+ * `@aiactions/exec`, `RegistryError` in `@aiactions/registry`, etc.).
+ *
+ * Per spec section 10, the CLI catches `AIactionsError` at the outermost
+ * boundary and maps the concrete subclass to an exit code via the
+ * `EXIT` table — direct `instanceof` on a subclass is allowed inside a
+ * brick that needs to enrich error context.
+ */
+export abstract class AIactionsError extends Error {
+  override readonly name: string;
+  constructor(message: string, options?: ErrorOptions) {
+    if (new.target === AIactionsError) {
+      throw new Error("AIactionsError is abstract; instantiate a concrete subclass");
+    }
+    super(message, options);
+    this.name = new.target.name;
+  }
+}
 
 /** Stable, programmatic discriminator for workflow errors. */
 export const WorkflowErrorCode = {
@@ -60,12 +94,11 @@ export interface ValidationIssue {
  * @param code - Stable, programmatic discriminator from `WorkflowErrorCode`.
  * @param options - Standard `ErrorOptions` (currently only `cause`).
  */
-export class WorkflowError extends Error {
+export class WorkflowError extends AIactionsError {
   readonly code: WorkflowErrorCode;
 
   constructor(message: string, code: WorkflowErrorCode, options?: { cause?: unknown }) {
     super(message, options);
-    this.name = "WorkflowError";
     this.code = code;
   }
 }
@@ -78,7 +111,6 @@ export class WorkflowError extends Error {
 export class WorkflowParseError extends WorkflowError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, WorkflowErrorCode.parse, options);
-    this.name = "WorkflowParseError";
   }
 }
 
@@ -91,7 +123,6 @@ export class WorkflowParseError extends WorkflowError {
 export class WorkflowSchemaError extends WorkflowError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, WorkflowErrorCode.schema, options);
-    this.name = "WorkflowSchemaError";
   }
 }
 
@@ -106,7 +137,6 @@ export class WorkflowValidationError extends WorkflowError {
 
   constructor(message: string, issues: readonly ValidationIssue[], options?: { cause?: unknown }) {
     super(message, WorkflowErrorCode.validation, options);
-    this.name = "WorkflowValidationError";
     this.issues = issues;
   }
 }

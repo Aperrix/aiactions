@@ -32,7 +32,7 @@
       "dependencies": {
         "@aiactions/parser": "workspace:*",
         "@aiactions/paths": "workspace:*",
-        "@aiactions/runtime": "workspace:*",
+        "@aiactions/registry": "workspace:*",
         "@aiactions/schema": "workspace:*",
         "@clack/prompts": "^0.10.1",
         "citty": "^0.1.6",
@@ -43,11 +43,41 @@
         "@types/semver": "^7.7.1",
       },
     },
+    "packages/core": {
+      "name": "@aiactions/core",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/exec": "workspace:*",
+        "@aiactions/expression": "workspace:*",
+        "@aiactions/git": "workspace:*",
+        "@aiactions/parser": "workspace:*",
+        "@aiactions/paths": "workspace:*",
+        "@aiactions/registry": "workspace:*",
+        "@aiactions/schema": "workspace:*",
+      },
+    },
     "packages/discovery": {
       "name": "@aiactions/discovery",
       "version": "1.0.0",
       "dependencies": {
         "@aiactions/parser": "workspace:*",
+        "@aiactions/schema": "workspace:*",
+      },
+    },
+    "packages/exec": {
+      "name": "@aiactions/exec",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/schema": "workspace:*",
+      },
+      "devDependencies": {
+        "@aiactions/parser": "workspace:*",
+      },
+    },
+    "packages/expression": {
+      "name": "@aiactions/expression",
+      "version": "1.0.0",
+      "dependencies": {
         "@aiactions/schema": "workspace:*",
       },
     },
@@ -73,12 +103,12 @@
         "posthog-node": "^4.18.0",
       },
     },
-    "packages/runtime": {
-      "name": "@aiactions/runtime",
-      "version": "3.0.1",
+    "packages/registry": {
+      "name": "@aiactions/registry",
+      "version": "1.0.0",
       "dependencies": {
         "@aiactions/git": "workspace:*",
-        "@aiactions/parser": "workspace:*",
+        "@aiactions/paths": "workspace:*",
         "@aiactions/schema": "workspace:*",
         "semver": "^7.8.0",
         "zod": "^4.4.3",
@@ -109,7 +139,13 @@
   "packages": {
     "@aiactions/cli": ["@aiactions/cli@workspace:packages/cli"],
 
+    "@aiactions/core": ["@aiactions/core@workspace:packages/core"],
+
     "@aiactions/discovery": ["@aiactions/discovery@workspace:packages/discovery"],
+
+    "@aiactions/exec": ["@aiactions/exec@workspace:packages/exec"],
+
+    "@aiactions/expression": ["@aiactions/expression@workspace:packages/expression"],
 
     "@aiactions/git": ["@aiactions/git@workspace:packages/git"],
 
@@ -117,7 +153,7 @@
 
     "@aiactions/paths": ["@aiactions/paths@workspace:packages/paths"],
 
-    "@aiactions/runtime": ["@aiactions/runtime@workspace:packages/runtime"],
+    "@aiactions/registry": ["@aiactions/registry@workspace:packages/registry"],
 
     "@aiactions/schema": ["@aiactions/schema@workspace:packages/schema"],
 
