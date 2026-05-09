@@ -9,17 +9,14 @@
  * - `ensureCachedAction` — existence-first cache + delegating fetch (Task 4).
  */
 
-import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
 
+import { cloneSparseShallow, lsRemoteTags, revParseHead, sparseCheckoutSet } from "@aiactions/git";
 import { rcompare as semverRcompare } from "semver";
 
 import { ActionResolutionError } from "../../types/errors.ts";
 import { readLockfile, upsertLockfileEntry } from "../../lockfile.ts";
-
-const pExecFile = promisify(execFile);
 
 const EXACT_SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/u;
 const MAJOR_ONLY_RE = /^\d+$/u;
@@ -55,7 +52,7 @@ export async function resolveMajorRange(
   const major = parseInt(ref.version, 10);
   let stdout: string;
   try {
-    ({ stdout } = await pExecFile("git", ["ls-remote", "--tags", canonicalUrl]));
+    stdout = await lsRemoteTags(canonicalUrl);
   } catch (err) {
     const stderr = (err as { stderr?: string }).stderr ?? String(err);
     throw new ActionResolutionError(
@@ -141,17 +138,12 @@ export async function fetchActionFromCanonical(
 
   try {
     try {
-      await pExecFile("git", [
-        "clone",
-        "--filter=blob:none",
-        "--sparse",
-        "--depth",
-        "1",
-        "--branch",
-        tag,
-        canonicalUrl,
-        repoDir,
-      ]);
+      await cloneSparseShallow({
+        url: canonicalUrl,
+        branch: tag,
+        dest: repoDir,
+        filter: "blob:none",
+      });
     } catch (err) {
       const stderr = (err as { stderr?: string }).stderr ?? String(err);
       throw new ActionResolutionError(
@@ -161,13 +153,7 @@ export async function fetchActionFromCanonical(
     }
 
     try {
-      await pExecFile("git", [
-        "-C",
-        repoDir,
-        "sparse-checkout",
-        "set",
-        `actions/${ref.namespace}/${ref.name}`,
-      ]);
+      await sparseCheckoutSet(repoDir, [`actions/${ref.namespace}/${ref.name}`]);
     } catch (err) {
       const stderr = (err as { stderr?: string }).stderr ?? String(err);
       throw new ActionResolutionError(
@@ -194,9 +180,9 @@ export async function fetchActionFromCanonical(
       throw err;
     }
 
-    let revParse: { stdout: string };
+    let resolvedSha: string;
     try {
-      revParse = await pExecFile("git", ["-C", repoDir, "rev-parse", "HEAD"]);
+      resolvedSha = await revParseHead(repoDir);
     } catch (err) {
       const stderr = (err as { stderr?: string }).stderr ?? String(err);
       throw new ActionResolutionError(
@@ -204,7 +190,6 @@ export async function fetchActionFromCanonical(
         { cause: err as Error },
       );
     }
-    const resolvedSha = revParse.stdout.trim();
 
     const targetParent = join(registryRoot, ref.namespace, ref.name);
     await mkdir(targetParent, { recursive: true });
