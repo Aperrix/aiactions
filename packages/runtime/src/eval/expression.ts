@@ -21,7 +21,7 @@
  * - `evaluateExpression(input, context)` — main entry point.
  */
 
-import { ExpressionTokenKind, tokenizeExpression } from "@aiactions/workflows";
+import { ExpressionTokenKind, tokenizeExpression } from "@aiactions/schema";
 
 import { ExpressionEvalError } from "../types/errors.ts";
 

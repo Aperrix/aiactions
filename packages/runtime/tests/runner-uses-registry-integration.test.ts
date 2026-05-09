@@ -7,7 +7,7 @@ import { mkdir, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { workflowSchema } from "@aiactions/workflows";
+import { workflowSchema } from "@aiactions/schema";
 import { describe, expect, test } from "vite-plus/test";
 
 import { runWorkflow } from "../src/run-workflow.ts";

@@ -12,7 +12,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vite-plus/test";
 
-import { parseActionManifest } from "@aiactions/workflows";
+import { parseActionManifest } from "@aiactions/parser";
 
 import { executeUsesStep } from "../src/runner/uses/exec.ts";
 

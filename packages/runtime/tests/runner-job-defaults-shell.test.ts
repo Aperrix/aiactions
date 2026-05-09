@@ -8,7 +8,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { workflowSchema } from "@aiactions/workflows";
+import { workflowSchema } from "@aiactions/schema";
 import { describe, expect, test } from "vite-plus/test";
 
 import { runWorkflow } from "../src/run-workflow.ts";

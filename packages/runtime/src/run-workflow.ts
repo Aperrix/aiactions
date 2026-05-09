@@ -29,7 +29,7 @@ import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { topoSort, type DepRecord, type Workflow } from "@aiactions/workflows";
+import { topoSort, type DepRecord, type Workflow } from "@aiactions/schema";
 
 import { evaluateExpression } from "./eval/expression.ts";
 import type { EvalContext } from "./eval/expression.ts";
