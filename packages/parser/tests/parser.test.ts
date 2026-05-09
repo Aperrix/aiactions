@@ -14,7 +14,9 @@
  */
 
 import { describe, expect, test } from "vite-plus/test";
-import { resolve } from "node:path";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import { parseActionManifest } from "../src/parse-action.ts";
 import { parseWorkflow } from "../src/parse-workflow.ts";
@@ -111,9 +113,6 @@ describe("parseWorkflow — error mapping", () => {
   });
 
   test("mixed shape + topology → WorkflowSchemaError takes precedence (topology issues stay on cause)", async () => {
-    const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
-    const { tmpdir } = await import("node:os");
-    const { join } = await import("node:path");
     const dir = await mkdtemp(join(tmpdir(), "wf-mixed-"));
     const yamlPath = join(dir, "mixed.yaml");
     await writeFile(

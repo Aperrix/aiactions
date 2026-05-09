@@ -21,6 +21,9 @@
   },
   "yaml.schemas": {
     "./manifest-schema.json": ["**/aiaction.yaml", "**/aiaction.yml"],
-    "./workflow-schema.json": ["packages/workflows/tests/fixtures/workflows/*.yaml"]
+    "./workflow-schema.json": [
+      "packages/discovery/tests/fixtures/workflows/*.yaml",
+      "packages/parser/tests/fixtures/workflows/*.yaml"
+    ]
   }
 }

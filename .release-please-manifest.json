@@ -1,6 +1,10 @@
 {
+  "packages/paths": "0.1.0",
+  "packages/git": "0.1.0",
+  "packages/schema": "1.0.0",
+  "packages/parser": "1.0.0",
+  "packages/discovery": "1.0.0",
   "packages/runtime": "3.0.1",
-  "packages/workflows": "1.0.1",
   "packages/cli": "1.2.1",
   "actions/claude/agent": "1.0.0"
 }
