@@ -1,4 +1,4 @@
-import { registrySchema, type Registry, type RegistryEntry } from "@aiactions/workflows";
+import { registrySchema, type Registry, type RegistryEntry } from "@aiactions/schema";
 import { rcompare as semverRcompare } from "semver";
 
 import { RegistryFetchError, RegistryValidationError } from "./errors.ts";
