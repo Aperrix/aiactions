@@ -1,7 +1,9 @@
+import { captureActionInstalled, resolveRegistryRoot } from "@aiactions/paths";
 import { ensureCachedAction, type EnsureCachedActionOptions } from "@aiactions/runtime";
 import * as clack from "@clack/prompts";
 import { defineCommand } from "citty";
 
+import packageJson from "../../../package.json" with { type: "json" };
 import { CliError, NotFoundError, UsageError } from "../../lib/errors.ts";
 import { EXIT } from "../../lib/exit-codes.ts";
 import { isInteractive } from "../../lib/output.ts";
@@ -13,7 +15,6 @@ import {
   resolveLatest,
   resolveRegistryUrl,
 } from "../../lib/registry.ts";
-import { resolveRegistryRoot } from "@aiactions/paths";
 
 interface InstallOpts {
   readonly registryRoot: string;
@@ -40,6 +41,17 @@ async function installRef(
   try {
     const result = await ensureCachedAction(ref, opts.registryRoot, process.cwd(), ensureOpts);
     spinner?.stop(result.fetched ? `installed ${refLabel}` : `already cached ${refLabel}`);
+
+    captureActionInstalled({
+      namespace: ref.namespace,
+      name: ref.name,
+      version: ref.version,
+      ...(result.resolvedVersion !== ref.version
+        ? { resolvedVersion: result.resolvedVersion }
+        : {}),
+      source: opts.canonicalUrl !== undefined ? "custom" : "canonical",
+      aiactionsVersion: packageJson.version,
+    });
 
     if (opts.json) {
       process.stdout.write(

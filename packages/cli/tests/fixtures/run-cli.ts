@@ -44,6 +44,11 @@ export async function runCli(
   const baseEnv: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
+    // Disable PostHog telemetry in tests — prevents real outbound HTTP from
+    // the embedded write-only key during CI runs and keeps assertions
+    // deterministic. Tests that exercise telemetry behaviour explicitly
+    // override this in their per-call env.
+    AIA_TELEMETRY_DISABLED: "1",
   };
 
   const argv = [BIN, ...args].map((a) => `'${a.replaceAll("'", "'\\''")}'`).join(" ");
