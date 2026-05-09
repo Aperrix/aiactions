@@ -1,0 +1,11 @@
+name: env-and-inputs
+inputs:
+  who:
+    type: string
+    default: world
+env:
+  GREETING: "hello, ${{ inputs.who }}"
+jobs:
+  greet:
+    steps:
+      - run: echo "$GREETING"
