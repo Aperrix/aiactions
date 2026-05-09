@@ -26,7 +26,7 @@ These two scope reductions narrow the integration surfaces from four (CLI / Skil
 
 1. **Single-responsibility packages.** Each package has a one-line role description and a stable public API.
 2. **80% CLI-only feature additions.** Adding a typical new command modifies only the CLI package; core orchestrations are touched only for new stateful workflows.
-3. **Thin core.** `@aiactions/core` contains *only* orchestrators (~6 src files target). It never holds schemas, parsers, I/O, or registry logic. Anti-pattern reference: Archon's `packages/core/` mixes db/config/handlers/operations/orchestrator (~30 files) — explicitly avoided.
+3. **Thin core.** `@aiactions/core` contains _only_ orchestrators (~6 src files target). It never holds schemas, parsers, I/O, or registry logic. Anti-pattern reference: Archon's `packages/core/` mixes db/config/handlers/operations/orchestrator (~30 files) — explicitly avoided.
 4. **Conventional TS/Node naming.** No DDD-isms (`domain/`, `ports/`, `adapters/`, `use-cases/`); no suffix patterns (`*.adapter.ts`, `*.port.ts`). Package names express role, not pattern.
 5. **Bisectable migration.** Six phases, each shippable independently as a `--no-ff` PR.
 
@@ -44,7 +44,7 @@ The architecture combines three perspectives:
 
 - **Hexagonal in spirit.** Domain logic is insulated from I/O — but expressed through package boundaries (each brick is its own package with a clean exported API), not through `domain/ports/adapters/` folders inside a single monolith. This avoids the DDD jargon while keeping the testability and swap-ability that hexagonal provides.
 - **Vertical slice for the CLI.** Each `(resource, verb)` pair (e.g. `action install`, `workflow run`) is a single folder owning command definition, orchestration, and receipt formatting. Cross-slice sharing only via `_shared/` (truly cross-cutting) or via brick package APIs.
-- **Functional cohesion as arbiter.** When a boundary decision is ambiguous, the rule is: code that *changes together* belongs together (Constantine, 1979).
+- **Functional cohesion as arbiter.** When a boundary decision is ambiguous, the rule is: code that _changes together_ belongs together (Constantine, 1979).
 
 External references consulted: monorepo.tools (Nrwl/Nx), Vertical Slice Architecture (Bogard), Bounded Context (Fowler), Clean Architecture (Martin), Turborepo structuring guide. Methodologies explicitly rejected for AIactions: layered/Clean Architecture (over-ceremony for use-case heterogeneity), DDD bounded context (single domain — workflow execution), Nx 4-type model (no UI / data-access / state-mgmt to organize), Pipeline-stage packages (would force every command to traverse 5-7 packages).
 
@@ -52,18 +52,18 @@ External references consulted: monorepo.tools (Nrwl/Nx), Vertical Slice Architec
 
 ### 5.1. Final list
 
-| # | Package | Role | Est. src files |
-|---|---|---|---|
-| 1 | `@aiactions/schema` | zod schemas (workflow, action manifest, ref, registry, env, shell) | 6 |
-| 2 | `@aiactions/parser` | YAML → AST + semantic validation | 4 |
-| 3 | `@aiactions/discovery` | find workflow files (project + home roots) | 4 |
-| 4 | `@aiactions/registry` | fetch + cache + version-resolve + lockfile | 6 |
-| 5 | `@aiactions/expression` | `${{ ... }}` evaluation (pure) | 2 |
-| 6 | `@aiactions/exec` | spawn shell + uses-loader.mjs | 4 |
-| 7 | `@aiactions/paths` | XDG paths (`~/.aiactions/`) + env + logger + telemetry-bus | 4-5 |
-| 8 | `@aiactions/git` | git operations (branch, exec, repo, types, worktree) | 5 |
-| 9 | `@aiactions/core` | orchestrators only — runner state machine + install-pipeline | 5-6 |
-| 10 | `@aiactions/cli` | bin `aia` + vertical slices per `(resource, verb)` | ~25 |
+| #   | Package                 | Role                                                               | Est. src files |
+| --- | ----------------------- | ------------------------------------------------------------------ | -------------- |
+| 1   | `@aiactions/schema`     | zod schemas (workflow, action manifest, ref, registry, env, shell) | 6              |
+| 2   | `@aiactions/parser`     | YAML → AST + semantic validation                                   | 4              |
+| 3   | `@aiactions/discovery`  | find workflow files (project + home roots)                         | 4              |
+| 4   | `@aiactions/registry`   | fetch + cache + version-resolve + lockfile                         | 6              |
+| 5   | `@aiactions/expression` | `${{ ... }}` evaluation (pure)                                     | 2              |
+| 6   | `@aiactions/exec`       | spawn shell + uses-loader.mjs                                      | 4              |
+| 7   | `@aiactions/paths`      | XDG paths (`~/.aiactions/`) + env + logger + telemetry-bus         | 4-5            |
+| 8   | `@aiactions/git`        | git operations (branch, exec, repo, types, worktree)               | 5              |
+| 9   | `@aiactions/core`       | orchestrators only — runner state machine + install-pipeline       | 5-6            |
+| 10  | `@aiactions/cli`        | bin `aia` + vertical slices per `(resource, verb)`                 | ~25            |
 
 Plus, outside `packages/`:
 
@@ -115,7 +115,7 @@ Strict rules:
 - **`cli` → any internal package**.
 - **`actions/*` → independent**. Each first-party action is a self-contained package; consumed by the runner via the `uses:` protocol, not via direct imports.
 
-The DAG is enforced through `package.json.dependencies` (workspace:*) and a global `oxlint` `no-restricted-imports` rule that bans cross-package imports outside the declared edges.
+The DAG is enforced through `package.json.dependencies` (workspace:\*) and a global `oxlint` `no-restricted-imports` rule that bans cross-package imports outside the declared edges.
 
 ## 7. Per-package detail
 
@@ -330,7 +330,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:*) and a glob
         cli-error.ts
         output.ts
   ```
-- **Internal deps.** `@aiactions/core`, `@aiactions/registry`, `@aiactions/discovery`, `@aiactions/parser`, `@aiactions/schema`, `@aiactions/paths`. `_shared/` contains *only* truly cross-cutting CLI concerns: `exit-codes.ts`, `cli-error.ts` (wraps `AIactionsError` with an exit code), `output.ts` (JSON / pretty writer).
+- **Internal deps.** `@aiactions/core`, `@aiactions/registry`, `@aiactions/discovery`, `@aiactions/parser`, `@aiactions/schema`, `@aiactions/paths`. `_shared/` contains _only_ truly cross-cutting CLI concerns: `exit-codes.ts`, `cli-error.ts` (wraps `AIactionsError` with an exit code), `output.ts` (JSON / pretty writer).
 - **External deps.** `citty`, `@clack/prompts` (existing).
 
 ## 8. CLI vertical slices — slice rule
@@ -411,32 +411,32 @@ CliError                               # cli/_shared/ — wraps any AIactionsErr
 
 ### 10.3. Exit code mapping (initial)
 
-| Error class | Exit code |
-|---|---|
-| `ValidationError` / `ParseError` | 2 (`EXIT.INVALID_INPUT`) |
-| `DiscoveryError` | 3 (`EXIT.NOT_FOUND`) |
-| `RegistryFetchError` | 4 (`EXIT.NETWORK`) |
-| `RegistryResolveError` | 5 (`EXIT.UNRESOLVABLE`) |
-| `ExecError` / `RunnerError` | 6 (`EXIT.RUNTIME`) |
-| `GitError` | 7 (`EXIT.GIT`) |
-| Other `Error` (non-typed) | 99 (`EXIT.RUNTIME` — unknown) |
+| Error class                      | Exit code                     |
+| -------------------------------- | ----------------------------- |
+| `ValidationError` / `ParseError` | 2 (`EXIT.INVALID_INPUT`)      |
+| `DiscoveryError`                 | 3 (`EXIT.NOT_FOUND`)          |
+| `RegistryFetchError`             | 4 (`EXIT.NETWORK`)            |
+| `RegistryResolveError`           | 5 (`EXIT.UNRESOLVABLE`)       |
+| `ExecError` / `RunnerError`      | 6 (`EXIT.RUNTIME`)            |
+| `GitError`                       | 7 (`EXIT.GIT`)                |
+| Other `Error` (non-typed)        | 99 (`EXIT.RUNTIME` — unknown) |
 
 Existing `EXIT` constants from `packages/cli/src/lib/exit-codes.ts` are preserved as-is to avoid breaking script consumers.
 
 ## 11. Testing strategy
 
-| Package | Test scope | Mocking policy |
-|---|---|---|
-| `schema` | zod parsing edge cases, required vs optional, defaults | none |
-| `parser` | YAML → AST, malformed YAML, schema mismatches, topology cycles | none |
-| `discovery` | fs walk, git-root finding, project-shadows-home, broken symlinks | tmpdir fixtures |
-| `registry` | version resolution (exact/range/sha), fetch flow, lockfile read/write | bare-repo fixtures (real git) |
-| `expression` | literals, ctx access, operators, error cases | none |
-| `exec` | spawn semantics, env passing, stdio capture, exit codes | real child processes against simple scripts |
-| `paths` | XDG resolution, env override, logger emit, telemetry bus subscribe | env-var manipulation |
-| `git` | branch ops, worktree create/remove, repo init | bare-repo fixtures |
-| `core` | runner orchestration with **real bricks** — integration of bricks under test | bare-repo for registry; tmpdir for fs |
-| `cli` | end-to-end via `runCli()` fixture; JSON receipts validated | full integration |
+| Package      | Test scope                                                                   | Mocking policy                              |
+| ------------ | ---------------------------------------------------------------------------- | ------------------------------------------- |
+| `schema`     | zod parsing edge cases, required vs optional, defaults                       | none                                        |
+| `parser`     | YAML → AST, malformed YAML, schema mismatches, topology cycles               | none                                        |
+| `discovery`  | fs walk, git-root finding, project-shadows-home, broken symlinks             | tmpdir fixtures                             |
+| `registry`   | version resolution (exact/range/sha), fetch flow, lockfile read/write        | bare-repo fixtures (real git)               |
+| `expression` | literals, ctx access, operators, error cases                                 | none                                        |
+| `exec`       | spawn semantics, env passing, stdio capture, exit codes                      | real child processes against simple scripts |
+| `paths`      | XDG resolution, env override, logger emit, telemetry bus subscribe           | env-var manipulation                        |
+| `git`        | branch ops, worktree create/remove, repo init                                | bare-repo fixtures                          |
+| `core`       | runner orchestration with **real bricks** — integration of bricks under test | bare-repo for registry; tmpdir for fs       |
+| `cli`        | end-to-end via `runCli()` fixture; JSON receipts validated                   | full integration                            |
 
 **Principle:** no over-mocking. Bricks pure (`schema`, `parser`, `expression`) test their API directly. Bricks I/O (`registry`, `exec`, `git`) use real fixtures (bare repos, tmpdirs). `core` tests orchestration with the real bricks under it. `cli` tests user experience by spawning `aia`. This aligns with the `collaboration.md` TDD policy: tests catch real failure modes, not implementation details.
 
@@ -444,14 +444,14 @@ Existing `EXIT` constants from `packages/cli/src/lib/exit-codes.ts` are preserve
 
 Each phase is a single PR. Per-phase strategy: `--no-ff` merge to preserve per-commit Conventional Commit history (release-please routes per-component bumps correctly). Pre-flush `vp fmt` on `main` before each phase to avoid the MS1.7 fmt-only-drift trap.
 
-| Phase | Change | Breaking? | release-please impact |
-|---|---|---|---|
-| **1** | Create `@aiactions/paths`. Move `cli/lib/registry-root.ts` and runtime env helpers into it. Add new logger + telemetry-bus modules. | No | New package at v0.1.0; runtime + cli get a `dependencies` entry |
-| **2** | Create `@aiactions/git`. Extract git operations from `runtime/runner/uses/registry-fetch.ts` and any other ad-hoc `execFileAsync(['git', ...])` calls. | No | New package at v0.1.0 |
-| **3** | Split `@aiactions/workflows` → `@aiactions/schema` + `@aiactions/parser` + `@aiactions/discovery`. Update consumers (`runtime`, `cli`). Delete `@aiactions/workflows`. | **Yes** — `feat(workflows)!:` major | Three new packages at v1.0.0; `@aiactions/workflows` removed |
-| **4** | Split `@aiactions/runtime` → `@aiactions/expression` + `@aiactions/exec` + `@aiactions/registry` + `@aiactions/core`. Update CLI. Delete `@aiactions/runtime`. | **Yes** — `feat(runtime)!:` major | Four new packages at v1.0.0; `@aiactions/runtime` removed |
-| **5** | Refactor `@aiactions/cli` into vertical slices per `(resource, verb)`. Move `cli/lib/*` content to bricks (already migrated in phase 4 for most) or `_shared/`. | No (internal restructure; CLI surface unchanged) | CLI minor bump |
-| **6** | Add `aia workflow list/run/check` commands consuming the new bricks. Resumes the original MS1.9 work. | No | CLI minor bump |
+| Phase | Change                                                                                                                                                                 | Breaking?                                        | release-please impact                                           |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
+| **1** | Create `@aiactions/paths`. Move `cli/lib/registry-root.ts` and runtime env helpers into it. Add new logger + telemetry-bus modules.                                    | No                                               | New package at v0.1.0; runtime + cli get a `dependencies` entry |
+| **2** | Create `@aiactions/git`. Extract git operations from `runtime/runner/uses/registry-fetch.ts` and any other ad-hoc `execFileAsync(['git', ...])` calls.                 | No                                               | New package at v0.1.0                                           |
+| **3** | Split `@aiactions/workflows` → `@aiactions/schema` + `@aiactions/parser` + `@aiactions/discovery`. Update consumers (`runtime`, `cli`). Delete `@aiactions/workflows`. | **Yes** — `feat(workflows)!:` major              | Three new packages at v1.0.0; `@aiactions/workflows` removed    |
+| **4** | Split `@aiactions/runtime` → `@aiactions/expression` + `@aiactions/exec` + `@aiactions/registry` + `@aiactions/core`. Update CLI. Delete `@aiactions/runtime`.         | **Yes** — `feat(runtime)!:` major                | Four new packages at v1.0.0; `@aiactions/runtime` removed       |
+| **5** | Refactor `@aiactions/cli` into vertical slices per `(resource, verb)`. Move `cli/lib/*` content to bricks (already migrated in phase 4 for most) or `_shared/`.        | No (internal restructure; CLI surface unchanged) | CLI minor bump                                                  |
+| **6** | Add `aia workflow list/run/check` commands consuming the new bricks. Resumes the original MS1.9 work.                                                                  | No                                               | CLI minor bump                                                  |
 
 **Rollback path.** Each phase is independently revertable. Phases 1, 2, 5, 6 are pure additions or internal restructures. Phases 3 and 4 are reversible by `git revert` because deleted packages are reconstructable from history; consumers regress to the previous workspace dep declarations.
 

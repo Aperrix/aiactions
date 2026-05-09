@@ -12,34 +12,35 @@
 
 ## File Structure
 
-| File | Responsibility |
-|---|---|
-| `packages/paths/package.json` | Package manifest, ESM, no runtime deps |
-| `packages/paths/tsconfig.json` | TS config matching existing packages |
-| `packages/paths/vite.config.ts` | Vite+ test/lint config |
-| `packages/paths/src/env.ts` | Parses `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG` from env source |
-| `packages/paths/src/paths.ts` | `resolveRegistryRoot`, `resolveCacheRoot`, `resolveTmpRoot` + `HomeUnresolvedError` |
-| `packages/paths/src/logger.ts` | `createLogger` — stderr sink, level filtering honors `AIA_DEBUG` |
-| `packages/paths/src/telemetry-bus.ts` | `createTelemetryBus<EventMap>` — typed sync event dispatcher |
-| `packages/paths/src/index.ts` | Public API barrel re-export |
-| `packages/paths/tests/env.test.ts` | Tests `loadEnv` cases |
-| `packages/paths/tests/paths.test.ts` | Tests three `resolve*` fns + `HomeUnresolvedError` |
-| `packages/paths/tests/logger.test.ts` | Tests level filtering + sink + meta serialization |
-| `packages/paths/tests/telemetry-bus.test.ts` | Tests subscribe/emit/unsubscribe |
-| **Modified files** | |
-| `packages/cli/package.json` | Adds `@aiactions/paths: workspace:*` dep |
-| `packages/cli/src/commands/action/install.ts:16,89` | Replace `lib/registry-root.ts` import with `@aiactions/paths` |
-| `packages/cli/src/commands/action/list.ts:6,107` | Same |
-| `packages/cli/src/commands/action/uninstall.ts:10,41` | Same |
-| **Deleted files** | |
-| `packages/cli/src/lib/registry-root.ts` | Logic moved to `@aiactions/paths` |
-| `packages/cli/tests/registry-root.test.ts` | Tests moved to `@aiactions/paths/tests/paths.test.ts` |
+| File                                                  | Responsibility                                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `packages/paths/package.json`                         | Package manifest, ESM, no runtime deps                                              |
+| `packages/paths/tsconfig.json`                        | TS config matching existing packages                                                |
+| `packages/paths/vite.config.ts`                       | Vite+ test/lint config                                                              |
+| `packages/paths/src/env.ts`                           | Parses `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG` from env source |
+| `packages/paths/src/paths.ts`                         | `resolveRegistryRoot`, `resolveCacheRoot`, `resolveTmpRoot` + `HomeUnresolvedError` |
+| `packages/paths/src/logger.ts`                        | `createLogger` — stderr sink, level filtering honors `AIA_DEBUG`                    |
+| `packages/paths/src/telemetry-bus.ts`                 | `createTelemetryBus<EventMap>` — typed sync event dispatcher                        |
+| `packages/paths/src/index.ts`                         | Public API barrel re-export                                                         |
+| `packages/paths/tests/env.test.ts`                    | Tests `loadEnv` cases                                                               |
+| `packages/paths/tests/paths.test.ts`                  | Tests three `resolve*` fns + `HomeUnresolvedError`                                  |
+| `packages/paths/tests/logger.test.ts`                 | Tests level filtering + sink + meta serialization                                   |
+| `packages/paths/tests/telemetry-bus.test.ts`          | Tests subscribe/emit/unsubscribe                                                    |
+| **Modified files**                                    |                                                                                     |
+| `packages/cli/package.json`                           | Adds `@aiactions/paths: workspace:*` dep                                            |
+| `packages/cli/src/commands/action/install.ts:16,89`   | Replace `lib/registry-root.ts` import with `@aiactions/paths`                       |
+| `packages/cli/src/commands/action/list.ts:6,107`      | Same                                                                                |
+| `packages/cli/src/commands/action/uninstall.ts:10,41` | Same                                                                                |
+| **Deleted files**                                     |                                                                                     |
+| `packages/cli/src/lib/registry-root.ts`               | Logic moved to `@aiactions/paths`                                                   |
+| `packages/cli/tests/registry-root.test.ts`            | Tests moved to `@aiactions/paths/tests/paths.test.ts`                               |
 
 ---
 
 ## Task 1: Bootstrap package skeleton
 
 **Files:**
+
 - Create: `packages/paths/package.json`
 - Create: `packages/paths/tsconfig.json`
 - Create: `packages/paths/vite.config.ts`
@@ -175,6 +176,7 @@ EOF
 ## Task 2: Implement `env.ts` (TDD)
 
 **Files:**
+
 - Create: `packages/paths/src/env.ts`
 - Test: `packages/paths/tests/env.test.ts`
 
@@ -321,6 +323,7 @@ EOF
 ## Task 3: Implement `paths.ts` (TDD)
 
 **Files:**
+
 - Create: `packages/paths/src/paths.ts`
 - Test: `packages/paths/tests/paths.test.ts`
 
@@ -502,6 +505,7 @@ EOF
 ## Task 4: Implement `logger.ts` (TDD)
 
 **Files:**
+
 - Create: `packages/paths/src/logger.ts`
 - Test: `packages/paths/tests/logger.test.ts`
 
@@ -609,9 +613,11 @@ const ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
 export function createLogger(options: LoggerOptions = {}): Logger {
   const env = loadEnv();
   const minLevel: LogLevel = options.minLevel ?? (env.debug ? "debug" : "info");
-  const sink = options.sink ?? ((line: string) => {
-    process.stderr.write(line);
-  });
+  const sink =
+    options.sink ??
+    ((line: string) => {
+      process.stderr.write(line);
+    });
 
   const emit = (level: LogLevel, msg: string, meta?: Record<string, unknown>) => {
     if (ORDER[level] < ORDER[minLevel]) return;
@@ -659,6 +665,7 @@ EOF
 ## Task 5: Implement `telemetry-bus.ts` (TDD)
 
 **Files:**
+
 - Create: `packages/paths/src/telemetry-bus.ts`
 - Test: `packages/paths/tests/telemetry-bus.test.ts`
 
@@ -764,7 +771,9 @@ export interface TelemetryBus<EventMap extends Record<string, unknown>> {
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void;
 }
 
-export function createTelemetryBus<EventMap extends Record<string, unknown>>(): TelemetryBus<EventMap> {
+export function createTelemetryBus<
+  EventMap extends Record<string, unknown>,
+>(): TelemetryBus<EventMap> {
   const handlers = new Map<keyof EventMap, Set<(payload: EventMap[keyof EventMap]) => void>>();
 
   return {
@@ -818,6 +827,7 @@ EOF
 ## Task 6: Wire public API barrel
 
 **Files:**
+
 - Modify: `packages/paths/src/index.ts`
 
 - [ ] **Step 1: Replace `index.ts` with the full barrel**
@@ -861,6 +871,7 @@ EOF
 ## Task 7: Migrate CLI consumers — declare dep
 
 **Files:**
+
 - Modify: `packages/cli/package.json`
 
 - [ ] **Step 1: Add `@aiactions/paths` to CLI's `dependencies`**
@@ -906,6 +917,7 @@ EOF
 ## Task 8: Migrate `cli/commands/action/install.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/commands/action/install.ts:16` (import) and `:89` (call site)
 
 - [ ] **Step 1: Replace the import**
@@ -955,6 +967,7 @@ We commit Tasks 8, 9, 10 together at the end of Task 10 (one atomic migration co
 ## Task 9: Migrate `cli/commands/action/list.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/commands/action/list.ts:6` (import) and `:107` (call site)
 
 - [ ] **Step 1: Replace the import**
@@ -992,6 +1005,7 @@ Expected: lint+type-check PASS, list tests still green.
 ## Task 10: Migrate `cli/commands/action/uninstall.ts` + delete legacy file
 
 **Files:**
+
 - Modify: `packages/cli/src/commands/action/uninstall.ts:10` (import)
 - Delete: `packages/cli/src/lib/registry-root.ts`
 - Delete: `packages/cli/tests/registry-root.test.ts`
