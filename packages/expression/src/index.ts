@@ -1,2 +1,2 @@
-// Public API barrel — populated by subsequent tasks.
-export {};
+export * from "./evaluate.ts";
+export * from "./errors.ts";
