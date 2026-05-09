@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "pino": "^9.5.0",
-    "pino-pretty": "^11.3.0"
+    "pino-pretty": "^11.3.0",
+    "posthog-node": "^4.18.0"
   }
 }

@@ -16,6 +16,19 @@ export class HomeUnresolvedError extends Error {
 }
 
 /**
+ * Resolve `<home>/.aiactions/`, the AIactions home directory that holds
+ * user-scoped state (actions cache, lockfile, telemetry id).
+ * Throws `HomeUnresolvedError` when no home directory can be resolved.
+ */
+export function resolveAIActionsHome(options: PathsResolveOptions = {}): string {
+  const env = options.env ?? loadEnv();
+  if (env.home === "") {
+    throw new HomeUnresolvedError();
+  }
+  return join(env.home, ".aiactions");
+}
+
+/**
  * Resolve `<home>/.aiactions/actions/`, the per-user actions cache.
  * AIA_REGISTRY_ROOT, when set, short-circuits the computation and is
  * returned verbatim.

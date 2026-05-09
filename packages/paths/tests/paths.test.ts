@@ -3,10 +3,28 @@ import { describe, expect, test } from "vite-plus/test";
 import { loadEnv } from "../src/env.ts";
 import {
   HomeUnresolvedError,
+  resolveAIActionsHome,
   resolveCacheRoot,
   resolveRegistryRoot,
   resolveTmpRoot,
 } from "../src/paths.ts";
+
+describe("resolveAIActionsHome", () => {
+  test("returns <home>/.aiactions", () => {
+    const env = loadEnv({ source: { HOME: "/h" } });
+    expect(resolveAIActionsHome({ env })).toBe("/h/.aiactions");
+  });
+
+  test("AIA_HOME drives the resolution", () => {
+    const env = loadEnv({ source: { AIA_HOME: "/aia" } });
+    expect(resolveAIActionsHome({ env })).toBe("/aia/.aiactions");
+  });
+
+  test("throws HomeUnresolvedError when home is empty", () => {
+    const env = loadEnv({ source: {} });
+    expect(() => resolveAIActionsHome({ env })).toThrow(HomeUnresolvedError);
+  });
+});
 
 describe("resolveRegistryRoot", () => {
   test("returns AIA_REGISTRY_ROOT when set", () => {
