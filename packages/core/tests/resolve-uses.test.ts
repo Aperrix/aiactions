@@ -15,6 +15,8 @@ import { afterEach, describe, expect, test } from "vite-plus/test";
 
 import { usesRefSchema, WorkflowError } from "@aiactions/schema";
 
+import { RegistryFetchError } from "@aiactions/registry";
+
 import { resolveUsesRef } from "../src/runner/resolve-uses.ts";
 import { OrchestrationError } from "../src/errors.ts";
 
@@ -110,7 +112,7 @@ describe("resolveUsesRef — registry refs", () => {
         cwd,
         registryFetch: { canonicalUrl: "file:///does-not-exist", tmpRoot: tmp },
       }),
-    ).rejects.toThrow(OrchestrationError);
+    ).rejects.toThrow(RegistryFetchError);
   });
 });
 

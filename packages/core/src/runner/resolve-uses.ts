@@ -27,7 +27,7 @@ import { parseActionManifest } from "@aiactions/parser";
 import { type ActionManifest, RefKind, type UsesRef, WorkflowError } from "@aiactions/schema";
 
 import type { ResolvedAction } from "@aiactions/exec";
-import { ensureCachedAction, RegistryError } from "@aiactions/registry";
+import { ensureCachedAction } from "@aiactions/registry";
 
 import { OrchestrationError } from "../errors.ts";
 
@@ -97,18 +97,7 @@ export async function resolveUsesRef(ref: UsesRef, ctx: ResolverContext): Promis
         `registry ref '${ref.raw}' requires options.cwd to be set (for the lockfile path)`,
       );
     }
-    let result: Awaited<ReturnType<typeof ensureCachedAction>>;
-    try {
-      result = await ensureCachedAction(ref, ctx.registryRoot, ctx.cwd, ctx.registryFetch);
-    } catch (err) {
-      if (err instanceof RegistryError) {
-        throw new OrchestrationError(
-          `failed to resolve registry ref '${ref.raw}': ${err.message}`,
-          { cause: err },
-        );
-      }
-      throw err;
-    }
+    const result = await ensureCachedAction(ref, ctx.registryRoot, ctx.cwd, ctx.registryFetch);
     dir = result.dir;
   }
 
