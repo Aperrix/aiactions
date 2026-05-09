@@ -246,7 +246,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
   ```
 - **Internal deps.** None.
 - **External deps.** `pino`, `pino-pretty` (structured logger), `posthog-node` (anonymous outbound analytics). Stdlib otherwise. Pino-pretty runs as a destination stream so the logger survives `tsdown` single-file bundling.
-- **Telemetry policy.** Disabled by default until `EMBEDDED_POSTHOG_API_KEY` is provisioned in `telemetry.ts`. End users can opt in via `AIA_POSTHOG_API_KEY` env var, opt out via `AIA_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`. Anonymous UUID at `<aiActionsHome>/telemetry-id`. Single event today: `workflow_invoked` (workflow name + truncated description + aiactions version). `$process_person_profile: false` keeps events in PostHog's anonymous tier.
+- **Telemetry policy.** Enabled by default (opt-out). The AIactions project's write-only `phc_*` PostHog key is embedded in `telemetry.ts`; `phc_*` keys can only write events, never read data, and are safe to ship in source. End users can opt out via `AIA_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1`, or override the project via `AIA_POSTHOG_API_KEY` (e.g. for self-hosted PostHog). Anonymous UUID at `<aiActionsHome>/telemetry-id`. Single event today: `workflow_invoked` (workflow name + truncated description + aiactions version). `$process_person_profile: false` keeps events in PostHog's anonymous tier (no person profile ever created).
 
 ### 7.8. `@aiactions/git`
 

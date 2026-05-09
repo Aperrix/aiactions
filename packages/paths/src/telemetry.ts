@@ -15,9 +15,8 @@
  *   - DO_NOT_TRACK=1                   (de facto standard)
  *   - AIA_POSTHOG_API_KEY unset
  *
- * No embedded API key. Until an AIactions PostHog project is provisioned and
- * its `phc_*` write-only key is embedded here as `EMBEDDED_POSTHOG_API_KEY`,
- * telemetry is disabled by default for end users.
+ * Telemetry is enabled by default (opt-out) thanks to the embedded write-only
+ * project key. Set any of the opt-out vars above to disable.
  *
  * All capture functions are fire-and-forget: telemetry errors are swallowed.
  * Capture must never crash AIactions.
@@ -31,11 +30,12 @@ import type { PostHog } from "posthog-node";
 import { resolveAIActionsHome } from "./paths.ts";
 
 /**
- * Embedded write-only PostHog project key. `null` until provisioned.
- * When set to a `phc_*` key, telemetry becomes opt-out for end users.
- * Until then, the `AIA_POSTHOG_API_KEY` env var is the only way to enable.
+ * Embedded write-only PostHog project key for the AIactions project.
+ * `phc_*` keys can ONLY write events, never read data — safe to ship in
+ * source. Override with `AIA_POSTHOG_API_KEY` for self-hosted PostHog or
+ * a different project.
  */
-const EMBEDDED_POSTHOG_API_KEY: string | null = null;
+const EMBEDDED_POSTHOG_API_KEY: string | null = "phc_zcZn2KSAyDKJW8yjzJjKf8fNgDHq3NJdWP7MWMWeRhPY";
 
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 
