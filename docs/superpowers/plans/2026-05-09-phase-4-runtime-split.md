@@ -46,75 +46,75 @@
 
 Per spec section 10.1, runtime errors are reorganised into the `AIactionsError` hierarchy. `AIactionsError` itself lives in `@aiactions/schema`; subclasses live with the package that raises them.
 
-| Current class (in `runtime/types/errors.ts`)   | Target class           | Target package           | Notes                                                                                              |
-| ---------------------------------------------- | ---------------------- | ------------------------ | -------------------------------------------------------------------------------------------------- |
-| (new)                                          | `AIactionsError`       | `@aiactions/schema`      | Abstract base — every typed error in the system extends this.                                      |
-| `ExpressionEvalError`                          | `ExpressionError`      | `@aiactions/expression`  | Rename only.                                                                                       |
-| `RuntimeUnsupportedError` (raised by `exec/`)  | `ExecError`            | `@aiactions/exec`        | Folded — was raised by `shell-spec.ts` for unsupported shell + missing `{0}`.                      |
-| `ActionProtocolError`                          | `ExecError`            | `@aiactions/exec`        | Folded — was raised by `protocol.ts` + `runner/uses/exec.ts`.                                      |
-| `LockfileVersionMismatch`                      | `RegistryError`        | `@aiactions/registry`    | Single concrete subclass of `RegistryError` for lockfile-version drift.                            |
-| `ActionResolutionError` (registry-fetch-side)  | `RegistryFetchError`   | `@aiactions/registry`    | Clone, sparse-checkout, rev-parse, dir-not-found-after-fetch failures.                             |
-| (split)                                        | `RegistryResolveError` | `@aiactions/registry`    | `ls-remote` failure + no matching major-range tag.                                                 |
-| `RuntimeUnsupportedError` (raised by `runner/`) | `RunnerError`         | `@aiactions/core`        | Folded — was raised by `runner/job.ts` (run/uses missing) and `runner/uses/resolver.ts` (non-node). |
-| `ActionResolutionError` (resolver-side)        | `RunnerError`          | `@aiactions/core`        | Folded — was raised by `runner/uses/resolver.ts` (workflowFile/registryRoot/cwd missing, dir not found). |
-| `ActionManifestError`                          | `RunnerError`          | `@aiactions/core`        | Folded — wraps `WorkflowParseError`/`WorkflowSchemaError` from `parser`.                           |
-| `StepFailedError`                              | (deleted — unused)     | —                        | Declared but never thrown anywhere. YAGNI.                                                         |
+| Current class (in `runtime/types/errors.ts`)    | Target class           | Target package          | Notes                                                                                                    |
+| ----------------------------------------------- | ---------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| (new)                                           | `AIactionsError`       | `@aiactions/schema`     | Abstract base — every typed error in the system extends this.                                            |
+| `ExpressionEvalError`                           | `ExpressionError`      | `@aiactions/expression` | Rename only.                                                                                             |
+| `RuntimeUnsupportedError` (raised by `exec/`)   | `ExecError`            | `@aiactions/exec`       | Folded — was raised by `shell-spec.ts` for unsupported shell + missing `{0}`.                            |
+| `ActionProtocolError`                           | `ExecError`            | `@aiactions/exec`       | Folded — was raised by `protocol.ts` + `runner/uses/exec.ts`.                                            |
+| `LockfileVersionMismatch`                       | `RegistryError`        | `@aiactions/registry`   | Single concrete subclass of `RegistryError` for lockfile-version drift.                                  |
+| `ActionResolutionError` (registry-fetch-side)   | `RegistryFetchError`   | `@aiactions/registry`   | Clone, sparse-checkout, rev-parse, dir-not-found-after-fetch failures.                                   |
+| (split)                                         | `RegistryResolveError` | `@aiactions/registry`   | `ls-remote` failure + no matching major-range tag.                                                       |
+| `RuntimeUnsupportedError` (raised by `runner/`) | `RunnerError`          | `@aiactions/core`       | Folded — was raised by `runner/job.ts` (run/uses missing) and `runner/uses/resolver.ts` (non-node).      |
+| `ActionResolutionError` (resolver-side)         | `RunnerError`          | `@aiactions/core`       | Folded — was raised by `runner/uses/resolver.ts` (workflowFile/registryRoot/cwd missing, dir not found). |
+| `ActionManifestError`                           | `RunnerError`          | `@aiactions/core`       | Folded — wraps `WorkflowParseError`/`WorkflowSchemaError` from `parser`.                                 |
+| `StepFailedError`                               | (deleted — unused)     | —                       | Declared but never thrown anywhere. YAGNI.                                                               |
 
 `JobError` is declared in spec 10.1 but no current call site needs it; defined as a `RunnerError` subclass for future use, exported from `@aiactions/core`.
 
 ## Test Migration Map (26 files → 4 packages)
 
-| Current test file (in `packages/runtime/tests/`)    | Target package           |
-| --------------------------------------------------- | ------------------------ |
-| `expression.test.ts`                                | `@aiactions/expression`  |
-| `exec-shell-spec-custom.test.ts`                    | `@aiactions/exec`        |
-| `exec-shell-spec-fallback.test.ts`                  | `@aiactions/exec`        |
-| `exec-shell-spec-python.test.ts`                    | `@aiactions/exec`        |
-| `script-file.test.ts`                               | `@aiactions/exec`        |
-| `shell-spec.test.ts`                                | `@aiactions/exec`        |
-| `spawn.test.ts`                                     | `@aiactions/exec`        |
-| `runner-uses-exec.test.ts`                          | `@aiactions/exec`        |
-| `runner-uses-loader.test.ts`                        | `@aiactions/exec`        |
-| `runner-uses-protocol.test.ts`                      | `@aiactions/exec`        |
-| `runner-uses-types.test.ts`                         | `@aiactions/exec`        |
-| `lockfile.test.ts`                                  | `@aiactions/registry`    |
-| `runner-uses-registry-fetch.test.ts`                | `@aiactions/registry`    |
-| `runner-uses-registry-fetch-fetch.test.ts`          | `@aiactions/registry`    |
-| `runner-uses-registry-integration.test.ts`          | `@aiactions/registry`    |
-| `runner-uses-resolve-range.test.ts`                 | `@aiactions/registry`    |
-| `run-workflow.test.ts`                              | `@aiactions/core`        |
-| `runner-job.test.ts`                                | `@aiactions/core`        |
-| `runner-job-defaults-shell.test.ts`                 | `@aiactions/core`        |
-| `runner-job-defaults-workdir.test.ts`               | `@aiactions/core`        |
-| `runner-outputs-eval.test.ts`                       | `@aiactions/core`        |
-| `runner-uses.test.ts`                               | `@aiactions/core`        |
-| `runner-uses-resolver.test.ts`                      | `@aiactions/core`        |
-| `runner-uses-claude-agent.test.ts`                  | `@aiactions/core`        |
-| `e2e.test.ts`                                       | `@aiactions/core`        |
-| `public-api.test.ts`                                | (drop — runtime-specific) |
-| `fixtures/`                                         | distribute as needed     |
+| Current test file (in `packages/runtime/tests/`) | Target package            |
+| ------------------------------------------------ | ------------------------- |
+| `expression.test.ts`                             | `@aiactions/expression`   |
+| `exec-shell-spec-custom.test.ts`                 | `@aiactions/exec`         |
+| `exec-shell-spec-fallback.test.ts`               | `@aiactions/exec`         |
+| `exec-shell-spec-python.test.ts`                 | `@aiactions/exec`         |
+| `script-file.test.ts`                            | `@aiactions/exec`         |
+| `shell-spec.test.ts`                             | `@aiactions/exec`         |
+| `spawn.test.ts`                                  | `@aiactions/exec`         |
+| `runner-uses-exec.test.ts`                       | `@aiactions/exec`         |
+| `runner-uses-loader.test.ts`                     | `@aiactions/exec`         |
+| `runner-uses-protocol.test.ts`                   | `@aiactions/exec`         |
+| `runner-uses-types.test.ts`                      | `@aiactions/exec`         |
+| `lockfile.test.ts`                               | `@aiactions/registry`     |
+| `runner-uses-registry-fetch.test.ts`             | `@aiactions/registry`     |
+| `runner-uses-registry-fetch-fetch.test.ts`       | `@aiactions/registry`     |
+| `runner-uses-registry-integration.test.ts`       | `@aiactions/registry`     |
+| `runner-uses-resolve-range.test.ts`              | `@aiactions/registry`     |
+| `run-workflow.test.ts`                           | `@aiactions/core`         |
+| `runner-job.test.ts`                             | `@aiactions/core`         |
+| `runner-job-defaults-shell.test.ts`              | `@aiactions/core`         |
+| `runner-job-defaults-workdir.test.ts`            | `@aiactions/core`         |
+| `runner-outputs-eval.test.ts`                    | `@aiactions/core`         |
+| `runner-uses.test.ts`                            | `@aiactions/core`         |
+| `runner-uses-resolver.test.ts`                   | `@aiactions/core`         |
+| `runner-uses-claude-agent.test.ts`               | `@aiactions/core`         |
+| `e2e.test.ts`                                    | `@aiactions/core`         |
+| `public-api.test.ts`                             | (drop — runtime-specific) |
+| `fixtures/`                                      | distribute as needed      |
 
 ## Internal Dependency Updates (after split)
 
-| File location                                | Old import path                                       | New import path                          |
-| -------------------------------------------- | ----------------------------------------------------- | ---------------------------------------- |
-| `expression/src/evaluate.ts`                 | `../types/errors.ts`                                  | `./errors.ts`                            |
-| `expression/src/evaluate.ts`                 | `@aiactions/schema` (`tokenizeExpression`)            | `@aiactions/schema` (unchanged)          |
-| `exec/src/shell-spec.ts`                     | `../types/errors.ts`                                  | `./errors.ts`                            |
-| `exec/src/spawn-uses.ts`                     | `../../types/errors.ts`, `../../types/events.ts`      | `./errors.ts`, `@aiactions/schema`       |
-| `exec/src/protocol.ts`                       | `../../types/errors.ts`, `./context.ts`               | `./errors.ts`, `./context.ts`            |
-| `registry/src/fetch.ts`, `registry/src/resolve.ts` | `@aiactions/git`, `../../types/errors.ts`        | `@aiactions/git` (unchanged), `./errors.ts` |
-| `registry/src/lockfile.ts`                   | `./runner/uses/registry-fetch.ts` (`RegistryCoordinate`) | `./resolve.ts` (RegistryCoordinate moves with resolve) |
-| `core/src/run-workflow.ts`                   | `./eval/expression.ts`, `./exec/shell-spec.ts`, `./runner/job.ts` | `@aiactions/expression`, `@aiactions/exec`, `./runner/run-job.ts` |
-| `core/src/runner/run-job.ts`                 | many — see Task 7                                     | mix of `@aiactions/expression`, `@aiactions/exec`, `./resolve-uses.ts`, `./errors.ts` |
-| `core/src/runner/resolve-uses.ts`            | `@aiactions/parser`, `@aiactions/schema`, `./registry-fetch.ts` | `@aiactions/parser`, `@aiactions/schema`, `@aiactions/registry` |
+| File location                                      | Old import path                                                   | New import path                                                                       |
+| -------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `expression/src/evaluate.ts`                       | `../types/errors.ts`                                              | `./errors.ts`                                                                         |
+| `expression/src/evaluate.ts`                       | `@aiactions/schema` (`tokenizeExpression`)                        | `@aiactions/schema` (unchanged)                                                       |
+| `exec/src/shell-spec.ts`                           | `../types/errors.ts`                                              | `./errors.ts`                                                                         |
+| `exec/src/spawn-uses.ts`                           | `../../types/errors.ts`, `../../types/events.ts`                  | `./errors.ts`, `@aiactions/schema`                                                    |
+| `exec/src/protocol.ts`                             | `../../types/errors.ts`, `./context.ts`                           | `./errors.ts`, `./context.ts`                                                         |
+| `registry/src/fetch.ts`, `registry/src/resolve.ts` | `@aiactions/git`, `../../types/errors.ts`                         | `@aiactions/git` (unchanged), `./errors.ts`                                           |
+| `registry/src/lockfile.ts`                         | `./runner/uses/registry-fetch.ts` (`RegistryCoordinate`)          | `./resolve.ts` (RegistryCoordinate moves with resolve)                                |
+| `core/src/run-workflow.ts`                         | `./eval/expression.ts`, `./exec/shell-spec.ts`, `./runner/job.ts` | `@aiactions/expression`, `@aiactions/exec`, `./runner/run-job.ts`                     |
+| `core/src/runner/run-job.ts`                       | many — see Task 7                                                 | mix of `@aiactions/expression`, `@aiactions/exec`, `./resolve-uses.ts`, `./errors.ts` |
+| `core/src/runner/resolve-uses.ts`                  | `@aiactions/parser`, `@aiactions/schema`, `./registry-fetch.ts`   | `@aiactions/parser`, `@aiactions/schema`, `@aiactions/registry`                       |
 
 ## Consumer Migration Map
 
-| Consumer                                | Old import surface                                                  | New import surface                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `@aiactions/cli` (`commands/action/install.ts`) | `@aiactions/runtime` (`ensureCachedAction`, `EnsureCachedActionOptions`) | `@aiactions/registry` (`ensureCachedAction`, `EnsureCachedActionOptions`)           |
-| Root `package.json` devDeps             | (none referencing `@aiactions/runtime`)                             | (no change)                                                                         |
+| Consumer                                        | Old import surface                                                       | New import surface                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `@aiactions/cli` (`commands/action/install.ts`) | `@aiactions/runtime` (`ensureCachedAction`, `EnsureCachedActionOptions`) | `@aiactions/registry` (`ensureCachedAction`, `EnsureCachedActionOptions`) |
+| Root `package.json` devDeps                     | (none referencing `@aiactions/runtime`)                                  | (no change)                                                               |
 
 `@aiactions/cli` `package.json`: dep `@aiactions/runtime` → `@aiactions/registry` (single dep replaces single dep).
 
