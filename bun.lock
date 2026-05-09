@@ -42,9 +42,26 @@
         "@types/semver": "^7.7.1",
       },
     },
+    "packages/discovery": {
+      "name": "@aiactions/discovery",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/parser": "workspace:*",
+        "@aiactions/schema": "workspace:*",
+      },
+    },
     "packages/git": {
       "name": "@aiactions/git",
       "version": "0.1.0",
+    },
+    "packages/parser": {
+      "name": "@aiactions/parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/schema": "workspace:*",
+        "yaml": "^2.8.4",
+        "zod": "^4.4.3",
+      },
     },
     "packages/paths": {
       "name": "@aiactions/paths",
@@ -66,6 +83,13 @@
       },
       "devDependencies": {
         "@types/semver": "^7.7.1",
+      },
+    },
+    "packages/schema": {
+      "name": "@aiactions/schema",
+      "version": "1.0.0",
+      "dependencies": {
+        "zod": "^4.4.3",
       },
     },
     "packages/workflows": {
@@ -91,11 +115,17 @@
   "packages": {
     "@aiactions/cli": ["@aiactions/cli@workspace:packages/cli"],
 
+    "@aiactions/discovery": ["@aiactions/discovery@workspace:packages/discovery"],
+
     "@aiactions/git": ["@aiactions/git@workspace:packages/git"],
+
+    "@aiactions/parser": ["@aiactions/parser@workspace:packages/parser"],
 
     "@aiactions/paths": ["@aiactions/paths@workspace:packages/paths"],
 
     "@aiactions/runtime": ["@aiactions/runtime@workspace:packages/runtime"],
+
+    "@aiactions/schema": ["@aiactions/schema@workspace:packages/schema"],
 
     "@aiactions/workflows": ["@aiactions/workflows@workspace:packages/workflows"],
 
