@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/Aperrix/aiactions/compare/@aiactions/runtime@v3.0.0...@aiactions/runtime@v3.0.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **runtime:** default tmpRoot to &lt;registryRoot&gt;/.tmp to avoid EXDEV ([#7](https://github.com/Aperrix/aiactions/issues/7)) ([1669b3b](https://github.com/Aperrix/aiactions/commit/1669b3b1e0bedebb89a46c65297b7265777b9b46))
+
 ## [3.0.0](https://github.com/Aperrix/aiactions/compare/@aiactions/runtime@v2.0.0...@aiactions/runtime@v3.0.0) (2026-05-08)
 
 ### ⚠ BREAKING CHANGES
