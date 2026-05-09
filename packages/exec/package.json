@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "@aiactions/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@aiactions/parser": "workspace:*"
   }
 }

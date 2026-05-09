@@ -70,6 +70,9 @@
       "dependencies": {
         "@aiactions/schema": "workspace:*",
       },
+      "devDependencies": {
+        "@aiactions/parser": "workspace:*",
+      },
     },
     "packages/expression": {
       "name": "@aiactions/expression",
