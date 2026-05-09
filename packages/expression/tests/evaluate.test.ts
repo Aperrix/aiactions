@@ -28,10 +28,14 @@ const ctx = (
 
 describe("evaluateExpression — happy paths", () => {
   test("returns pure literal unchanged", () => {
-    expect(evaluateExpression("hello world", ctx())).toBe("hello world");
+    expect(evaluateExpression("echo hi", ctx())).toBe("echo hi");
   });
 
-  test("resolves a single ${{ env.FOO }} body", () => {
+  test("returns empty string for empty input", () => {
+    expect(evaluateExpression("", ctx())).toBe("");
+  });
+
+  test("resolves a single ${{ env.X }} body", () => {
     expect(evaluateExpression("${{ env.FOO }}", ctx({ FOO: "bar" }))).toBe("bar");
   });
 
@@ -62,48 +66,36 @@ describe("evaluateExpression — happy paths", () => {
   });
 });
 
-describe("evaluateExpression — steps context", () => {
-  const withSteps = (steps: Record<string, { outputs: Record<string, string> }>) => ({
-    env: {},
-    inputs: {},
-    steps,
-  });
-
-  test("resolves steps.<id>.outputs.<key>", () => {
-    const context = withSteps({ build: { outputs: { artifact: "dist/app.js" } } });
-    expect(evaluateExpression("${{ steps.build.outputs.artifact }}", context)).toBe("dist/app.js");
-  });
-
-  test("returns empty string for missing output key (GHA-faithful)", () => {
-    const context = withSteps({ build: { outputs: {} } });
-    expect(evaluateExpression("${{ steps.build.outputs.artifact }}", context)).toBe("");
-  });
-
-  test("throws for unknown step id", () => {
-    const context = withSteps({});
-    expect(() => evaluateExpression("${{ steps.missing.outputs.x }}", context)).toThrow(
-      ExpressionError,
-    );
-  });
-
-  test("throws for unknown step id when steps map is absent", () => {
-    expect(() => evaluateExpression("${{ steps.build.outputs.x }}", ctx())).toThrow(
-      ExpressionError,
-    );
-  });
-});
-
 describe("evaluateExpression — error paths", () => {
   test("throws on undefined env key", () => {
     expect(() => evaluateExpression("${{ env.MISSING }}", ctx())).toThrow(ExpressionError);
+    expect(() => evaluateExpression("${{ env.MISSING }}", ctx())).toThrow(
+      /env\.MISSING is not defined/,
+    );
   });
 
   test("throws on undefined inputs key", () => {
-    expect(() => evaluateExpression("${{ inputs.missing }}", ctx())).toThrow(ExpressionError);
+    expect(() => evaluateExpression("${{ inputs.x }}", ctx())).toThrow(/inputs\.x is not defined/);
   });
 
-  test("throws on unknown context name", () => {
-    expect(() => evaluateExpression("${{ secrets.TOKEN }}", ctx())).toThrow(ExpressionError);
+  test("throws on unsupported context", () => {
+    expect(() => evaluateExpression("${{ steps.x.outputs.y }}", ctx())).toThrow(ExpressionError);
+    expect(() => evaluateExpression("${{ github.actor }}", ctx())).toThrow(/github.*not supported/);
+    expect(() => evaluateExpression("${{ matrix.os }}", ctx())).toThrow(/matrix.*not supported/);
+    expect(() => evaluateExpression("${{ secrets.TOKEN }}", ctx())).toThrow(
+      /secrets.*not supported/,
+    );
+  });
+
+  test("throws on nested access (env.A.B)", () => {
+    expect(() => evaluateExpression("${{ env.A.B }}", ctx({ A: "x" }))).toThrow(ExpressionError);
+    expect(() => evaluateExpression("${{ env.A.B }}", ctx({ A: "x" }))).toThrow(/<context>\.<key>/);
+  });
+
+  test("throws on body with operators", () => {
+    expect(() => evaluateExpression("${{ env.X == 'y' }}", ctx({ X: "y" }))).toThrow(
+      ExpressionError,
+    );
   });
 
   test("throws on body with function calls", () => {
