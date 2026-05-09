@@ -11,7 +11,6 @@
 
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
-import { tmpdir as osTmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
@@ -104,7 +103,9 @@ export interface FetchActionFromCanonicalOptions {
    * to `https://github.com/aperrix/aiactions`. */
   readonly canonicalUrl?: string;
   /** Parent directory used for the throwaway clone. Defaults to
-   * `os.tmpdir()`. */
+   * `<registryRoot>/.tmp/`, which guarantees the clone shares a
+   * filesystem with the destination so the final `rename` stays
+   * atomic and EXDEV-free. */
   readonly tmpRoot?: string;
 }
 
@@ -132,7 +133,7 @@ export async function fetchActionFromCanonical(
   options: FetchActionFromCanonicalOptions = {},
 ): Promise<string> {
   const canonicalUrl = options.canonicalUrl ?? DEFAULT_CANONICAL_URL;
-  const tmpRoot = options.tmpRoot ?? osTmpdir();
+  const tmpRoot = options.tmpRoot ?? join(registryRoot, ".tmp");
   await mkdir(tmpRoot, { recursive: true });
   const tmp = await mkdtemp(join(tmpRoot, "aiactions-fetch-"));
   const repoDir = join(tmp, "_repo");

@@ -87,4 +87,26 @@ describe.skipIf(!POSIX)("fetchActionFromCanonical", () => {
       stat(join(registryRoot, "octocat", "lint", "9.9.9-does-not-exist")),
     ).rejects.toMatchObject({ code: "ENOENT" });
   });
+
+  test("defaults tmpRoot to <registryRoot>/.tmp when no tmpRoot is provided", async () => {
+    const work = await mkdtemp(join(tmpdir(), "aiactions-fetch-"));
+    const bareRepo = await makeBareRepoWithAction({
+      cwd: work,
+      namespace: "octocat",
+      name: "lint",
+      tag: "octocat/lint@v1.0.0",
+      manifest: "name: lint\ndescription: lint things\nruns:\n  using: node\n  main: index.mjs\n",
+      sources: { "index.mjs": "export default async () => {};\n" },
+    });
+
+    const registryRoot = join(work, "registry");
+    await fetchActionFromCanonical(
+      { namespace: "octocat", name: "lint", version: "1.0.0" },
+      registryRoot,
+      { canonicalUrl: `file://${bareRepo}` },
+    );
+
+    const tmpStat = await stat(join(registryRoot, ".tmp"));
+    expect(tmpStat.isDirectory()).toBe(true);
+  });
 });
