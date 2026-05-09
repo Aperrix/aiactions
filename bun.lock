@@ -5,7 +5,7 @@
     "": {
       "name": "aiactions",
       "devDependencies": {
-        "@aiactions/workflows": "workspace:*",
+        "@aiactions/schema": "workspace:*",
         "lefthook": "^2.1.6",
         "typescript": "catalog:",
         "vite-plus": "catalog:",
@@ -30,9 +30,10 @@
         "aia": "./bin/aia.mjs",
       },
       "dependencies": {
+        "@aiactions/parser": "workspace:*",
         "@aiactions/paths": "workspace:*",
         "@aiactions/runtime": "workspace:*",
-        "@aiactions/workflows": "workspace:*",
+        "@aiactions/schema": "workspace:*",
         "@clack/prompts": "^0.10.1",
         "citty": "^0.1.6",
         "semver": "^7.7.4",
@@ -42,9 +43,26 @@
         "@types/semver": "^7.7.1",
       },
     },
+    "packages/discovery": {
+      "name": "@aiactions/discovery",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/parser": "workspace:*",
+        "@aiactions/schema": "workspace:*",
+      },
+    },
     "packages/git": {
       "name": "@aiactions/git",
       "version": "0.1.0",
+    },
+    "packages/parser": {
+      "name": "@aiactions/parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "@aiactions/schema": "workspace:*",
+        "yaml": "^2.8.4",
+        "zod": "^4.4.3",
+      },
     },
     "packages/paths": {
       "name": "@aiactions/paths",
@@ -60,7 +78,8 @@
       "version": "3.0.1",
       "dependencies": {
         "@aiactions/git": "workspace:*",
-        "@aiactions/workflows": "workspace:*",
+        "@aiactions/parser": "workspace:*",
+        "@aiactions/schema": "workspace:*",
         "semver": "^7.8.0",
         "zod": "^4.4.3",
       },
@@ -68,11 +87,10 @@
         "@types/semver": "^7.7.1",
       },
     },
-    "packages/workflows": {
-      "name": "@aiactions/workflows",
-      "version": "1.0.1",
+    "packages/schema": {
+      "name": "@aiactions/schema",
+      "version": "1.0.0",
       "dependencies": {
-        "yaml": "^2.8.4",
         "zod": "^4.4.3",
       },
     },
@@ -91,13 +109,17 @@
   "packages": {
     "@aiactions/cli": ["@aiactions/cli@workspace:packages/cli"],
 
+    "@aiactions/discovery": ["@aiactions/discovery@workspace:packages/discovery"],
+
     "@aiactions/git": ["@aiactions/git@workspace:packages/git"],
+
+    "@aiactions/parser": ["@aiactions/parser@workspace:packages/parser"],
 
     "@aiactions/paths": ["@aiactions/paths@workspace:packages/paths"],
 
     "@aiactions/runtime": ["@aiactions/runtime@workspace:packages/runtime"],
 
-    "@aiactions/workflows": ["@aiactions/workflows@workspace:packages/workflows"],
+    "@aiactions/schema": ["@aiactions/schema@workspace:packages/schema"],
 
     "@anthropic-ai/claude-agent-sdk": ["@anthropic-ai/claude-agent-sdk@0.2.128", "", { "dependencies": { "@anthropic-ai/sdk": "^0.81.0", "@modelcontextprotocol/sdk": "^1.29.0" }, "optionalDependencies": { "@anthropic-ai/claude-agent-sdk-darwin-arm64": "0.2.128", "@anthropic-ai/claude-agent-sdk-darwin-x64": "0.2.128", "@anthropic-ai/claude-agent-sdk-linux-arm64": "0.2.128", "@anthropic-ai/claude-agent-sdk-linux-arm64-musl": "0.2.128", "@anthropic-ai/claude-agent-sdk-linux-x64": "0.2.128", "@anthropic-ai/claude-agent-sdk-linux-x64-musl": "0.2.128", "@anthropic-ai/claude-agent-sdk-win32-arm64": "0.2.128", "@anthropic-ai/claude-agent-sdk-win32-x64": "0.2.128" }, "peerDependencies": { "zod": "^4.0.0" } }, "sha512-KI7H9bocPahGDrrQGME5Eh5a4RTqGrN1fQ69uLs6Ik4icXBZXouCx4Ecum450jMVy58myeh9ahYYLlpDAbQXPA=="],
 

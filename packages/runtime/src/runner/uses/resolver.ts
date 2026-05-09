@@ -23,13 +23,8 @@
 import { stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve as resolvePath } from "node:path";
 
-import {
-  type ActionManifest,
-  type UsesRef,
-  parseActionManifest,
-  RefKind,
-  WorkflowError,
-} from "@aiactions/workflows";
+import { parseActionManifest } from "@aiactions/parser";
+import { type ActionManifest, RefKind, type UsesRef, WorkflowError } from "@aiactions/schema";
 
 import {
   ActionManifestError,

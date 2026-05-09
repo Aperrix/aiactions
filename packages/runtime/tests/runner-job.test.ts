@@ -13,7 +13,7 @@
 
 import { describe, expect, test } from "vite-plus/test";
 
-import { jobSchema, type Job } from "@aiactions/workflows";
+import { jobSchema, type Job } from "@aiactions/schema";
 
 import { runJob, type JobRunRequest } from "../src/runner/job.ts";
 import { ExpressionEvalError, RuntimeUnsupportedError } from "../src/types/errors.ts";

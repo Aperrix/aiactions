@@ -1,4 +1,4 @@
-import { type RegistryRef, usesRefSchema } from "@aiactions/workflows";
+import { type RegistryRef, usesRefSchema } from "@aiactions/schema";
 
 import { UsageError } from "./errors.ts";
 

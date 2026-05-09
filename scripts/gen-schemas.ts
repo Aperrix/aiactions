@@ -2,7 +2,7 @@
  * Regenerates the JSON Schema files consumed by the IDE for `aiaction.yaml`
  * and AIactions workflow YAMLs.
  *
- * Source of truth = the Zod schemas in `@aiactions/workflows`. The
+ * Source of truth = the Zod schemas in `@aiactions/schema`. The
  * generated files are local-only artifacts (gitignored) and are emitted at
  * the repo root so VSCode's `yaml.schemas` setting can reference them with
  * a stable relative path.
@@ -17,7 +17,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { z } from "zod";
 
-import { actionManifestSchema, workflowSchema } from "../packages/workflows/src/index.ts";
+import { actionManifestSchema, workflowSchema } from "../packages/schema/src/index.ts";
 
 const ROOT = resolve(import.meta.dirname, "..");
 

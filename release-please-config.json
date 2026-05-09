@@ -5,8 +5,12 @@
   "include-component-in-tag": true,
   "bootstrap-sha": "6417215d52c04a8bbd632d49a6d83ac8ce8b32dc",
   "packages": {
+    "packages/paths": { "component": "@aiactions/paths" },
+    "packages/git": { "component": "@aiactions/git" },
+    "packages/schema": { "component": "@aiactions/schema" },
+    "packages/parser": { "component": "@aiactions/parser" },
+    "packages/discovery": { "component": "@aiactions/discovery" },
     "packages/runtime": { "component": "@aiactions/runtime" },
-    "packages/workflows": { "component": "@aiactions/workflows" },
     "packages/cli": { "component": "@aiactions/cli" },
     "actions/claude/agent": { "component": "claude/agent", "release-as": "1.0.0" }
   },

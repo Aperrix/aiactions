@@ -29,7 +29,7 @@
 
 import { resolve as resolvePath } from "node:path";
 
-import type { Job, RunDefaults, Step } from "@aiactions/workflows";
+import type { Job, RunDefaults, Step } from "@aiactions/schema";
 
 import { evaluateExpression } from "../eval/expression.ts";
 import type { EvalContext, StepOutputContext } from "../eval/expression.ts";

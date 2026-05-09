@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { rcompare as semverRcompare } from "semver";
 
-import type { Registry } from "@aiactions/workflows";
+import type { Registry } from "@aiactions/schema";
 import { fetchRegistry, groupByCoord, resolveRegistryUrl } from "../../lib/registry.ts";
 import { resolveRegistryRoot } from "@aiactions/paths";
 import { walkCache, type CachedEntry } from "../../lib/walk-cache.ts";

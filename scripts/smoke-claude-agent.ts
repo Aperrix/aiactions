@@ -9,7 +9,7 @@
  */
 
 import { runWorkflow } from "../packages/runtime/src/index.ts";
-import { parseWorkflow } from "../packages/workflows/src/index.ts";
+import { parseWorkflow } from "../packages/parser/src/index.ts";
 import type { RuntimeEvent } from "../packages/runtime/src/index.ts";
 import { dirname, join } from "node:path";
 

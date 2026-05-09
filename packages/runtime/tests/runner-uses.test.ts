@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vite-plus/test";
 
-import { jobSchema, type Job } from "@aiactions/workflows";
+import { jobSchema, type Job } from "@aiactions/schema";
 
 import { runJob, type JobRunRequest } from "../src/runner/job.ts";
 import type { RuntimeEvent } from "../src/types/events.ts";

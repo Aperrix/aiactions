@@ -11,7 +11,7 @@
 
 import { resolve } from "node:path";
 
-import { parseWorkflow } from "@aiactions/workflows";
+import { parseWorkflow } from "@aiactions/parser";
 import { describe, expect, test } from "vite-plus/test";
 
 import { runWorkflow } from "../src/run-workflow.ts";

@@ -1,0 +1,18 @@
+{
+  "name": "@aiactions/discovery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "vp test",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@aiactions/parser": "workspace:*",
+    "@aiactions/schema": "workspace:*"
+  }
+}

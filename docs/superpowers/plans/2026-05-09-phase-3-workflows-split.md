@@ -16,14 +16,14 @@
 
 ## Schema Consolidation Map (11 → 6 files)
 
-| Target consolidated file | Source files merged | Internal exports preserved |
-|---|---|---|
-| `schemas/workflow.ts` | `workflow.ts` + `job.ts` + `step.ts` + `defaults.ts` + `topology.ts` | `workflowSchema`, `Workflow`, `jobSchema`, `Job`, `jobIdSchema`, `jobNameSchema`, `jobNeedsSchema`, `jobOutputsSchema`, `stepSchema`, `Step`, `ifSchema`, `withSchema`, `runDefaultsSchema`, `defaultsSchema`, `RunDefaults`, `Defaults`, `findCycle`, `findDanglingDeps`, `DepRecord`, `TOPOLOGY_ISSUE_KIND` |
-| `schemas/shell.ts` | `shell.ts` + `expression.ts` | `shellSchema`, plus `ExpressionTokenKind`, `ExpressionToken`, `tokenizeExpression`, `containsExpression`, `expressionStringSchema` |
-| `schemas/action-manifest.ts` | `action-manifest.ts` (alone) | `actionInputSchema`, `actionInputsSchema`, `actionOutputSchema`, `actionOutputsSchema`, `actionRunsSchema`, `actionManifestSchema`, `ActionManifest` |
-| `schemas/ref.ts` | `ref.ts` (alone) | `RefKind`, `RegistryRef`, `LocalRef`, `UsesRef`, `usesRefSchema` |
-| `schemas/registry.ts` | `registry.ts` (alone) | `registryEntrySchema`, all current registry exports |
-| `schemas/env.ts` | `env.ts` (alone) | `envNameSchema`, `envValueSchema`, `envSchema`, `Env` |
+| Target consolidated file     | Source files merged                                                  | Internal exports preserved                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemas/workflow.ts`        | `workflow.ts` + `job.ts` + `step.ts` + `defaults.ts` + `topology.ts` | `workflowSchema`, `Workflow`, `jobSchema`, `Job`, `jobIdSchema`, `jobNameSchema`, `jobNeedsSchema`, `jobOutputsSchema`, `stepSchema`, `Step`, `ifSchema`, `withSchema`, `runDefaultsSchema`, `defaultsSchema`, `RunDefaults`, `Defaults`, `findCycle`, `findDanglingDeps`, `DepRecord`, `TOPOLOGY_ISSUE_KIND` |
+| `schemas/shell.ts`           | `shell.ts` + `expression.ts`                                         | `shellSchema`, plus `ExpressionTokenKind`, `ExpressionToken`, `tokenizeExpression`, `containsExpression`, `expressionStringSchema`                                                                                                                                                                            |
+| `schemas/action-manifest.ts` | `action-manifest.ts` (alone)                                         | `actionInputSchema`, `actionInputsSchema`, `actionOutputSchema`, `actionOutputsSchema`, `actionRunsSchema`, `actionManifestSchema`, `ActionManifest`                                                                                                                                                          |
+| `schemas/ref.ts`             | `ref.ts` (alone)                                                     | `RefKind`, `RegistryRef`, `LocalRef`, `UsesRef`, `usesRefSchema`                                                                                                                                                                                                                                              |
+| `schemas/registry.ts`        | `registry.ts` (alone)                                                | `registryEntrySchema`, all current registry exports                                                                                                                                                                                                                                                           |
+| `schemas/env.ts`             | `env.ts` (alone)                                                     | `envNameSchema`, `envValueSchema`, `envSchema`, `Env`                                                                                                                                                                                                                                                         |
 
 `types/errors.ts` (`WorkflowParseError`, `WorkflowSchemaError`, `ValidationIssueCode`, `ValidationIssue`) preserved verbatim in `@aiactions/schema/src/types/errors.ts`. The phase-4 introduction of an `AIactionsError` hierarchy is out of scope here — this phase only relocates.
 
@@ -31,14 +31,14 @@
 
 Schema tests live in `packages/workflows/tests/`. Phase 3 consolidates schema-related tests in lockstep with their source files:
 
-| Target test file (in `@aiactions/schema/tests/`) | Source test files merged |
-|---|---|
-| `tests/schema-workflow.test.ts` | `schema-workflow.test.ts` + `schema-job.test.ts` + `schema-step.test.ts` + `schema-defaults.test.ts` + `schema-topology.test.ts` |
-| `tests/schema-shell.test.ts` | `schema-shell-custom.test.ts` + `schema-expression.test.ts` |
-| `tests/schema-action-manifest.test.ts` | `schema-action-manifest.test.ts` (rename to drop `schema-` prefix optional — keep `schema-` for grep stability across phases) |
-| `tests/schema-ref.test.ts` | `schema-ref.test.ts` |
-| `tests/schema-registry.test.ts` | `schema-registry.test.ts` |
-| `tests/schema-env.test.ts` | `schema-env.test.ts` |
+| Target test file (in `@aiactions/schema/tests/`) | Source test files merged                                                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/schema-workflow.test.ts`                  | `schema-workflow.test.ts` + `schema-job.test.ts` + `schema-step.test.ts` + `schema-defaults.test.ts` + `schema-topology.test.ts` |
+| `tests/schema-shell.test.ts`                     | `schema-shell-custom.test.ts` + `schema-expression.test.ts`                                                                      |
+| `tests/schema-action-manifest.test.ts`           | `schema-action-manifest.test.ts` (rename to drop `schema-` prefix optional — keep `schema-` for grep stability across phases)    |
+| `tests/schema-ref.test.ts`                       | `schema-ref.test.ts`                                                                                                             |
+| `tests/schema-registry.test.ts`                  | `schema-registry.test.ts`                                                                                                        |
+| `tests/schema-env.test.ts`                       | `schema-env.test.ts`                                                                                                             |
 
 Parser/discovery tests retain their existing 1:1 mapping (`parser.test.ts`, `validator.test.ts` in `@aiactions/parser/tests/`; `discovery/discover-workflows.test.ts`, `discovery/find-git-root.test.ts`, `discovery/load-from-dir.test.ts`, `discovery/fixtures.ts` in `@aiactions/discovery/tests/`).
 
@@ -46,23 +46,23 @@ Parser/discovery tests retain their existing 1:1 mapping (`parser.test.ts`, `val
 
 After the split, internal imports change as follows:
 
-| File location | Old import path | New import path |
-|---|---|---|
-| `parser/*.ts` (in `@aiactions/parser`) | `../schema/<file>.ts` | `@aiactions/schema` |
-| `parser/*.ts` (in `@aiactions/parser`) | `../types/errors.ts` | `@aiactions/schema` |
+| File location                                | Old import path               | New import path     |
+| -------------------------------------------- | ----------------------------- | ------------------- |
+| `parser/*.ts` (in `@aiactions/parser`)       | `../schema/<file>.ts`         | `@aiactions/schema` |
+| `parser/*.ts` (in `@aiactions/parser`)       | `../types/errors.ts`          | `@aiactions/schema` |
 | `discovery/*.ts` (in `@aiactions/discovery`) | `../parser/parse-workflow.ts` | `@aiactions/parser` |
-| `discovery/types.ts` | `../schema/workflow.ts` | `@aiactions/schema` |
+| `discovery/types.ts`                         | `../schema/workflow.ts`       | `@aiactions/schema` |
 
 Within `@aiactions/schema` itself, internal cross-imports (e.g. `defaults.ts` → `expression.ts`) collapse because both types now live in the same consolidated file (`workflow.ts` and `shell.ts` respectively).
 
 ## Consumer Migration Map
 
-| Consumer | Old import surface | New import surface |
-|---|---|---|
-| `@aiactions/runtime` | `@aiactions/workflows` | `@aiactions/schema` (for schemas + types) + `@aiactions/parser` (if it parses) |
-| `@aiactions/cli` | `@aiactions/workflows` (`parseActionManifest`, `WorkflowParseError`, `WorkflowSchemaError`) | `@aiactions/parser` (parseActionManifest) + `@aiactions/schema` (errors) |
-| `scripts/gen-schemas.ts` | `../packages/workflows/src/index.ts` (`actionManifestSchema`, `workflowSchema`) | `../packages/schema/src/index.ts` |
-| Root `package.json` devDeps | `@aiactions/workflows: workspace:*` | `@aiactions/schema: workspace:*` (gen-schemas needs schemas at install time) |
+| Consumer                    | Old import surface                                                                          | New import surface                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `@aiactions/runtime`        | `@aiactions/workflows`                                                                      | `@aiactions/schema` (for schemas + types) + `@aiactions/parser` (if it parses) |
+| `@aiactions/cli`            | `@aiactions/workflows` (`parseActionManifest`, `WorkflowParseError`, `WorkflowSchemaError`) | `@aiactions/parser` (parseActionManifest) + `@aiactions/schema` (errors)       |
+| `scripts/gen-schemas.ts`    | `../packages/workflows/src/index.ts` (`actionManifestSchema`, `workflowSchema`)             | `../packages/schema/src/index.ts`                                              |
+| Root `package.json` devDeps | `@aiactions/workflows: workspace:*`                                                         | `@aiactions/schema: workspace:*` (gen-schemas needs schemas at install time)   |
 
 `@aiactions/runtime` package.json: dep `@aiactions/workflows` → `@aiactions/schema` + `@aiactions/parser` (multiple deps replace the single one).
 `@aiactions/cli` package.json: dep `@aiactions/workflows` → `@aiactions/schema` + `@aiactions/parser`.
@@ -132,6 +132,7 @@ packages/discovery/
 ## Task 1: Bootstrap `@aiactions/schema`, `@aiactions/parser`, `@aiactions/discovery` skeletons
 
 **Files (create):**
+
 - `packages/schema/{package.json,tsconfig.json,vite.config.ts,src/index.ts}`
 - `packages/parser/{package.json,tsconfig.json,vite.config.ts,src/index.ts}`
 - `packages/discovery/{package.json,tsconfig.json,vite.config.ts,src/index.ts}`
@@ -286,6 +287,7 @@ cp packages/workflows/src/schema/<name>.ts packages/schema/src/schemas/<name>.ts
 ```
 
 Then in the copied file, update internal imports:
+
 - `from "./expression.ts"` → `from "./shell.ts"` (expression now lives in shell.ts)
 - `from "./shell.ts"` → `from "./shell.ts"` (unchanged)
 - Other `./<name>.ts` imports stay as-is (sibling files).
@@ -374,6 +376,7 @@ cp packages/workflows/tests/<name>.test.ts packages/schema/tests/<name>.test.ts
 ```
 
 Then in each copied file, update import paths:
+
 - `from "../src/schema/<file>.ts"` → `from "../src/schemas/<file>.ts"`
 - `from "../src/types/errors.ts"` → `from "../src/types/errors.ts"` (unchanged)
 
@@ -419,7 +422,7 @@ export * from "./schemas/workflow.ts";
 export * from "./types/errors.ts";
 ```
 
-Order matters for export-* conflict resolution if any (none expected).
+Order matters for export-\* conflict resolution if any (none expected).
 
 - [ ] **Step 6: Verify**
 
@@ -450,6 +453,7 @@ EOF
 ## Task 4: Migrate `@aiactions/parser` source + tests
 
 **Files (in `packages/parser/`):**
+
 - `src/parse-workflow.ts`, `src/parse-action.ts`, `src/validate-workflow.ts`, `src/topology-issue.ts`, `src/index.ts`
 - `tests/parser.test.ts`, `tests/validator.test.ts`
 
@@ -463,6 +467,7 @@ cp packages/workflows/src/parser/topology-issue.ts packages/parser/src/topology-
 ```
 
 In each copied file, update internal imports per the dependency map:
+
 - `from "../schema/workflow.ts"` → `from "@aiactions/schema"`
 - `from "../schema/action-manifest.ts"` → `from "@aiactions/schema"`
 - `from "../types/errors.ts"` → `from "@aiactions/schema"`
@@ -491,6 +496,7 @@ cp packages/workflows/tests/validator.test.ts packages/parser/tests/validator.te
 ```
 
 In each test file, update imports:
+
 - `from "../src/parser/<file>.ts"` → `from "../src/<file>.ts"`
 - `from "../src/schema/<file>.ts"` → `from "@aiactions/schema"`
 - `from "../src/types/errors.ts"` → `from "@aiactions/schema"`
@@ -527,6 +533,7 @@ EOF
 ## Task 5: Migrate `@aiactions/discovery` source + tests
 
 **Files (in `packages/discovery/`):**
+
 - `src/discover-workflows.ts`, `src/find-git-root.ts`, `src/load-from-dir.ts`, `src/types.ts`, `src/errors.ts`, `src/index.ts`
 - `tests/discover-workflows.test.ts`, `tests/find-git-root.test.ts`, `tests/load-from-dir.test.ts`, `tests/fixtures.ts`
 
@@ -542,6 +549,7 @@ cp packages/workflows/src/discovery/index.ts packages/discovery/src/
 ```
 
 In each copied file, update imports:
+
 - `from "../parser/parse-workflow.ts"` → `from "@aiactions/parser"`
 - `from "../schema/workflow.ts"` → `from "@aiactions/schema"`
 - Sibling `./*.ts` imports (`./find-git-root.ts`, `./load-from-dir.ts`, `./types.ts`, `./errors.ts`) stay as-is.
@@ -558,6 +566,7 @@ cp packages/workflows/tests/discovery/fixtures.ts packages/discovery/tests/
 ```
 
 In each test file, update imports:
+
 - `from "../../src/discovery/<file>.ts"` → `from "../src/<file>.ts"`
 - `from "../../src/schema/<file>.ts"` → `from "@aiactions/schema"`
 
@@ -733,6 +742,7 @@ EOF
 ## Task 8: Update `scripts/gen-schemas.ts` + root `package.json`
 
 **Files:**
+
 - `scripts/gen-schemas.ts`
 - `package.json` (root)
 - `bun.lock` (auto-updates)
@@ -805,6 +815,7 @@ grep -rn '@aiactions/workflows' --exclude-dir=node_modules --exclude=bun.lock --
 ```
 
 Expected output:
+
 - `bun.lock` references (still present until next `vp install`).
 - `docs/superpowers/...` mentions in plan/spec history (acceptable — historical docs).
 - `.changeset/...` or `CHANGELOG.md` references (if any — acceptable).
@@ -869,7 +880,7 @@ vp fmt docs --write
 git status --short  # check for modifications
 ```
 
-If any docs/* files modified, commit separately:
+If any docs/\* files modified, commit separately:
 
 ```bash
 git add docs/superpowers
@@ -902,6 +913,7 @@ cd ../discovery && vp test 2>&1 | grep 'Tests'
 ```
 
 Expected:
+
 - schema: 177 tests across 6 files
 - parser: 17 tests across 2 files
 - discovery: 28 tests across 3 files

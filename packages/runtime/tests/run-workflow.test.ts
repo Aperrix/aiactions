@@ -13,7 +13,7 @@ import { promisify } from "node:util";
 
 import { describe, expect, test } from "vite-plus/test";
 
-import { workflowSchema } from "@aiactions/workflows";
+import { workflowSchema } from "@aiactions/schema";
 
 import { runWorkflow } from "../src/run-workflow.ts";
 import type { RuntimeEvent } from "../src/types/events.ts";

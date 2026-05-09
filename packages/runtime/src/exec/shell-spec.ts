@@ -24,7 +24,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { BUILTIN_SHELLS, customShellTemplateRegex, type Shell } from "@aiactions/workflows";
+import { BUILTIN_SHELLS, customShellTemplateRegex, type Shell } from "@aiactions/schema";
 
 import { RuntimeUnsupportedError } from "../types/errors.ts";
 

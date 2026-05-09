@@ -1,4 +1,5 @@
-import { parseActionManifest, WorkflowParseError, WorkflowSchemaError } from "@aiactions/workflows";
+import { parseActionManifest } from "@aiactions/parser";
+import { WorkflowParseError, WorkflowSchemaError } from "@aiactions/schema";
 import type { ZodError } from "zod";
 
 import { NotFoundError } from "./errors.ts";

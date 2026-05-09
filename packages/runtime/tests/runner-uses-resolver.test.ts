@@ -13,7 +13,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, test } from "vite-plus/test";
 
-import { usesRefSchema, WorkflowError } from "@aiactions/workflows";
+import { usesRefSchema, WorkflowError } from "@aiactions/schema";
 
 import { resolveUsesRef } from "../src/runner/uses/resolver.ts";
 import { ActionManifestError, ActionResolutionError } from "../src/types/errors.ts";
