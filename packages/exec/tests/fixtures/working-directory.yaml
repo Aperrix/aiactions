@@ -1,0 +1,6 @@
+name: working-directory
+jobs:
+  cwd:
+    steps:
+      - working-directory: /tmp
+        run: pwd

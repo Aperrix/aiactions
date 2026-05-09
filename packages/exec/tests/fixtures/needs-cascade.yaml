@@ -1,0 +1,13 @@
+name: needs-cascade
+jobs:
+  prepare:
+    steps:
+      - run: echo prep
+  build:
+    needs: [prepare]
+    steps:
+      - run: echo build
+  test:
+    needs: [build]
+    steps:
+      - run: echo test
