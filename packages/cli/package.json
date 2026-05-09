@@ -12,6 +12,7 @@
     "build": "vp pack"
   },
   "dependencies": {
+    "@aiactions/paths": "workspace:*",
     "@aiactions/runtime": "workspace:*",
     "@aiactions/workflows": "workspace:*",
     "@clack/prompts": "^0.10.1",

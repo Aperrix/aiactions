@@ -7,7 +7,7 @@ import { defineCommand } from "citty";
 import { NotFoundError, UsageError } from "../../lib/errors.ts";
 import { isInteractive } from "../../lib/output.ts";
 import { parseRegistryRef } from "../../lib/parse-registry-ref.ts";
-import { resolveRegistryRoot } from "../../lib/registry-root.ts";
+import { resolveRegistryRoot } from "@aiactions/paths";
 import { type CachedEntry, walkCache } from "../../lib/walk-cache.ts";
 
 interface RemovalReceipt {
