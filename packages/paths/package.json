@@ -10,5 +10,9 @@
   "scripts": {
     "test": "vp test",
     "check": "vp check"
+  },
+  "dependencies": {
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0"
   }
 }

@@ -233,7 +233,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
 ### 7.7. `@aiactions/paths`
 
 - **Role.** XDG path resolution, environment-variable parsing, structured logger, telemetry event bus. The "platform-services" layer.
-- **Public API.** `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `logger`, `telemetryBus`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`.
+- **Public API.** `resolveRegistryRoot(): string`, `resolveCacheRoot(): string`, `resolveTmpRoot(): string`, `loadEnv(): Env`, `createLogger(module?: string): Logger`, `rootLogger: Logger`, `telemetryBus`. Env parsing covers `AIA_HOME`, `AIA_REGISTRY_ROOT`, `AIA_TMP_ROOT`, `AIA_DEBUG`.
 - **Internal layout.**
   ```
   src/
@@ -244,7 +244,7 @@ The DAG is enforced through `package.json.dependencies` (workspace:\*) and a glo
     index.ts
   ```
 - **Internal deps.** None.
-- **External deps.** stdlib only.
+- **External deps.** `pino`, `pino-pretty` (structured logger). Stdlib otherwise. Pino-pretty runs as a destination stream so the logger survives `tsdown` single-file bundling.
 
 ### 7.8. `@aiactions/git`
 
