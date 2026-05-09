@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { workflowSchema } from "@aiactions/schema";
 import { describe, expect, test } from "vite-plus/test";
 
-import { runWorkflow } from "@aiactions/runtime";
+import { runWorkflow } from "../src/index.ts";
 
 import { makeBareRepoWithAction } from "./fixtures/registry/make-bare-repo.ts";
 
