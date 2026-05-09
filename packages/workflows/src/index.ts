@@ -15,3 +15,4 @@ export * from "./parser/parse-action.ts";
 export * from "./parser/validate-workflow.ts";
 
 export * from "./types/errors.ts";
+export * from "./discovery/index.ts";
