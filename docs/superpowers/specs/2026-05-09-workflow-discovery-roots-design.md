@@ -58,7 +58,7 @@ Workflows are discovered from two locations, in this order of resolution:
 
 1. **Project root** — `<repoRoot>/.aiactions/workflows/`, where `<repoRoot>` is
    the first ancestor directory of `cwd` containing a `.git` entry (file or
-   directory; both are valid since git worktrees use a `.git` *file*).
+   directory; both are valid since git worktrees use a `.git` _file_).
 2. **Home root** — `<homeDir>/.aiactions/workflows/`, where `<homeDir>` is
    `os.homedir()` (overridable via `DiscoverOptions.homeDir` for tests).
 
@@ -130,11 +130,7 @@ A malformed YAML, a schema-invalid workflow, or a graph-invalid workflow does
 in `errors[]`; sibling files in both layers are still loaded.
 
 ```ts
-type DiscoveryErrorKind =
-  | "yaml_parse"
-  | "schema_validation"
-  | "graph_validation"
-  | "io_error";
+type DiscoveryErrorKind = "yaml_parse" | "schema_validation" | "graph_validation" | "io_error";
 ```
 
 `yaml_parse` / `schema_validation` / `graph_validation` map directly to the
@@ -166,13 +162,13 @@ Symlinks resolving to a valid file are loaded normally (no special casing).
 ### D6. Project root resolution: walk up to first `.git`
 
 `findGitRoot(startDir)` walks ancestor directories until it finds an entry
-named `.git` (file *or* directory; worktrees use a `.git` file pointing at a
+named `.git` (file _or_ directory; worktrees use a `.git` file pointing at a
 parent's git dir). It throws `NotInGitRepoError` if it reaches the filesystem
 root without finding one.
 
 This anchors AIactions' "project" concept to git, consistent with the
 project's "git as a first-class citizen" engineering principle. The choice
-also matches GHA's *de facto* convention — `.github/workflows/` is positioned
+also matches GHA's _de facto_ convention — `.github/workflows/` is positioned
 relative to the repo root, which is the git root. A non-git AIactions setup
 is rejected with a clear error rather than silently falling back to `cwd`,
 because nearly every downstream feature (releases, PR creation, branch
@@ -215,12 +211,10 @@ export async function loadWorkflowsFromDir(
 ): Promise<DirLoadResult>;
 
 export interface DiscoverOptions {
-  readonly cwd?: string;       // default process.cwd()
-  readonly homeDir?: string;   // default os.homedir() — test seam
+  readonly cwd?: string; // default process.cwd()
+  readonly homeDir?: string; // default os.homedir() — test seam
 }
-export async function discoverWorkflows(
-  opts?: DiscoverOptions,
-): Promise<DiscoveryResult>;
+export async function discoverWorkflows(opts?: DiscoverOptions): Promise<DiscoveryResult>;
 ```
 
 Plus the supporting types and the `NotInGitRepoError` class. See section
@@ -238,10 +232,10 @@ source exists, mirroring an Archon anti-pattern.
 export type WorkflowOrigin = "project" | "home";
 
 export interface DiscoveredWorkflow {
-  readonly name: string;                 // filename stem
+  readonly name: string; // filename stem
   readonly origin: WorkflowOrigin;
   readonly absolutePath: string;
-  readonly workflow: Workflow;           // parsed + validated
+  readonly workflow: Workflow; // parsed + validated
   readonly shadowed?: {
     readonly absolutePath: string;
     readonly origin: WorkflowOrigin;
@@ -306,10 +300,7 @@ async function findGitRoot(startDir: string): Promise<string> {
 
 ```ts
 // load-from-dir.ts (sketch)
-async function loadWorkflowsFromDir(
-  dir: string,
-  origin: WorkflowOrigin,
-): Promise<DirLoadResult> {
+async function loadWorkflowsFromDir(dir: string, origin: WorkflowOrigin): Promise<DirLoadResult> {
   let entries: Dirent[];
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -380,9 +371,7 @@ and avoids charging the cost of parsing a file that will be discarded.
 
 ```ts
 // discover-workflows.ts (sketch)
-async function discoverWorkflows(
-  opts?: DiscoverOptions,
-): Promise<DiscoveryResult> {
+async function discoverWorkflows(opts?: DiscoverOptions): Promise<DiscoveryResult> {
   const cwd = opts?.cwd ?? process.cwd();
   const home = opts?.homeDir ?? homedir();
 
@@ -427,23 +416,23 @@ Key invariants:
 
 ## Edge-case matrix
 
-| Scenario                                            | Behaviour                                                       |
-| --------------------------------------------------- | --------------------------------------------------------------- |
-| Caller not in a git repo                            | `throw NotInGitRepoError(startDir)`                              |
-| `<repoRoot>/.aiactions/workflows/` absent           | empty project layer, no error                                    |
-| `~/.aiactions/workflows/` absent                    | empty home layer, no error                                       |
-| Both layers absent                                  | `{ workflows: [], errors: [] }`                                 |
-| Layer dir present but unreadable (`EACCES`)         | error propagates from `loadWorkflowsFromDir` (fail-fast)         |
-| Per-file YAML parse failure                         | `DiscoveryError { kind: "yaml_parse" }`, siblings still loaded   |
-| Per-file schema failure                             | `DiscoveryError { kind: "schema_validation" }`                   |
-| Per-file graph failure (cycle, dangling needs)      | `DiscoveryError { kind: "graph_validation" }`                    |
-| Symlink → valid file                                | loaded normally                                                  |
-| Symlink → broken target                             | `DiscoveryError { kind: "io_error" }`                            |
-| Hidden file (`.draft.yaml`)                         | skipped silently                                                 |
-| Subdirectory (`experimental/foo.yaml`)              | skipped silently                                                 |
-| Project + home same name                            | project wins, `shadowed` populated with home file's path/origin  |
-| Same root: `review.yaml` + `review.yml`             | `.yaml` wins, `.yml` silently dropped (no error, no shadowed)    |
-| Non-ASCII filename                                  | accepted; stem extraction is byte-faithful                       |
+| Scenario                                       | Behaviour                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| Caller not in a git repo                       | `throw NotInGitRepoError(startDir)`                             |
+| `<repoRoot>/.aiactions/workflows/` absent      | empty project layer, no error                                   |
+| `~/.aiactions/workflows/` absent               | empty home layer, no error                                      |
+| Both layers absent                             | `{ workflows: [], errors: [] }`                                 |
+| Layer dir present but unreadable (`EACCES`)    | error propagates from `loadWorkflowsFromDir` (fail-fast)        |
+| Per-file YAML parse failure                    | `DiscoveryError { kind: "yaml_parse" }`, siblings still loaded  |
+| Per-file schema failure                        | `DiscoveryError { kind: "schema_validation" }`                  |
+| Per-file graph failure (cycle, dangling needs) | `DiscoveryError { kind: "graph_validation" }`                   |
+| Symlink → valid file                           | loaded normally                                                 |
+| Symlink → broken target                        | `DiscoveryError { kind: "io_error" }`                           |
+| Hidden file (`.draft.yaml`)                    | skipped silently                                                |
+| Subdirectory (`experimental/foo.yaml`)         | skipped silently                                                |
+| Project + home same name                       | project wins, `shadowed` populated with home file's path/origin |
+| Same root: `review.yaml` + `review.yml`        | `.yaml` wins, `.yml` silently dropped (no error, no shadowed)   |
+| Non-ASCII filename                             | accepted; stem extraction is byte-faithful                      |
 
 ## Testing strategy
 
@@ -508,6 +497,6 @@ called") are explicitly excluded.
   the runtime, not below it.
 - **Release shape**: pure addition to `@aiactions/workflows`. Conventional
   Commit `feat(workflows): add discoverWorkflows + loadWorkflowsFromDir +
-  findGitRoot`. release-please routes to `@aiactions/workflows` minor bump.
+findGitRoot`. release-please routes to `@aiactions/workflows` minor bump.
   No workspace-dep ripple expected at this stage (CLI/runtime adopt the API
   in MS1.9/1.10, which carry their own bumps).

@@ -16,23 +16,23 @@
 
 ### Files to create
 
-| Path | Responsibility |
-|------|----------------|
-| `packages/workflows/src/discovery/types.ts` | All public types: `WorkflowOrigin`, `DiscoveredWorkflow`, `DiscoveryError`, `DiscoveryErrorKind`, `DirLoadResult`, `DiscoveryResult`, `DiscoverOptions`. |
-| `packages/workflows/src/discovery/errors.ts` | `NotInGitRepoError` class. |
-| `packages/workflows/src/discovery/find-git-root.ts` | `findGitRoot(startDir)` — walk-up to first `.git/`. |
-| `packages/workflows/src/discovery/load-from-dir.ts` | `loadWorkflowsFromDir(dir, origin)` — flat-list one root, classify, parse. Also internal `toDiscoveryError` helper. |
-| `packages/workflows/src/discovery/discover-workflows.ts` | `discoverWorkflows(opts)` — orchestrator: resolve project root, load both layers in parallel, merge with shadow tracking, sort. |
-| `packages/workflows/src/discovery/index.ts` | Re-export everything public from the four files above. |
-| `packages/workflows/tests/discovery/fixtures.ts` | Test helpers: `makeFakeRepo`, `makeFakeHome`, `validWorkflowYaml`, `malformedYaml`, `cycleYaml`. Builds tmpdir trees at test runtime. |
-| `packages/workflows/tests/discovery/find-git-root.test.ts` | Tests for `findGitRoot`. |
-| `packages/workflows/tests/discovery/load-from-dir.test.ts` | Tests for `loadWorkflowsFromDir`. |
-| `packages/workflows/tests/discovery/discover-workflows.test.ts` | Tests for `discoverWorkflows`. |
+| Path                                                            | Responsibility                                                                                                                                           |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/workflows/src/discovery/types.ts`                     | All public types: `WorkflowOrigin`, `DiscoveredWorkflow`, `DiscoveryError`, `DiscoveryErrorKind`, `DirLoadResult`, `DiscoveryResult`, `DiscoverOptions`. |
+| `packages/workflows/src/discovery/errors.ts`                    | `NotInGitRepoError` class.                                                                                                                               |
+| `packages/workflows/src/discovery/find-git-root.ts`             | `findGitRoot(startDir)` — walk-up to first `.git/`.                                                                                                      |
+| `packages/workflows/src/discovery/load-from-dir.ts`             | `loadWorkflowsFromDir(dir, origin)` — flat-list one root, classify, parse. Also internal `toDiscoveryError` helper.                                      |
+| `packages/workflows/src/discovery/discover-workflows.ts`        | `discoverWorkflows(opts)` — orchestrator: resolve project root, load both layers in parallel, merge with shadow tracking, sort.                          |
+| `packages/workflows/src/discovery/index.ts`                     | Re-export everything public from the four files above.                                                                                                   |
+| `packages/workflows/tests/discovery/fixtures.ts`                | Test helpers: `makeFakeRepo`, `makeFakeHome`, `validWorkflowYaml`, `malformedYaml`, `cycleYaml`. Builds tmpdir trees at test runtime.                    |
+| `packages/workflows/tests/discovery/find-git-root.test.ts`      | Tests for `findGitRoot`.                                                                                                                                 |
+| `packages/workflows/tests/discovery/load-from-dir.test.ts`      | Tests for `loadWorkflowsFromDir`.                                                                                                                        |
+| `packages/workflows/tests/discovery/discover-workflows.test.ts` | Tests for `discoverWorkflows`.                                                                                                                           |
 
 ### Files to modify
 
-| Path | Change |
-|------|--------|
+| Path                              | Change                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `packages/workflows/src/index.ts` | Add `export * from "./discovery/index.ts";` (single line, at the bottom of the existing exports list). |
 
 ### Files NOT touched
@@ -60,6 +60,7 @@
 ## Task 1: Scaffold module + types + errors
 
 **Files:**
+
 - Create: `packages/workflows/src/discovery/types.ts`
 - Create: `packages/workflows/src/discovery/errors.ts`
 - Create: `packages/workflows/src/discovery/index.ts`
@@ -248,6 +249,7 @@ Refs: docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md
 ## Task 2: `findGitRoot` (TDD)
 
 **Files:**
+
 - Create: `packages/workflows/src/discovery/find-git-root.ts`
 - Create: `packages/workflows/tests/discovery/fixtures.ts`
 - Create: `packages/workflows/tests/discovery/find-git-root.test.ts`
@@ -508,14 +510,14 @@ Expected: 1 passed.
 Append inside the `describe("findGitRoot", ...)` block in `find-git-root.test.ts`:
 
 ```ts
-  test("returns the repo root when .git is a *file* (worktree case)", async () => {
-    const repo = await makeFakeRepo({ gitAsFile: true });
-    tmpDirsToClean.push(repo.root);
+test("returns the repo root when .git is a *file* (worktree case)", async () => {
+  const repo = await makeFakeRepo({ gitAsFile: true });
+  tmpDirsToClean.push(repo.root);
 
-    const result = await findGitRoot(repo.root);
+  const result = await findGitRoot(repo.root);
 
-    expect(result).toBe(repo.root);
-  });
+  expect(result).toBe(repo.root);
+});
 ```
 
 - [ ] **Step 8: Run the test, confirm it passes immediately**
@@ -533,14 +535,14 @@ Expected: 2 passed. The file-vs-directory branch in the implementation already h
 Append inside the same `describe` block:
 
 ```ts
-  test("walks up from a sub-directory to find the repo root", async () => {
-    const repo = await makeFakeRepo({ nestedCwd: ["a", "b", "c"] });
-    tmpDirsToClean.push(repo.root);
+test("walks up from a sub-directory to find the repo root", async () => {
+  const repo = await makeFakeRepo({ nestedCwd: ["a", "b", "c"] });
+  tmpDirsToClean.push(repo.root);
 
-    const result = await findGitRoot(repo.cwd);
+  const result = await findGitRoot(repo.cwd);
 
-    expect(result).toBe(repo.root);
-  });
+  expect(result).toBe(repo.root);
+});
 ```
 
 - [ ] **Step 10: Run, confirm passes**
@@ -558,27 +560,27 @@ Expected: 3 passed.
 Append inside the same `describe` block:
 
 ```ts
-  test("throws NotInGitRepoError when no .git is found up to the filesystem root", async () => {
-    const repo = await makeFakeRepo({ withGit: false });
-    tmpDirsToClean.push(repo.root);
+test("throws NotInGitRepoError when no .git is found up to the filesystem root", async () => {
+  const repo = await makeFakeRepo({ withGit: false });
+  tmpDirsToClean.push(repo.root);
 
-    await expect(findGitRoot(repo.root)).rejects.toBeInstanceOf(NotInGitRepoError);
-  });
+  await expect(findGitRoot(repo.root)).rejects.toBeInstanceOf(NotInGitRepoError);
+});
 
-  test("NotInGitRepoError carries the startDir and a stable code", async () => {
-    const repo = await makeFakeRepo({ withGit: false });
-    tmpDirsToClean.push(repo.root);
+test("NotInGitRepoError carries the startDir and a stable code", async () => {
+  const repo = await makeFakeRepo({ withGit: false });
+  tmpDirsToClean.push(repo.root);
 
-    try {
-      await findGitRoot(repo.root);
-      throw new Error("expected findGitRoot to throw");
-    } catch (err) {
-      expect(err).toBeInstanceOf(NotInGitRepoError);
-      const typed = err as NotInGitRepoError;
-      expect(typed.code).toBe("ENOTINGITREPO");
-      expect(typed.startDir).toBe(repo.root);
-    }
-  });
+  try {
+    await findGitRoot(repo.root);
+    throw new Error("expected findGitRoot to throw");
+  } catch (err) {
+    expect(err).toBeInstanceOf(NotInGitRepoError);
+    const typed = err as NotInGitRepoError;
+    expect(typed.code).toBe("ENOTINGITREPO");
+    expect(typed.startDir).toBe(repo.root);
+  }
+});
 ```
 
 - [ ] **Step 12: Run, confirm passes**
@@ -641,6 +643,7 @@ Refs: docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md
 ## Task 3: `loadWorkflowsFromDir` (TDD)
 
 **Files:**
+
 - Create: `packages/workflows/src/discovery/load-from-dir.ts`
 - Create: `packages/workflows/tests/discovery/load-from-dir.test.ts`
 - Modify: `packages/workflows/src/discovery/index.ts` (uncomment one line)
@@ -739,12 +742,7 @@ import {
   WorkflowValidationError,
 } from "../types/errors.ts";
 import { parseWorkflow } from "../parser/parse-workflow.ts";
-import type {
-  DirLoadResult,
-  DiscoveredWorkflow,
-  DiscoveryError,
-  WorkflowOrigin,
-} from "./types.ts";
+import type { DirLoadResult, DiscoveredWorkflow, DiscoveryError, WorkflowOrigin } from "./types.ts";
 
 interface Candidate {
   readonly stem: string;
@@ -816,7 +814,11 @@ export async function loadWorkflowsFromDir(
   return { workflows, errors };
 }
 
-function toDiscoveryError(err: unknown, absolutePath: string, origin: WorkflowOrigin): DiscoveryError {
+function toDiscoveryError(
+  err: unknown,
+  absolutePath: string,
+  origin: WorkflowOrigin,
+): DiscoveryError {
   if (err instanceof WorkflowParseError) {
     return { absolutePath, origin, kind: "yaml_parse", message: err.message, cause: err };
   }
@@ -846,15 +848,15 @@ Expected: 1 passed.
 Append inside the `describe("loadWorkflowsFromDir", ...)` block:
 
 ```ts
-  test("empty directory returns an empty result, no error", async () => {
-    const repo = await makeFakeRepo({ workflows: {} });
-    tmpDirsToClean.push(repo.root);
+test("empty directory returns an empty result, no error", async () => {
+  const repo = await makeFakeRepo({ workflows: {} });
+  tmpDirsToClean.push(repo.root);
 
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
 
-    expect(result.workflows).toEqual([]);
-    expect(result.errors).toEqual([]);
-  });
+  expect(result.workflows).toEqual([]);
+  expect(result.errors).toEqual([]);
+});
 ```
 
 - [ ] **Step 6: Run, confirm passes**
@@ -872,24 +874,24 @@ Expected: 2 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("filters: keeps .yaml and .yml, skips hidden files and non-yaml extensions", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "review.yaml": validWorkflowYaml("review"),
-        "release.yml": validWorkflowYaml("release"),
-        ".draft.yaml": validWorkflowYaml("draft"),
-        "notes.txt": "this is not yaml",
-        "README.md": "# nope",
-      },
-    });
-    tmpDirsToClean.push(repo.root);
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
-
-    const names = result.workflows.map((w) => w.name).sort();
-    expect(names).toEqual(["release", "review"]);
-    expect(result.errors).toEqual([]);
+test("filters: keeps .yaml and .yml, skips hidden files and non-yaml extensions", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "review.yaml": validWorkflowYaml("review"),
+      "release.yml": validWorkflowYaml("release"),
+      ".draft.yaml": validWorkflowYaml("draft"),
+      "notes.txt": "this is not yaml",
+      "README.md": "# nope",
+    },
   });
+  tmpDirsToClean.push(repo.root);
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+
+  const names = result.workflows.map((w) => w.name).sort();
+  expect(names).toEqual(["release", "review"]);
+  expect(result.errors).toEqual([]);
+});
 ```
 
 - [ ] **Step 8: Run, confirm passes**
@@ -907,25 +909,25 @@ Expected: 3 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("subdirectories are skipped (no recursion)", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "release.yaml": validWorkflowYaml("release") },
-    });
-    // Sneak a workflow into a subdirectory that should not be discovered.
-    const { mkdir, writeFile } = await import("node:fs/promises");
-    await mkdir(join(repo.workflowsDir, "experimental"), { recursive: true });
-    await writeFile(
-      join(repo.workflowsDir, "experimental", "ghost.yaml"),
-      validWorkflowYaml("ghost"),
-      "utf8",
-    );
-    tmpDirsToClean.push(repo.root);
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
-
-    expect(result.workflows.map((w) => w.name)).toEqual(["release"]);
-    expect(result.errors).toEqual([]);
+test("subdirectories are skipped (no recursion)", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "release.yaml": validWorkflowYaml("release") },
   });
+  // Sneak a workflow into a subdirectory that should not be discovered.
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  await mkdir(join(repo.workflowsDir, "experimental"), { recursive: true });
+  await writeFile(
+    join(repo.workflowsDir, "experimental", "ghost.yaml"),
+    validWorkflowYaml("ghost"),
+    "utf8",
+  );
+  tmpDirsToClean.push(repo.root);
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+
+  expect(result.workflows.map((w) => w.name)).toEqual(["release"]);
+  expect(result.errors).toEqual([]);
+});
 ```
 
 - [ ] **Step 10: Run, confirm passes**
@@ -943,41 +945,41 @@ Expected: 4 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("symlink resolving to a valid file is loaded normally", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "real.yaml": validWorkflowYaml("real") },
-    });
-    tmpDirsToClean.push(repo.root);
-    const linkPath = join(repo.workflowsDir, "alias.yaml");
-    await makeSymlink(linkPath, join(repo.workflowsDir, "real.yaml"));
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
-
-    const names = result.workflows.map((w) => w.name).sort();
-    expect(names).toEqual(["alias", "real"]);
-    expect(result.errors).toEqual([]);
+test("symlink resolving to a valid file is loaded normally", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "real.yaml": validWorkflowYaml("real") },
   });
+  tmpDirsToClean.push(repo.root);
+  const linkPath = join(repo.workflowsDir, "alias.yaml");
+  await makeSymlink(linkPath, join(repo.workflowsDir, "real.yaml"));
 
-  test("broken symlink (target missing) emits an io_error and discovery proceeds", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "real.yaml": validWorkflowYaml("real"),
-        "victim.yaml": validWorkflowYaml("victim"),
-      },
-    });
-    tmpDirsToClean.push(repo.root);
-    const linkPath = join(repo.workflowsDir, "broken.yaml");
-    await makeSymlink(linkPath, join(repo.workflowsDir, "victim.yaml"));
-    await deleteFile(join(repo.workflowsDir, "victim.yaml"));
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
 
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+  const names = result.workflows.map((w) => w.name).sort();
+  expect(names).toEqual(["alias", "real"]);
+  expect(result.errors).toEqual([]);
+});
 
-    expect(result.workflows.map((w) => w.name).sort()).toEqual(["real"]);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].kind).toBe("io_error");
-    expect(result.errors[0].absolutePath).toBe(linkPath);
-    expect(result.errors[0].origin).toBe("project");
+test("broken symlink (target missing) emits an io_error and discovery proceeds", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "real.yaml": validWorkflowYaml("real"),
+      "victim.yaml": validWorkflowYaml("victim"),
+    },
   });
+  tmpDirsToClean.push(repo.root);
+  const linkPath = join(repo.workflowsDir, "broken.yaml");
+  await makeSymlink(linkPath, join(repo.workflowsDir, "victim.yaml"));
+  await deleteFile(join(repo.workflowsDir, "victim.yaml"));
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+
+  expect(result.workflows.map((w) => w.name).sort()).toEqual(["real"]);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].kind).toBe("io_error");
+  expect(result.errors[0].absolutePath).toBe(linkPath);
+  expect(result.errors[0].origin).toBe("project");
+});
 ```
 
 - [ ] **Step 12: Run, confirm passes**
@@ -995,48 +997,48 @@ Expected: 6 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("malformed YAML produces a yaml_parse DiscoveryError; siblings still load", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "good.yaml": validWorkflowYaml("good"),
-        "bad.yaml": malformedYaml(),
-      },
-    });
-    tmpDirsToClean.push(repo.root);
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "home");
-
-    expect(result.workflows.map((w) => w.name)).toEqual(["good"]);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].kind).toBe("yaml_parse");
-    expect(result.errors[0].origin).toBe("home");
+test("malformed YAML produces a yaml_parse DiscoveryError; siblings still load", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "good.yaml": validWorkflowYaml("good"),
+      "bad.yaml": malformedYaml(),
+    },
   });
+  tmpDirsToClean.push(repo.root);
 
-  test("schema-invalid YAML produces a schema_validation DiscoveryError", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "shape.yaml": schemaInvalidYaml() },
-    });
-    tmpDirsToClean.push(repo.root);
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "home");
 
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+  expect(result.workflows.map((w) => w.name)).toEqual(["good"]);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].kind).toBe("yaml_parse");
+  expect(result.errors[0].origin).toBe("home");
+});
 
-    expect(result.workflows).toEqual([]);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].kind).toBe("schema_validation");
+test("schema-invalid YAML produces a schema_validation DiscoveryError", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "shape.yaml": schemaInvalidYaml() },
   });
+  tmpDirsToClean.push(repo.root);
 
-  test("graph-invalid YAML (cycle) produces a graph_validation DiscoveryError", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "cycle.yaml": cycleYaml() },
-    });
-    tmpDirsToClean.push(repo.root);
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
 
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+  expect(result.workflows).toEqual([]);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].kind).toBe("schema_validation");
+});
 
-    expect(result.workflows).toEqual([]);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].kind).toBe("graph_validation");
+test("graph-invalid YAML (cycle) produces a graph_validation DiscoveryError", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "cycle.yaml": cycleYaml() },
   });
+  tmpDirsToClean.push(repo.root);
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+
+  expect(result.workflows).toEqual([]);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].kind).toBe("graph_validation");
+});
 ```
 
 - [ ] **Step 14: Run, confirm passes**
@@ -1054,24 +1056,24 @@ Expected: 9 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("within-root stem collision: .yaml wins, .yml is silently dropped", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "review.yaml": validWorkflowYaml("review-yaml"),
-        "review.yml": validWorkflowYaml("review-yml"),
-      },
-    });
-    tmpDirsToClean.push(repo.root);
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
-
-    expect(result.workflows).toHaveLength(1);
-    const [w] = result.workflows;
-    expect(w.name).toBe("review");
-    expect(w.absolutePath.endsWith("review.yaml")).toBe(true);
-    expect(w.workflow.name).toBe("review-yaml");
-    expect(result.errors).toEqual([]);
+test("within-root stem collision: .yaml wins, .yml is silently dropped", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "review.yaml": validWorkflowYaml("review-yaml"),
+      "review.yml": validWorkflowYaml("review-yml"),
+    },
   });
+  tmpDirsToClean.push(repo.root);
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "project");
+
+  expect(result.workflows).toHaveLength(1);
+  const [w] = result.workflows;
+  expect(w.name).toBe("review");
+  expect(w.absolutePath.endsWith("review.yaml")).toBe(true);
+  expect(w.workflow.name).toBe("review-yaml");
+  expect(result.errors).toEqual([]);
+});
 ```
 
 - [ ] **Step 16: Run, confirm passes**
@@ -1089,23 +1091,23 @@ Expected: 10 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("origin label is propagated to every loaded workflow; stems are extension-stripped", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "alpha.yaml": validWorkflowYaml("alpha"),
-        "beta.yml": validWorkflowYaml("beta"),
-      },
-    });
-    tmpDirsToClean.push(repo.root);
-
-    const result = await loadWorkflowsFromDir(repo.workflowsDir, "home");
-
-    for (const w of result.workflows) {
-      expect(w.origin).toBe("home");
-    }
-    const names = result.workflows.map((w) => w.name).sort();
-    expect(names).toEqual(["alpha", "beta"]);
+test("origin label is propagated to every loaded workflow; stems are extension-stripped", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "alpha.yaml": validWorkflowYaml("alpha"),
+      "beta.yml": validWorkflowYaml("beta"),
+    },
   });
+  tmpDirsToClean.push(repo.root);
+
+  const result = await loadWorkflowsFromDir(repo.workflowsDir, "home");
+
+  for (const w of result.workflows) {
+    expect(w.origin).toBe("home");
+  }
+  const names = result.workflows.map((w) => w.name).sort();
+  expect(names).toEqual(["alpha", "beta"]);
+});
 ```
 
 - [ ] **Step 18: Run, confirm passes**
@@ -1166,6 +1168,7 @@ Refs: docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md
 ## Task 4: `discoverWorkflows` orchestrator (TDD)
 
 **Files:**
+
 - Create: `packages/workflows/src/discovery/discover-workflows.ts`
 - Create: `packages/workflows/tests/discovery/discover-workflows.test.ts`
 - Modify: `packages/workflows/src/discovery/index.ts` (uncomment one line)
@@ -1253,11 +1256,7 @@ import { join } from "node:path";
 
 import { findGitRoot } from "./find-git-root.ts";
 import { loadWorkflowsFromDir } from "./load-from-dir.ts";
-import type {
-  DiscoverOptions,
-  DiscoveredWorkflow,
-  DiscoveryResult,
-} from "./types.ts";
+import type { DiscoverOptions, DiscoveredWorkflow, DiscoveryResult } from "./types.ts";
 
 const WORKFLOWS_SUBPATH = [".aiactions", "workflows"] as const;
 
@@ -1312,27 +1311,27 @@ Expected: 1 passed.
 Append inside the `describe("discoverWorkflows", ...)` block:
 
 ```ts
-  test("project-only workflows are returned with origin 'project'", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "review.yaml": validWorkflowYaml("review"),
-        "release.yml": validWorkflowYaml("release"),
-      },
-    });
-    const home = await makeFakeHome();
-    tmpDirsToClean.push(repo.root, home.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
-
-    expect(result.workflows.map((w) => ({ name: w.name, origin: w.origin }))).toEqual([
-      { name: "release", origin: "project" },
-      { name: "review", origin: "project" },
-    ]);
-    for (const w of result.workflows) {
-      expect(w.shadowed).toBeUndefined();
-    }
-    expect(result.errors).toEqual([]);
+test("project-only workflows are returned with origin 'project'", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "review.yaml": validWorkflowYaml("review"),
+      "release.yml": validWorkflowYaml("release"),
+    },
   });
+  const home = await makeFakeHome();
+  tmpDirsToClean.push(repo.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
+
+  expect(result.workflows.map((w) => ({ name: w.name, origin: w.origin }))).toEqual([
+    { name: "release", origin: "project" },
+    { name: "review", origin: "project" },
+  ]);
+  for (const w of result.workflows) {
+    expect(w.shadowed).toBeUndefined();
+  }
+  expect(result.errors).toEqual([]);
+});
 ```
 
 - [ ] **Step 6: Run, confirm passes**
@@ -1350,20 +1349,20 @@ Expected: 2 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("home-only workflows are returned with origin 'home'", async () => {
-    const repo = await makeFakeRepo();
-    const home = await makeFakeHome({
-      workflows: { "deploy.yaml": validWorkflowYaml("deploy") },
-    });
-    tmpDirsToClean.push(repo.root, home.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
-
-    expect(result.workflows).toHaveLength(1);
-    expect(result.workflows[0].origin).toBe("home");
-    expect(result.workflows[0].name).toBe("deploy");
-    expect(result.workflows[0].shadowed).toBeUndefined();
+test("home-only workflows are returned with origin 'home'", async () => {
+  const repo = await makeFakeRepo();
+  const home = await makeFakeHome({
+    workflows: { "deploy.yaml": validWorkflowYaml("deploy") },
   });
+  tmpDirsToClean.push(repo.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
+
+  expect(result.workflows).toHaveLength(1);
+  expect(result.workflows[0].origin).toBe("home");
+  expect(result.workflows[0].name).toBe("deploy");
+  expect(result.workflows[0].shadowed).toBeUndefined();
+});
 ```
 
 - [ ] **Step 8: Run, confirm passes**
@@ -1381,27 +1380,27 @@ Expected: 3 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("project shadows home: collision sets `shadowed` to the home file's path/origin", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "review.yaml": validWorkflowYaml("review-from-project") },
-    });
-    const home = await makeFakeHome({
-      workflows: { "review.yaml": validWorkflowYaml("review-from-home") },
-    });
-    tmpDirsToClean.push(repo.root, home.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
-
-    expect(result.workflows).toHaveLength(1);
-    const [w] = result.workflows;
-    expect(w.name).toBe("review");
-    expect(w.origin).toBe("project");
-    expect(w.workflow.name).toBe("review-from-project");
-    expect(w.shadowed).toEqual({
-      absolutePath: expect.stringContaining(home.workflowsDir),
-      origin: "home",
-    });
+test("project shadows home: collision sets `shadowed` to the home file's path/origin", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "review.yaml": validWorkflowYaml("review-from-project") },
   });
+  const home = await makeFakeHome({
+    workflows: { "review.yaml": validWorkflowYaml("review-from-home") },
+  });
+  tmpDirsToClean.push(repo.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
+
+  expect(result.workflows).toHaveLength(1);
+  const [w] = result.workflows;
+  expect(w.name).toBe("review");
+  expect(w.origin).toBe("project");
+  expect(w.workflow.name).toBe("review-from-project");
+  expect(w.shadowed).toEqual({
+    absolutePath: expect.stringContaining(home.workflowsDir),
+    origin: "home",
+  });
+});
 ```
 
 - [ ] **Step 10: Run, confirm passes**
@@ -1419,23 +1418,23 @@ Expected: 4 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("results are sorted by name regardless of filesystem enumeration order", async () => {
-    const repo = await makeFakeRepo({
-      workflows: {
-        "zeta.yaml": validWorkflowYaml("zeta"),
-        "alpha.yaml": validWorkflowYaml("alpha"),
-        "mid.yaml": validWorkflowYaml("mid"),
-      },
-    });
-    const home = await makeFakeHome({
-      workflows: { "beta.yaml": validWorkflowYaml("beta") },
-    });
-    tmpDirsToClean.push(repo.root, home.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
-
-    expect(result.workflows.map((w) => w.name)).toEqual(["alpha", "beta", "mid", "zeta"]);
+test("results are sorted by name regardless of filesystem enumeration order", async () => {
+  const repo = await makeFakeRepo({
+    workflows: {
+      "zeta.yaml": validWorkflowYaml("zeta"),
+      "alpha.yaml": validWorkflowYaml("alpha"),
+      "mid.yaml": validWorkflowYaml("mid"),
+    },
   });
+  const home = await makeFakeHome({
+    workflows: { "beta.yaml": validWorkflowYaml("beta") },
+  });
+  tmpDirsToClean.push(repo.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
+
+  expect(result.workflows.map((w) => w.name)).toEqual(["alpha", "beta", "mid", "zeta"]);
+});
 ```
 
 - [ ] **Step 12: Run, confirm passes**
@@ -1453,15 +1452,15 @@ Expected: 5 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("propagates NotInGitRepoError when cwd has no .git ancestor", async () => {
-    const repo = await makeFakeRepo({ withGit: false });
-    const home = await makeFakeHome();
-    tmpDirsToClean.push(repo.root, home.home);
+test("propagates NotInGitRepoError when cwd has no .git ancestor", async () => {
+  const repo = await makeFakeRepo({ withGit: false });
+  const home = await makeFakeHome();
+  tmpDirsToClean.push(repo.root, home.home);
 
-    await expect(
-      discoverWorkflows({ cwd: repo.cwd, homeDir: home.home }),
-    ).rejects.toBeInstanceOf(NotInGitRepoError);
-  });
+  await expect(discoverWorkflows({ cwd: repo.cwd, homeDir: home.home })).rejects.toBeInstanceOf(
+    NotInGitRepoError,
+  );
+});
 ```
 
 - [ ] **Step 14: Run, confirm passes**
@@ -1479,24 +1478,24 @@ Expected: 6 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("aggregates per-file errors from both layers", async () => {
-    const repo = await makeFakeRepo({
-      workflows: { "broken.yaml": malformedYaml() },
-    });
-    const home = await makeFakeHome({
-      workflows: { "cyclic.yaml": cycleYaml() },
-    });
-    tmpDirsToClean.push(repo.root, home.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
-
-    expect(result.workflows).toEqual([]);
-    expect(result.errors).toHaveLength(2);
-    const kinds = result.errors.map((e) => e.kind).sort();
-    expect(kinds).toEqual(["graph_validation", "yaml_parse"]);
-    const origins = result.errors.map((e) => e.origin).sort();
-    expect(origins).toEqual(["home", "project"]);
+test("aggregates per-file errors from both layers", async () => {
+  const repo = await makeFakeRepo({
+    workflows: { "broken.yaml": malformedYaml() },
   });
+  const home = await makeFakeHome({
+    workflows: { "cyclic.yaml": cycleYaml() },
+  });
+  tmpDirsToClean.push(repo.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: home.home });
+
+  expect(result.workflows).toEqual([]);
+  expect(result.errors).toHaveLength(2);
+  const kinds = result.errors.map((e) => e.kind).sort();
+  expect(kinds).toEqual(["graph_validation", "yaml_parse"]);
+  const origins = result.errors.map((e) => e.origin).sort();
+  expect(origins).toEqual(["home", "project"]);
+});
 ```
 
 - [ ] **Step 16: Run, confirm passes**
@@ -1514,34 +1513,34 @@ Expected: 7 passed.
 Append inside the same `describe`:
 
 ```ts
-  test("homeDir option overrides os.homedir() — workflow loaded from a non-default home root", async () => {
-    const repo = await makeFakeRepo();
-    const customHome = await makeFakeHome({
-      workflows: { "from-custom.yaml": validWorkflowYaml("from-custom") },
-    });
-    tmpDirsToClean.push(repo.root, customHome.home);
-
-    const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: customHome.home });
-
-    expect(result.workflows.map((w) => w.name)).toEqual(["from-custom"]);
-    expect(result.workflows[0].absolutePath.startsWith(customHome.home)).toBe(true);
+test("homeDir option overrides os.homedir() — workflow loaded from a non-default home root", async () => {
+  const repo = await makeFakeRepo();
+  const customHome = await makeFakeHome({
+    workflows: { "from-custom.yaml": validWorkflowYaml("from-custom") },
   });
+  tmpDirsToClean.push(repo.root, customHome.home);
 
-  test("cwd option overrides process.cwd() — discovery follows the explicit cwd", async () => {
-    const repoA = await makeFakeRepo({
-      workflows: { "a.yaml": validWorkflowYaml("a") },
-    });
-    const repoB = await makeFakeRepo({
-      workflows: { "b.yaml": validWorkflowYaml("b") },
-    });
-    const home = await makeFakeHome();
-    tmpDirsToClean.push(repoA.root, repoB.root, home.home);
+  const result = await discoverWorkflows({ cwd: repo.cwd, homeDir: customHome.home });
 
-    const result = await discoverWorkflows({ cwd: repoB.cwd, homeDir: home.home });
+  expect(result.workflows.map((w) => w.name)).toEqual(["from-custom"]);
+  expect(result.workflows[0].absolutePath.startsWith(customHome.home)).toBe(true);
+});
 
-    expect(result.workflows.map((w) => w.name)).toEqual(["b"]);
-    expect(result.workflows[0].absolutePath.startsWith(repoB.root)).toBe(true);
+test("cwd option overrides process.cwd() — discovery follows the explicit cwd", async () => {
+  const repoA = await makeFakeRepo({
+    workflows: { "a.yaml": validWorkflowYaml("a") },
   });
+  const repoB = await makeFakeRepo({
+    workflows: { "b.yaml": validWorkflowYaml("b") },
+  });
+  const home = await makeFakeHome();
+  tmpDirsToClean.push(repoA.root, repoB.root, home.home);
+
+  const result = await discoverWorkflows({ cwd: repoB.cwd, homeDir: home.home });
+
+  expect(result.workflows.map((w) => w.name)).toEqual(["b"]);
+  expect(result.workflows[0].absolutePath.startsWith(repoB.root)).toBe(true);
+});
 ```
 
 - [ ] **Step 18: Run, confirm passes**
@@ -1603,6 +1602,7 @@ Refs: docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md
 ## Task 5: Final integration check + push
 
 **Files:**
+
 - No new files in this task. The full feature is now committed across tasks 1–4.
 
 This task verifies the full surface compiles, the public API resolves through `@aiactions/workflows`, every test in the package passes, and nothing in the wider workspace regressed.
@@ -1654,8 +1654,10 @@ muninn_remember({
   vault: "aiactions",
   concept: "workflow-discovery-implemented",
   type: "event",
-  summary: "Workflow discovery shipped on <DATE> as <COMMITS or PR#>. Public API: discoverWorkflows + loadWorkflowsFromDir + findGitRoot in @aiactions/workflows.",
-  content: "<short paragraph noting commit SHAs and that the spec at docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md is now implemented; downstream MS1.9/1.10 consumers can adopt the API>",
+  summary:
+    "Workflow discovery shipped on <DATE> as <COMMITS or PR#>. Public API: discoverWorkflows + loadWorkflowsFromDir + findGitRoot in @aiactions/workflows.",
+  content:
+    "<short paragraph noting commit SHAs and that the spec at docs/superpowers/specs/2026-05-09-workflow-discovery-roots-design.md is now implemented; downstream MS1.9/1.10 consumers can adopt the API>",
   tags: ["workflow-discovery", "ms1.9", "shipped"],
 });
 ```

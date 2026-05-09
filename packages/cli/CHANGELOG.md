@@ -2,12 +2,11 @@
 
 ## [1.2.1](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.2.0...@aiactions/cli@v1.2.1) (2026-05-09)
 
-
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @aiactions/runtime bumped to 3.0.1
+- The following workspace dependencies were updated
+  - dependencies
+    - @aiactions/runtime bumped to 3.0.1
 
 ## [1.2.0](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.1.0...@aiactions/cli@v1.2.0) (2026-05-08)
 
