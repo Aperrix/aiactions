@@ -19,6 +19,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@aiactions/runtime": "workspace:*",
     "@types/semver": "^7.7.1"
   }
 }
