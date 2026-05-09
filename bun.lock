@@ -42,6 +42,10 @@
         "@types/semver": "^7.7.1",
       },
     },
+    "packages/git": {
+      "name": "@aiactions/git",
+      "version": "0.1.0",
+    },
     "packages/paths": {
       "name": "@aiactions/paths",
       "version": "0.1.0",
@@ -50,6 +54,7 @@
       "name": "@aiactions/runtime",
       "version": "3.0.1",
       "dependencies": {
+        "@aiactions/git": "workspace:*",
         "@aiactions/workflows": "workspace:*",
         "semver": "^7.8.0",
         "zod": "^4.4.3",
@@ -80,6 +85,8 @@
   },
   "packages": {
     "@aiactions/cli": ["@aiactions/cli@workspace:packages/cli"],
+
+    "@aiactions/git": ["@aiactions/git@workspace:packages/git"],
 
     "@aiactions/paths": ["@aiactions/paths@workspace:packages/paths"],
 
