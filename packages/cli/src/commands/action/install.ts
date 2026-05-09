@@ -1,5 +1,5 @@
 import { captureActionInstalled, resolveRegistryRoot } from "@aiactions/paths";
-import { ensureCachedAction, type EnsureCachedActionOptions } from "@aiactions/runtime";
+import { ensureCachedAction, type EnsureCachedActionOptions } from "@aiactions/registry";
 import * as clack from "@clack/prompts";
 import { defineCommand } from "citty";
 
