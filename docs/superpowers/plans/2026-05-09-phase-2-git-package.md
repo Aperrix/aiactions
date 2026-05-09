@@ -12,20 +12,20 @@
 
 ## File Structure
 
-| File | Responsibility |
-|---|---|
-| `packages/git/package.json` | Package manifest, ESM, no runtime deps |
-| `packages/git/tsconfig.json` | TS config matching existing packages |
-| `packages/git/vite.config.ts` | Vite+ test/lint config |
-| `packages/git/src/exec.ts` | `gitExec(args, opts)` — low-level wrapper around `execFile("git", ...)`. Source of all `GitError` instances. |
-| `packages/git/src/repo.ts` | `cloneSparseShallow`, `sparseCheckoutSet`, `lsRemoteTags`, `revParseHead` — high-level helpers reflecting real usage |
-| `packages/git/src/errors.ts` | `GitError` class — wraps a failed `git` invocation with `args`, `stderr`, `code`, `cause` |
-| `packages/git/src/index.ts` | Public API barrel re-export |
-| `packages/git/tests/exec.test.ts` | Tests `gitExec` happy path, error path, `GitError` shape |
-| `packages/git/tests/repo.test.ts` | Tests four helpers using a bare-repo fixture |
-| `packages/git/tests/fixtures/make-bare-repo.ts` | Local copy of the bare-repo fixture used in runtime tests (will not delete the existing copies in `runtime/tests/` and `cli/tests/` — those migrate in a later phase) |
-| **Modified files** | |
-| `packages/runtime/package.json` | Adds `@aiactions/git: workspace:*` dep |
+| File                                                 | Responsibility                                                                                                                                                                             |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/git/package.json`                          | Package manifest, ESM, no runtime deps                                                                                                                                                     |
+| `packages/git/tsconfig.json`                         | TS config matching existing packages                                                                                                                                                       |
+| `packages/git/vite.config.ts`                        | Vite+ test/lint config                                                                                                                                                                     |
+| `packages/git/src/exec.ts`                           | `gitExec(args, opts)` — low-level wrapper around `execFile("git", ...)`. Source of all `GitError` instances.                                                                               |
+| `packages/git/src/repo.ts`                           | `cloneSparseShallow`, `sparseCheckoutSet`, `lsRemoteTags`, `revParseHead` — high-level helpers reflecting real usage                                                                       |
+| `packages/git/src/errors.ts`                         | `GitError` class — wraps a failed `git` invocation with `args`, `stderr`, `code`, `cause`                                                                                                  |
+| `packages/git/src/index.ts`                          | Public API barrel re-export                                                                                                                                                                |
+| `packages/git/tests/exec.test.ts`                    | Tests `gitExec` happy path, error path, `GitError` shape                                                                                                                                   |
+| `packages/git/tests/repo.test.ts`                    | Tests four helpers using a bare-repo fixture                                                                                                                                               |
+| `packages/git/tests/fixtures/make-bare-repo.ts`      | Local copy of the bare-repo fixture used in runtime tests (will not delete the existing copies in `runtime/tests/` and `cli/tests/` — those migrate in a later phase)                      |
+| **Modified files**                                   |                                                                                                                                                                                            |
+| `packages/runtime/package.json`                      | Adds `@aiactions/git: workspace:*` dep                                                                                                                                                     |
 | `packages/runtime/src/runner/uses/registry-fetch.ts` | Replaces 4 `pExecFile("git", ...)` calls with `@aiactions/git` helpers. Drops `import { execFile } from "node:child_process"` and the local `pExecFile = promisify(execFile)` declaration. |
 
 No deletions in this phase.
@@ -35,6 +35,7 @@ No deletions in this phase.
 ## Task 1: Bootstrap package skeleton
 
 **Files:**
+
 - Create: `packages/git/package.json`
 - Create: `packages/git/tsconfig.json`
 - Create: `packages/git/vite.config.ts`
@@ -165,6 +166,7 @@ EOF
 The two files ship together because `gitExec` raises `GitError` directly — a separate task for `errors.ts` would force a placeholder export that has no consumer.
 
 **Files:**
+
 - Create: `packages/git/src/errors.ts`
 - Create: `packages/git/src/exec.ts`
 - Test: `packages/git/tests/exec.test.ts`
@@ -233,7 +235,10 @@ export class GitError extends Error {
   readonly stderr: string;
   readonly code: number;
 
-  constructor(message: string, init: { args: readonly string[]; stderr: string; code: number; cause: Error }) {
+  constructor(
+    message: string,
+    init: { args: readonly string[]; stderr: string; code: number; cause: Error },
+  ) {
     super(message, { cause: init.cause });
     this.name = "GitError";
     this.args = init.args;
@@ -272,9 +277,16 @@ export interface GitExecResult {
   readonly stderr: string;
 }
 
-export async function gitExec(args: readonly string[], options: GitExecOptions = {}): Promise<GitExecResult> {
+export async function gitExec(
+  args: readonly string[],
+  options: GitExecOptions = {},
+): Promise<GitExecResult> {
   try {
-    const result = await pExecFile("git", args, options.cwd !== undefined ? { cwd: options.cwd } : {});
+    const result = await pExecFile(
+      "git",
+      args,
+      options.cwd !== undefined ? { cwd: options.cwd } : {},
+    );
     return { stdout: result.stdout.toString(), stderr: result.stderr.toString() };
   } catch (err) {
     const e = err as Error & { stderr?: string | Buffer; code?: number };
@@ -321,6 +333,7 @@ EOF
 Copy the existing fixture into the git package so its tests run independently. Existing copies in `runtime/tests/fixtures/registry/` and `cli/tests/fixtures/` stay — DRY rule of three is satisfied at three but a generalised location belongs to a later phase.
 
 **Files:**
+
 - Create: `packages/git/tests/fixtures/make-bare-repo.ts`
 
 - [ ] **Step 1: Copy the fixture**
@@ -363,6 +376,7 @@ EOF
 Four high-level helpers reflecting actual usage in `registry-fetch.ts`. Each delegates to `gitExec`.
 
 **Files:**
+
 - Create: `packages/git/src/repo.ts`
 - Test: `packages/git/tests/repo.test.ts`
 
@@ -592,6 +606,7 @@ EOF
 ## Task 5: Wire public API barrel
 
 **Files:**
+
 - Modify: `packages/git/src/index.ts`
 
 - [ ] **Step 1: Replace `index.ts` with the full barrel**
@@ -629,6 +644,7 @@ EOF
 ## Task 6: Declare `@aiactions/git` as a runtime dep
 
 **Files:**
+
 - Modify: `packages/runtime/package.json`
 
 - [ ] **Step 1: Add the dep**
@@ -670,6 +686,7 @@ EOF
 ## Task 7: Migrate `registry-fetch.ts` to consume `@aiactions/git`
 
 **File:**
+
 - Modify: `packages/runtime/src/runner/uses/registry-fetch.ts`
 
 The four `pExecFile("git", ...)` invocations live at lines ~58, ~144, ~164, ~199 (line numbers may shift slightly between commits — anchor on the surrounding context). Each is replaced with the corresponding `@aiactions/git` helper.
@@ -691,7 +708,13 @@ const pExecFile = promisify(execFile);
 Add (alongside the existing imports):
 
 ```ts
-import { cloneSparseShallow, lsRemoteTags, revParseHead, sparseCheckoutSet, GitError } from "@aiactions/git";
+import {
+  cloneSparseShallow,
+  lsRemoteTags,
+  revParseHead,
+  sparseCheckoutSet,
+  GitError,
+} from "@aiactions/git";
 ```
 
 - [ ] **Step 2: Replace `git ls-remote --tags` (line ~58)**
@@ -794,6 +817,7 @@ cd packages/runtime && vp check && vp test
 ```
 
 Expected: PASS — all runtime tests green. Pay special attention to:
+
 - `tests/runner-uses-registry-fetch.test.ts` — exercises the four migrated calls.
 - `tests/runner-uses-registry-fetch-fetch.test.ts` — tests the clone/sparse-checkout/rename sequence.
 - `tests/runner-uses-registry-integration.test.ts` — full registry fetch happy path.
@@ -871,6 +895,7 @@ mcp__codebase-memory-mcp__index_repository(
 - [ ] **Step 2: Persist Phase-2 completion in MuninnDB**
 
 Call `mcp__muninn__muninn_remember` with `vault: "aiactions"`, `concept: "phase-2-git-shipped"`, `type: "milestone"`. Content must enumerate:
+
 - `@aiactions/git` v0.1.0 — leaf package, stdlib only
 - Public API: `gitExec`, `cloneSparseShallow`, `sparseCheckoutSet`, `lsRemoteTags`, `revParseHead`, `GitError`
 - Migrated caller: `packages/runtime/src/runner/uses/registry-fetch.ts` (4 invocations).
