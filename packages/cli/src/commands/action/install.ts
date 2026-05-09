@@ -13,7 +13,7 @@ import {
   resolveLatest,
   resolveRegistryUrl,
 } from "../../lib/registry.ts";
-import { resolveRegistryRoot } from "../../lib/registry-root.ts";
+import { resolveRegistryRoot } from "@aiactions/paths";
 
 interface InstallOpts {
   readonly registryRoot: string;

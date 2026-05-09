@@ -3,7 +3,7 @@ import { rcompare as semverRcompare } from "semver";
 
 import type { Registry } from "@aiactions/workflows";
 import { fetchRegistry, groupByCoord, resolveRegistryUrl } from "../../lib/registry.ts";
-import { resolveRegistryRoot } from "../../lib/registry-root.ts";
+import { resolveRegistryRoot } from "@aiactions/paths";
 import { walkCache, type CachedEntry } from "../../lib/walk-cache.ts";
 
 interface ListRow {
