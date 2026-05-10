@@ -313,10 +313,17 @@ export class NotInGitRepoError extends AIactionsError {
   readonly code = "ENOTINGITREPO" as const;
   constructor(public readonly startDir: string) {
     super(`not in a git repository: ${startDir}`);
-    this.name = "NotInGitRepoError";
   }
 }
 ```
+
+`AIactionsError` already runs `this.name = new.target.name` in its
+constructor and declares `override readonly name: string`, so the
+manual `this.name = "NotInGitRepoError"` from the original `extends
+Error` form must be dropped — keeping it triggers `TS2540: Cannot
+assign to 'name' because it is a read-only property`. The runtime
+behaviour is identical: `new NotInGitRepoError("/x").name` still
+resolves to `"NotInGitRepoError"`.
 
 Impact:
 
