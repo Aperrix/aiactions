@@ -1,3 +1,4 @@
+import { JobError, OrchestrationError, StepError } from "@aiactions/core";
 import { NotInGitRepoError } from "@aiactions/discovery";
 import {
   RegistryFetchError,
@@ -14,7 +15,8 @@ import {
 /**
  * Process exit codes used by `aia`. Aligned with sysexits convention
  * (0 = OK, 2 = USAGE, 4 = data not found) plus a custom CONFLICT slot
- * reserved for future install/overwrite flows.
+ * reserved for future install/overwrite flows and a custom RUN_FAILED
+ * slot used when a workflow ran end-to-end but a step exited non-zero.
  */
 export const EXIT = {
   OK: 0,
@@ -24,6 +26,7 @@ export const EXIT = {
   CONFLICT: 5,
   REGISTRY: 6,
   SCHEMA: 7,
+  RUN_FAILED: 8,
 } as const;
 
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
@@ -37,8 +40,9 @@ export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
  *
  * The key type uses `(...args: any[])` because the table is a
  * constructor-identity lookup (`err.constructor`), the signature is
- * never invoked. `NotInGitRepoError` carries `(startDir: string)` and
- * is incompatible with the original strict `(message, options?)` shape.
+ * never invoked. Some brick errors (e.g. `NotInGitRepoError`) carry
+ * non-`(message, options?)` constructor signatures and would otherwise
+ * fail to type-fit a strict shape.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BrickErrorCtor = abstract new (...args: any[]) => AIactionsError;
@@ -56,4 +60,11 @@ export const EXIT_BY_BRICK_ERROR: ReadonlyMap<BrickErrorCtor, ExitCode> = new Ma
   [WorkflowValidationError, EXIT.SCHEMA],
 
   [NotInGitRepoError, EXIT.USAGE],
+
+  // Phase 6.5: runtime orchestrator-side crashes. A step exiting non-zero
+  // is NOT a throw — it propagates as RunResult.status="failed" and is
+  // mapped to EXIT.RUN_FAILED in the slice itself.
+  [JobError, EXIT.RUNTIME],
+  [StepError, EXIT.RUNTIME],
+  [OrchestrationError, EXIT.RUNTIME],
 ]);
