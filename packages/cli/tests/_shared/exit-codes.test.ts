@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import { JobError, OrchestrationError, StepError } from "@aiactions/core";
 import { NotInGitRepoError } from "@aiactions/discovery";
 import {
   RegistryFetchError,
@@ -29,5 +30,17 @@ describe("EXIT_BY_BRICK_ERROR", () => {
 
   it("maps NotInGitRepoError to EXIT.USAGE", () => {
     expect(EXIT_BY_BRICK_ERROR.get(NotInGitRepoError)).toBe(EXIT.USAGE);
+  });
+
+  it("maps runtime errors to EXIT.RUNTIME", () => {
+    expect(EXIT_BY_BRICK_ERROR.get(JobError)).toBe(EXIT.RUNTIME);
+    expect(EXIT_BY_BRICK_ERROR.get(StepError)).toBe(EXIT.RUNTIME);
+    expect(EXIT_BY_BRICK_ERROR.get(OrchestrationError)).toBe(EXIT.RUNTIME);
+  });
+});
+
+describe("EXIT.RUN_FAILED", () => {
+  it("is the dedicated exit code for a workflow whose status is failed", () => {
+    expect(EXIT.RUN_FAILED).toBe(8);
   });
 });

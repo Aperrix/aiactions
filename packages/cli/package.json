@@ -13,6 +13,7 @@
     "build": "vp pack"
   },
   "dependencies": {
+    "@aiactions/core": "workspace:*",
     "@aiactions/discovery": "workspace:*",
     "@aiactions/parser": "workspace:*",
     "@aiactions/paths": "workspace:*",
