@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 
-import { checkCommand } from "./check.ts";
+import { checkCommand } from "./check/command.ts";
 import { installCommand } from "./install.ts";
 import { listCommand } from "./list.ts";
 import { uninstallCommand } from "./uninstall.ts";

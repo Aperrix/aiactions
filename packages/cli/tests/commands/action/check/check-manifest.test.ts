@@ -2,10 +2,13 @@ import { resolve } from "node:path";
 
 import { expect, test } from "vite-plus/test";
 
-import { checkManifest, joinZodPath } from "../src/lib/check-manifest.ts";
-import { NotFoundError } from "../src/_shared/cli-error.ts";
+import {
+  checkManifest,
+  joinZodPath,
+} from "../../../../src/commands/action/check/check-manifest.ts";
+import { NotFoundError } from "../../../../src/_shared/cli-error.ts";
 
-const FIXTURES = resolve(__dirname, "fixtures/manifests");
+const FIXTURES = resolve(__dirname, "../../../fixtures/manifests");
 
 test("checkManifest returns ok=true for a schema-valid manifest", async () => {
   const result = await checkManifest(resolve(FIXTURES, "valid.yaml"));

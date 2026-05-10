@@ -3,8 +3,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
-import { runCli } from "./fixtures/run-cli.ts";
-import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
+import { runCli } from "../../../fixtures/run-cli.ts";
+import { makeTempHome, type TempHome } from "../../../fixtures/with-temp-home.ts";
 
 const VALID_MANIFEST = `schemaVersion: 1
 name: smoke

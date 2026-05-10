@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 
 import { expect, test } from "vite-plus/test";
 
-import { formatIssue } from "../src/lib/format-issues.ts";
+import { formatIssue } from "../../../../src/commands/action/check/format-issues.ts";
 
 test("formatIssue prints '<rel>: <zodPath>: <message>' when zodPath set", () => {
   const abs = resolve(process.cwd(), "actions/foo/aiaction.yaml");
