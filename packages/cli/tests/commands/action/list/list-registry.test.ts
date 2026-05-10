@@ -3,14 +3,14 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
-import { runCli } from "./fixtures/run-cli.ts";
+import { runCli } from "../../../fixtures/run-cli.ts";
 import {
   jsonRegistry,
   startRegistryServer,
   statusOnly,
   type RegistryServer,
-} from "./fixtures/registry-server.ts";
-import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
+} from "../../../fixtures/registry-server.ts";
+import { makeTempHome, type TempHome } from "../../../fixtures/with-temp-home.ts";
 
 let env: TempHome;
 let registry: RegistryServer | undefined;
