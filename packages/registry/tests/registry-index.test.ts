@@ -7,7 +7,7 @@ import {
   REGISTRY_URL_DEFAULT,
   resolveLatest,
   resolveRegistryUrl,
-} from "../src/lib/registry.ts";
+} from "../src/index-fetch.ts";
 
 let server: Server;
 let baseUrl: string;
