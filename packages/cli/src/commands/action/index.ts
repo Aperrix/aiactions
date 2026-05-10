@@ -1,9 +1,9 @@
 import { defineCommand } from "citty";
 
-import { checkCommand } from "./check.ts";
-import { installCommand } from "./install.ts";
-import { listCommand } from "./list.ts";
-import { uninstallCommand } from "./uninstall.ts";
+import { checkCommand } from "./check/command.ts";
+import { installCommand } from "./install/command.ts";
+import { listCommand } from "./list/command.ts";
+import { uninstallCommand } from "./uninstall/command.ts";
 
 export const actionCommand = defineCommand({
   meta: {
