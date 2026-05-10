@@ -1,4 +1,5 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
@@ -201,4 +202,117 @@ test("aia action check <invalid> exits 7 with error lines on stderr", async () =
   expect(result.exitCode).toBe(7);
   expect(result.stderr).toMatch(/✗/);
   expect(result.stderr).toMatch(/schemaVersion/);
+});
+
+test("aia workflow run --file <happy.yaml> exits 0 with echoed step output", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-happy-"));
+  const file = join(dir, "greet.yaml");
+  await writeFile(
+    file,
+    `name: greet\njobs:\n  hello:\n    steps:\n      - name: say-hi\n        run: echo hi\n`,
+    "utf-8",
+  );
+
+  const result = await runCli(["workflow", "run", "--file", file]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("hi");
+  expect(result.stderr).toContain("✓ Run succeeded");
+});
+
+test("aia workflow run --file <happy.yaml> --json emits NDJSON on stdout", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-json-"));
+  const file = join(dir, "greet.yaml");
+  await writeFile(
+    file,
+    `name: greet\njobs:\n  hello:\n    steps:\n      - name: say-hi\n        run: echo hi\n`,
+    "utf-8",
+  );
+
+  const result = await runCli(["workflow", "run", "--file", file, "--json"]);
+  expect(result.exitCode).toBe(0);
+  const lines = result.stdout
+    .trim()
+    .split("\n")
+    .filter((l) => l.length > 0);
+  expect(lines.length).toBeGreaterThan(2);
+  const kinds = lines.map((l) => JSON.parse(l).kind);
+  expect(kinds).toContain("workflow-started");
+  expect(kinds).toContain("workflow-finished");
+});
+
+test("aia workflow run --file <failing.yaml> exits 8 (RUN_FAILED)", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-fail-"));
+  const file = join(dir, "boom.yaml");
+  await writeFile(
+    file,
+    `name: boom\njobs:\n  fail:\n    steps:\n      - name: fail\n        run: exit 1\n`,
+    "utf-8",
+  );
+
+  const result = await runCli(["workflow", "run", "--file", file]);
+  expect(result.exitCode).toBe(8);
+  expect(result.stderr).toContain("✗ Run failed");
+});
+
+test("aia workflow run nonexistent exits 2 (USAGE) — workflow not found", async () => {
+  // Must run inside a git repo so discoverWorkflows() can proceed past the
+  // NotInGitRepoError guard and reach the "workflow not found" path.
+  const result = await runCli(["workflow", "run", "nonexistent"], {}, { cwd: process.cwd() });
+  expect(result.exitCode).toBe(2);
+  expect(result.stderr).toContain("workflow not found: nonexistent");
+});
+
+test("aia workflow run with no args exits 2 (USAGE)", async () => {
+  const result = await runCli(["workflow", "run"]);
+  expect(result.exitCode).toBe(2);
+  expect(result.stderr).toContain("expected <name> or --file");
+});
+
+test("aia workflow run --file <happy.yaml> --cwd /nonexistent-xyz exits 2 (USAGE)", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-cwd-"));
+  const file = join(dir, "greet.yaml");
+  await writeFile(
+    file,
+    `name: greet\njobs:\n  hello:\n    steps:\n      - name: say-hi\n        run: echo hi\n`,
+    "utf-8",
+  );
+
+  const result = await runCli([
+    "workflow",
+    "run",
+    "--file",
+    file,
+    "--cwd",
+    "/definitely-not-a-real-path-xyz-1234",
+  ]);
+  expect(result.exitCode).toBe(2);
+  expect(result.stderr).toContain("cwd does not exist");
+});
+
+test("aia workflow run --file <bad-schema.yaml> exits 7 (SCHEMA)", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-schema-"));
+  const file = join(dir, "bad.yaml");
+  // `run:` AND `uses:` together on a single step is a schema violation.
+  await writeFile(
+    file,
+    `name: bad\njobs:\n  x:\n    steps:\n      - run: echo a\n        uses: ./somewhere\n`,
+    "utf-8",
+  );
+
+  const result = await runCli(["workflow", "run", "--file", file]);
+  expect(result.exitCode).toBe(7);
+});
+
+test("aia workflow run --file <happy.yaml> --input branch=main passes inputs through", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "phase6.5-bin-input-"));
+  const file = join(dir, "greet.yaml");
+  await writeFile(
+    file,
+    `name: greet\ninputs:\n  branch:\n    type: string\n    default: develop\njobs:\n  hello:\n    steps:\n      - name: echo-input\n        run: echo "branch=\${{ inputs.branch }}"\n`,
+    "utf-8",
+  );
+
+  const result = await runCli(["workflow", "run", "--file", file, "--input", "branch=main"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("branch=main");
 });
