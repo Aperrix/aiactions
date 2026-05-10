@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.3.0](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.2.1...@aiactions/cli@v1.3.0) (2026-05-10)
+
+
+### Features
+
+* **cli:** add EXIT.RUN_FAILED + map runtime errors to exit codes ([72c4be7](https://github.com/Aperrix/aiactions/commit/72c4be797b05c5586258ce070bcaee7416b323d6))
+* **cli:** add resolve-workflow slice helper ([e0e7f28](https://github.com/Aperrix/aiactions/commit/e0e7f285e8405c033cb53dfe7e65e2f504182cf6))
+* **cli:** add workflow command scaffold ([3f54956](https://github.com/Aperrix/aiactions/commit/3f54956eb3dae09035ca3b03ecca2e186f05e876))
+* **cli:** add workflow run receipt renderer ([bb2ef09](https://github.com/Aperrix/aiactions/commit/bb2ef09cbc089ed3c1cc7b0503e5ac5f449529de))
+* **cli:** emit action_installed telemetry event on successful install ([5b8dc22](https://github.com/Aperrix/aiactions/commit/5b8dc22d7b8d466b9c5e20d03709790519b6c5d3))
+* **cli:** map workflow + discovery errors to exit codes ([e481b2a](https://github.com/Aperrix/aiactions/commit/e481b2aa423f3f315d3988ad01aa036b239ab5ab))
+* **cli:** vertical-slice workflow check ([2635a48](https://github.com/Aperrix/aiactions/commit/2635a48d6b0c49c2fd78118b0c0fcef48bd0f320))
+* **cli:** vertical-slice workflow list ([60362c9](https://github.com/Aperrix/aiactions/commit/60362c908a2570a78316006c8172f01101e27e60))
+* **cli:** vertical-slice workflow run ([6dcbd84](https://github.com/Aperrix/aiactions/commit/6dcbd841b96815276474a3f2550d37553b4d4b4f))
+
+
+### Bug Fixes
+
+* **cli:** show help screen on sub-subcommand --help ([8436a30](https://github.com/Aperrix/aiactions/commit/8436a3082be5a9e2a395f04806210f52dfd6eae6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @aiactions/core bumped to 1.1.0
+    * @aiactions/discovery bumped to 1.1.0
+    * @aiactions/parser bumped to 2.0.0
+    * @aiactions/paths bumped to 0.2.0
+    * @aiactions/registry bumped to 1.1.0
+    * @aiactions/schema bumped to 1.1.0
+
 ## [1.2.1](https://github.com/Aperrix/aiactions/compare/@aiactions/cli@v1.2.0...@aiactions/cli@v1.2.1) (2026-05-09)
 
 ### Dependencies
