@@ -1,9 +1,15 @@
+import { NotInGitRepoError } from "@aiactions/discovery";
 import {
   RegistryFetchError,
   RegistryResolveError,
   RegistryValidationError,
 } from "@aiactions/registry";
-import type { AIactionsError } from "@aiactions/schema";
+import {
+  type AIactionsError,
+  WorkflowParseError,
+  WorkflowSchemaError,
+  WorkflowValidationError,
+} from "@aiactions/schema";
 
 /**
  * Process exit codes used by `aia`. Aligned with sysexits convention
@@ -28,12 +34,26 @@ export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
  * `AIactionsError` (not `CliError`) and therefore do not carry an
  * exit-code field of their own — this table is the single source of
  * truth for that mapping.
+ *
+ * The key type uses `(...args: any[])` because the table is a
+ * constructor-identity lookup (`err.constructor`), the signature is
+ * never invoked. `NotInGitRepoError` carries `(startDir: string)` and
+ * is incompatible with the original strict `(message, options?)` shape.
  */
-export const EXIT_BY_BRICK_ERROR: ReadonlyMap<
-  new (message: string, options?: ErrorOptions) => AIactionsError,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BrickErrorCtor = abstract new (...args: any[]) => AIactionsError;
+
+export const EXIT_BY_BRICK_ERROR: ReadonlyMap<BrickErrorCtor, ExitCode> = new Map<
+  BrickErrorCtor,
   ExitCode
-> = new Map<new (message: string, options?: ErrorOptions) => AIactionsError, ExitCode>([
+>([
   [RegistryFetchError, EXIT.REGISTRY],
   [RegistryResolveError, EXIT.REGISTRY],
   [RegistryValidationError, EXIT.REGISTRY],
+
+  [WorkflowParseError, EXIT.SCHEMA],
+  [WorkflowSchemaError, EXIT.SCHEMA],
+  [WorkflowValidationError, EXIT.SCHEMA],
+
+  [NotInGitRepoError, EXIT.USAGE],
 ]);

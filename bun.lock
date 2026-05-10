@@ -30,6 +30,7 @@
         "aia": "./bin/aia.mjs",
       },
       "dependencies": {
+        "@aiactions/discovery": "workspace:*",
         "@aiactions/parser": "workspace:*",
         "@aiactions/paths": "workspace:*",
         "@aiactions/registry": "workspace:*",
