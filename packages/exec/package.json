@@ -1,6 +1,6 @@
 {
   "name": "@aiactions/exec",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Process primitives for AIactions — spawn shell commands and Node-based `uses:` actions, capture stdio, and parse the FD3 line-delimited frame protocol.",
   "type": "module",

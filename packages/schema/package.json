@@ -1,6 +1,6 @@
 {
   "name": "@aiactions/schema",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Source-of-truth zod schemas and domain types for AIactions — workflows, action manifests, refs, registry, env, shell, plus the `AIactionsError` abstract base hierarchy.",
   "type": "module",

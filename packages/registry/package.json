@@ -1,6 +1,6 @@
 {
   "name": "@aiactions/registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Action acquisition and persistence for AIactions — fetch via git sparse-checkout, version resolution (exact / major-range / branch), and lockfile read/write under `.aiactions/lock.json`.",
   "type": "module",

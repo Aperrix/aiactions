@@ -1,6 +1,6 @@
 {
   "name": "@aiactions/expression",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Pure GitHub-Actions-style `${{ ... }}` expression evaluator for AIactions workflows — env, inputs, and step-output context resolution.",
   "type": "module",
