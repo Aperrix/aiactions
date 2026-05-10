@@ -40,6 +40,7 @@ git status -s
 git fetch origin
 git status
 ```
+
 Expected: `Your branch is up to date with 'origin/main'`.
 
 - [ ] **Step 2: Create worktree off `main`.**
@@ -49,6 +50,7 @@ git worktree add ../aiactions-phase-5 -b worktree-phase-5-cli-vertical-slices ma
 cd ../aiactions-phase-5
 pwd
 ```
+
 Expected: working in `/home/aperrix/Documents/PROJECTS/aiactions-phase-5` on branch `worktree-phase-5-cli-vertical-slices`.
 
 - [ ] **Step 3: Install workspaces.**
@@ -56,6 +58,7 @@ Expected: working in `/home/aperrix/Documents/PROJECTS/aiactions-phase-5` on bra
 ```bash
 vp install
 ```
+
 Expected: dependency tree resolves; no errors.
 
 - [ ] **Step 4: Baseline `vp run ready`.**
@@ -63,6 +66,7 @@ Expected: dependency tree resolves; no errors.
 ```bash
 vp run ready
 ```
+
 Expected: green. If red, stop — phase 5 must start from green.
 
 (No commit at this task — only worktree state.)
@@ -72,6 +76,7 @@ Expected: green. If red, stop — phase 5 must start from green.
 ## Task 1: Add `RegistryValidationError` to `@aiactions/registry`
 
 **Files:**
+
 - Modify: `packages/registry/src/errors.ts` (add one class).
 - Create: `packages/registry/tests/registry-errors.test.ts`.
 
@@ -157,6 +162,7 @@ test("RegistryValidationError is a RegistryError + AIactionsError", () => {
 ```bash
 vp test -F packages/registry
 ```
+
 Expected: all tests pass, including the new `registry-errors.test.ts` file.
 
 - [ ] **Step 4: Run full ready.**
@@ -164,6 +170,7 @@ Expected: all tests pass, including the new `registry-errors.test.ts` file.
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 5: Commit.**
@@ -178,6 +185,7 @@ git commit -m "feat(registry): add RegistryValidationError"
 ## Task 2: Add the `index-fetch` module to `@aiactions/registry`
 
 **Files:**
+
 - Create: `packages/registry/src/index-fetch.ts`.
 - Modify: `packages/registry/src/index.ts` (add re-export).
 - Move: `packages/cli/tests/registry.test.ts` → `packages/registry/tests/registry-index.test.ts` and rewire imports.
@@ -226,9 +234,12 @@ export async function fetchRegistry(url?: string): Promise<Registry> {
   try {
     resp = await fetch(target, { signal: ctrl.signal });
   } catch (err) {
-    throw new RegistryFetchError(`failed to fetch registry from ${target}: ${(err as Error).message}`, {
-      cause: err,
-    });
+    throw new RegistryFetchError(
+      `failed to fetch registry from ${target}: ${(err as Error).message}`,
+      {
+        cause: err,
+      },
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -346,7 +357,9 @@ Open `packages/registry/tests/registry-index.test.ts`. Replace the import header
 ```ts
 } from "../src/lib/registry.ts";
 ```
+
 with:
+
 ```ts
 } from "../src/index-fetch.ts";
 ```
@@ -354,7 +367,13 @@ with:
 And replace any reference to CLI's old error classes — the test currently imports `RegistryFetchError`/`RegistryValidationError` from `../src/lib/errors.ts`; rewire those imports to `../src/errors.ts`. Concretely, ensure the test file's imports look like:
 
 ```ts
-import { fetchRegistry, REGISTRY_URL_DEFAULT, resolveRegistryUrl, groupByCoord, resolveLatest } from "../src/index-fetch.ts";
+import {
+  fetchRegistry,
+  REGISTRY_URL_DEFAULT,
+  resolveRegistryUrl,
+  groupByCoord,
+  resolveLatest,
+} from "../src/index-fetch.ts";
 import { RegistryFetchError, RegistryValidationError } from "../src/errors.ts";
 ```
 
@@ -365,6 +384,7 @@ Then audit assertions — the brick errors carry `{ cause }` not a positional `c
 ```bash
 vp test -F packages/registry
 ```
+
 Expected: `registry-index.test.ts` passes.
 
 - [ ] **Step 6: Run full ready.**
@@ -374,6 +394,7 @@ The CLI still imports `fetchRegistry` from `cli/lib/registry.ts`, so CLI tests c
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 7: Commit.**
@@ -390,6 +411,7 @@ git commit -m "feat(registry): add index-fetch module for registry.json"
 ## Task 3: Add the `cache` module to `@aiactions/registry`
 
 **Files:**
+
 - Create: `packages/registry/src/cache.ts`.
 - Modify: `packages/registry/src/index.ts` (add re-export).
 - Move: `packages/cli/tests/walk-cache.test.ts` → `packages/registry/tests/cache.test.ts` and rewire imports.
@@ -483,7 +505,9 @@ Open `packages/registry/tests/cache.test.ts`. Replace the source import:
 ```ts
 import { walkCache } from "../src/lib/walk-cache.ts";
 ```
+
 with:
+
 ```ts
 import { walkCache } from "../src/cache.ts";
 ```
@@ -495,6 +519,7 @@ Same for any `import { type CachedEntry } from "../src/lib/walk-cache.ts"` line 
 ```bash
 vp test -F packages/registry
 ```
+
 Expected: `cache.test.ts` passes.
 
 - [ ] **Step 5: Run full ready.**
@@ -502,6 +527,7 @@ Expected: `cache.test.ts` passes.
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 6: Commit.**
@@ -516,6 +542,7 @@ git commit -m "feat(registry): add cache module"
 ## Task 4: Introduce `cli/_shared/` and consume brick errors
 
 **Files:**
+
 - Move: `cli/lib/exit-codes.ts` → `cli/_shared/exit-codes.ts`.
 - Create: `cli/_shared/cli-error.ts` (replaces `cli/lib/errors.ts`, keeps only non-domain classes).
 - Move: `cli/lib/output.ts` → `cli/_shared/output.ts`.
@@ -684,11 +711,7 @@ Open `packages/cli/tests/_shared/cli-error.test.ts`. Replace its content with on
 ```ts
 import { expect, test } from "vite-plus/test";
 
-import {
-  CliError,
-  NotFoundError,
-  UsageError,
-} from "../../src/_shared/cli-error.ts";
+import { CliError, NotFoundError, UsageError } from "../../src/_shared/cli-error.ts";
 import { EXIT } from "../../src/_shared/exit-codes.ts";
 
 test("CliError carries explicit code + cause", () => {
@@ -735,6 +758,7 @@ Search and rewire:
 ```bash
 grep -rln 'src/lib/errors' packages/cli/tests
 ```
+
 Expected output (after step 6): two files — `check.test.ts`, `install.test.ts`, `uninstall.test.ts`. Open each and rewrite the import to:
 
 ```ts
@@ -748,6 +772,7 @@ Also rewire `EXIT` imports — anywhere that currently reads `from "../src/lib/e
 ```bash
 vp run ready
 ```
+
 Expected: green. If `oxlint` complains about unused imports, fix the offending file.
 
 - [ ] **Step 10: Commit.**
@@ -762,6 +787,7 @@ git commit -m "refactor(cli): introduce _shared/ folder, consume brick errors"
 ## Task 5: Vertical-slice `commands/action/check`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/action/check/command.ts`, `check-action.ts`, `receipt.ts`.
 - Move: `cli/src/lib/check-manifest.ts` → `cli/src/commands/action/check/check-manifest.ts`.
 - Move: `cli/src/lib/format-issues.ts` → `cli/src/commands/action/check/format-issues.ts`.
@@ -986,6 +1012,7 @@ git mv packages/cli/tests/format-issues.test.ts  packages/cli/tests/commands/act
 ```
 
 Open each test file and update its imports. The import-rewrite recipe:
+
 - `"../src/commands/action/check.ts"` → `"../../../../src/commands/action/check/command.ts"` (and import the symbol named `checkCommand`)
 - `"../src/lib/check-manifest.ts"` → `"../../../../src/commands/action/check/check-manifest.ts"`
 - `"../src/lib/format-issues.ts"` → `"../../../../src/commands/action/check/format-issues.ts"`
@@ -999,6 +1026,7 @@ Open each test file and update its imports. The import-rewrite recipe:
 ```bash
 vp run ready
 ```
+
 Expected: green. The check slice's three tests still pass.
 
 - [ ] **Step 9: Commit.**
@@ -1013,6 +1041,7 @@ git commit -m "refactor(cli): vertical-slice action check"
 ## Task 6: Vertical-slice `commands/action/install`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/action/install/{command.ts, install-action.ts, receipt.ts}`.
 - Move: `cli/src/lib/parse-short-ref.ts` → `cli/src/commands/action/install/parse-short-ref.ts`.
 - Delete: `cli/src/commands/action/install.ts`.
@@ -1306,6 +1335,7 @@ git mv packages/cli/tests/parse-short-ref.test.ts  packages/cli/tests/commands/a
 ```
 
 For each moved test, rewrite its imports per the recipe:
+
 - `"../src/commands/action/install.ts"` → `"../../../../src/commands/action/install/command.ts"` (symbol = `installCommand`)
 - `"../src/lib/parse-short-ref.ts"` → `"../../../../src/commands/action/install/parse-short-ref.ts"`
 - `"../src/lib/registry.ts"` → `"@aiactions/registry"` (test now consumes brick exports)
@@ -1319,6 +1349,7 @@ If a test references the brick's `RegistryFetchError` or `RegistryValidationErro
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 9: Commit.**
@@ -1333,6 +1364,7 @@ git commit -m "refactor(cli): vertical-slice action install"
 ## Task 7: Vertical-slice `commands/action/list`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/action/list/{command.ts, list-actions.ts, receipt.ts}`.
 - Delete: `cli/src/commands/action/list.ts`.
 - Modify: `cli/src/commands/action/index.ts`.
@@ -1557,6 +1589,7 @@ git mv packages/cli/tests/list-registry.test.ts packages/cli/tests/commands/acti
 ```
 
 Rewire imports in that test file:
+
 - `"../src/commands/action/list.ts"` → `"../../../../src/commands/action/list/command.ts"` (symbol = `listCommand`)
 - `"../src/lib/registry.ts"` → `"@aiactions/registry"`
 - `"../src/lib/walk-cache.ts"` → `"@aiactions/registry"`
@@ -1566,6 +1599,7 @@ Rewire imports in that test file:
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 9: Commit.**
@@ -1580,6 +1614,7 @@ git commit -m "refactor(cli): vertical-slice action list"
 ## Task 8: Vertical-slice `commands/action/uninstall`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/action/uninstall/{command.ts, uninstall-action.ts, receipt.ts}`.
 - Delete: `cli/src/commands/action/uninstall.ts`.
 - Modify: `cli/src/commands/action/index.ts`.
@@ -1814,6 +1849,7 @@ git mv packages/cli/tests/uninstall.test.ts packages/cli/tests/commands/action/u
 ```
 
 Rewire imports per the recipe:
+
 - `"../src/commands/action/uninstall.ts"` → `"../../../../src/commands/action/uninstall/command.ts"` (symbol = `uninstallCommand`)
 - `"../src/lib/walk-cache.ts"` → `"@aiactions/registry"`
 - `"../src/lib/errors.ts"` → `"../../../../src/_shared/cli-error.ts"`
@@ -1823,6 +1859,7 @@ Rewire imports per the recipe:
 ```bash
 vp run ready
 ```
+
 Expected: green. All four slices now exist.
 
 - [ ] **Step 9: Commit.**
@@ -1837,6 +1874,7 @@ git commit -m "refactor(cli): vertical-slice action uninstall"
 ## Task 9: Delete the legacy `cli/src/lib/`
 
 **Files:**
+
 - Delete: `packages/cli/src/lib/` entirely (registry.ts, walk-cache.ts).
 
 After Task 8, the only files left under `cli/src/lib/` are `registry.ts` and `walk-cache.ts` — both are now unused (consumers were rewired to `@aiactions/registry` in Tasks 6–8).
@@ -1846,6 +1884,7 @@ After Task 8, the only files left under `cli/src/lib/` are `registry.ts` and `wa
 ```bash
 grep -rn 'src/lib/' packages/cli/src packages/cli/tests --include='*.ts'
 ```
+
 Expected: empty output. If any consumer remains, fix it before deleting.
 
 - [ ] **Step 2: Delete the folder.**
@@ -1854,6 +1893,7 @@ Expected: empty output. If any consumer remains, fix it before deleting.
 rm -r packages/cli/src/lib
 ls packages/cli/src
 ```
+
 Expected: `src` lists `_shared`, `cli.ts`, `commands`. No `lib`.
 
 - [ ] **Step 3: Run `vp run ready`.**
@@ -1861,6 +1901,7 @@ Expected: `src` lists `_shared`, `cli.ts`, `commands`. No `lib`.
 ```bash
 vp run ready
 ```
+
 Expected: green.
 
 - [ ] **Step 4: Commit.**
@@ -1913,6 +1954,7 @@ If any test file is missing or in the wrong place, restore from `git status` / `
 ```bash
 ls packages/cli/tests/*.ts
 ```
+
 Expected: only `bin-integration.test.ts` (single file).
 
 - [ ] **Step 3: Run `vp test -F packages/cli`.**
@@ -1920,6 +1962,7 @@ Expected: only `bin-integration.test.ts` (single file).
 ```bash
 vp test -F packages/cli
 ```
+
 Expected: every test passes — same count as before phase 5 (minus the two relocated to brick).
 
 (No commit at this task — the moves were committed alongside each slice in Tasks 4–8. This task is the verification gate.)
@@ -1933,6 +1976,7 @@ Expected: every test passes — same count as before phase 5 (minus the two relo
 ```bash
 grep -rn 'fetchRegistry\|REGISTRY_URL_DEFAULT\|resolveRegistryUrl\|groupByCoord\|resolveLatest' packages/ --include='*.ts' | grep -v dist | grep -v node_modules
 ```
+
 Expected: every match falls under `packages/registry/src/index-fetch.ts` (definitions) or test/consumer files importing from `@aiactions/registry`. Zero matches under `packages/cli/src/lib/` (which no longer exists). Zero matches under any `cli/src/` file other than the test relics that import the brick names.
 
 - [ ] **Step 2: Symbol uniqueness (cache).**
@@ -1940,6 +1984,7 @@ Expected: every match falls under `packages/registry/src/index-fetch.ts` (defini
 ```bash
 grep -rn 'walkCache\|CachedEntry' packages/ --include='*.ts' | grep -v dist | grep -v node_modules
 ```
+
 Expected: definition only in `packages/registry/src/cache.ts`; consumers in `packages/cli/src/commands/action/{list,uninstall}/` import from `@aiactions/registry`.
 
 - [ ] **Step 3: Error-class uniqueness.**
@@ -1947,6 +1992,7 @@ Expected: definition only in `packages/registry/src/cache.ts`; consumers in `pac
 ```bash
 grep -rn 'class RegistryFetchError\|class RegistryValidationError\|class RegistryResolveError\|class RegistryError' packages/ --include='*.ts' | grep -v dist | grep -v node_modules
 ```
+
 Expected: four definitions only, all in `packages/registry/src/errors.ts`.
 
 - [ ] **Step 4: `cli/src/lib` uniqueness.**
@@ -1954,6 +2000,7 @@ Expected: four definitions only, all in `packages/registry/src/errors.ts`.
 ```bash
 grep -rn 'cli/src/lib\|src/lib/' packages/cli --include='*.ts'
 ```
+
 Expected: empty output.
 
 - [ ] **Step 5: Full `vp run ready`.**
@@ -1961,6 +2008,7 @@ Expected: empty output.
 ```bash
 vp run ready
 ```
+
 Expected: green across the entire monorepo.
 
 - [ ] **Step 6: Smoke-test the binary.**
@@ -1976,6 +2024,7 @@ node packages/cli/bin/aia.mjs action install --help
 node packages/cli/bin/aia.mjs action list --help
 node packages/cli/bin/aia.mjs action uninstall --help
 ```
+
 Expected: every help screen renders. Subcommand list under `aia action` shows `check, install, list, uninstall` exactly as before. `aia --version` prints the same version as `packages/cli/package.json`.
 
 (No commit at this task — it is a verification gate. If anything fails, fix it on a focused commit before moving on.)
@@ -1993,6 +2042,7 @@ From the worktree directory (`/home/aperrix/Documents/PROJECTS/aiactions-phase-5
 ```bash
 git log --oneline main..HEAD
 ```
+
 Expected output (~10 commits): `feat(registry): add RegistryValidationError`, `feat(registry): add index-fetch module …`, `feat(registry): add cache module`, `refactor(cli): introduce _shared/ folder, consume brick errors`, `refactor(cli): vertical-slice action check`, `refactor(cli): vertical-slice action install`, `refactor(cli): vertical-slice action list`, `refactor(cli): vertical-slice action uninstall`, `refactor(cli): delete legacy cli/src/lib`. (Order may differ; commit count may vary if a fix-up was needed.)
 
 - [ ] **Step 2: Switch to `main` (in the original checkout).**
@@ -2002,6 +2052,7 @@ cd /home/aperrix/Documents/PROJECTS/aiactions
 git checkout main
 git pull --ff-only
 ```
+
 Expected: `main` is up-to-date with origin.
 
 - [ ] **Step 3: Merge `--no-ff` (after explicit user approval).**
@@ -2010,6 +2061,7 @@ Expected: `main` is up-to-date with origin.
 git merge --no-ff worktree-phase-5-cli-vertical-slices -m "Merge phase-5: vertical-slice CLI per (resource, verb) + migrate registry-domain helpers to @aiactions/registry"
 git log --oneline -5
 ```
+
 Expected: a single merge commit on `main` with all the per-component commits visible underneath via `git log`.
 
 - [ ] **Step 4: Push to origin (after second user approval).**
@@ -2017,6 +2069,7 @@ Expected: a single merge commit on `main` with all the per-component commits vis
 ```bash
 git push origin main
 ```
+
 Expected: pushed.
 
 - [ ] **Step 5: Cleanup the worktree.**
@@ -2025,6 +2078,7 @@ Expected: pushed.
 git worktree remove ../aiactions-phase-5
 git branch -d worktree-phase-5-cli-vertical-slices
 ```
+
 Expected: worktree directory is gone; branch is deleted (the merge commit on `main` keeps history).
 
 - [ ] **Step 6: Trigger codebase-memory re-index.**
@@ -2032,6 +2086,7 @@ Expected: worktree directory is gone; branch is deleted (the merge commit on `ma
 ```bash
 mcp__codebase-memory-mcp__detect_changes project="home-aperrix-Documents-PROJECTS-aiactions" since="HEAD~10"
 ```
+
 If structural drift is reported, re-index in `moderate` mode.
 
 - [ ] **Step 7: Persist phase-5 result in MuninnDB.**
@@ -2054,6 +2109,7 @@ Cross-checking this plan against the spec:
 - **§10 anti-dup** → Task 11.
 
 **Footnote — `EXIT_BY_BRICK_ERROR` wiring (optional in-phase):** if you want the spec's table operationalized this phase, add a Task 4.5 that:
+
 1. Adds an `EXIT_BY_BRICK_ERROR: ReadonlyMap<typeof AIactionsError, ExitCode>` table to `_shared/exit-codes.ts`.
 2. Modifies `cli.ts`'s catch to: `if (err instanceof AIactionsError) process.exit(EXIT_BY_BRICK_ERROR.get(err.constructor) ?? EXIT.RUNTIME);` before the generic `instanceof Error` branch.
 3. Adds a unit test asserting each known brick error class maps to its expected exit code.

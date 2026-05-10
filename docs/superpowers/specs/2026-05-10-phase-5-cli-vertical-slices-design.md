@@ -114,18 +114,18 @@ packages/registry/tests/
 
 ## 5. Migration map — `cli/lib/*` → destination
 
-| Source                        | Destination                                                                       | Rationale                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `lib/errors.ts` (3 classes)   | `_shared/cli-error.ts` — keeps `CliError`, `UsageError`, `NotFoundError`          | CLI-cross-cutting non-domain errors. No equivalent in any brick.                                                |
-| `lib/errors.ts` (2 classes)   | **Deleted.** `RegistryFetchError`/`RegistryValidationError` consumed from brick   | Eliminates dup with `@aiactions/registry/errors.ts`. `RegistryValidationError` added to brick.                  |
-| `lib/exit-codes.ts`           | `_shared/exit-codes.ts` — verbatim                                                | `EXIT.*` constants are part of the script-consumer contract; preserved as-is.                                   |
-| `lib/output.ts`               | `_shared/output.ts` — verbatim                                                    | CLI-cross-cutting writer (TTY detection + table formatting). Used by 2+ slices.                                 |
-| `lib/parse-registry-ref.ts`   | `_shared/parse-registry-ref.ts` — verbatim                                        | Argv parser, CLI-specific. Used by install + uninstall (2 slices). Stays cross-slice but inside CLI.            |
-| `lib/parse-short-ref.ts`      | `commands/action/install/parse-short-ref.ts`                                      | Used by install only. Slice-local.                                                                              |
-| `lib/registry.ts`             | `@aiactions/registry/index-fetch.ts` (NEW)                                        | Registry-index domain code (fetch, parse, group, resolveLatest). Distinct from brick's existing action-fetch.   |
-| `lib/walk-cache.ts`           | `@aiactions/registry/cache.ts` (NEW)                                              | Cache-layout FS walker — registry-domain. Used by list + uninstall.                                             |
-| `lib/format-issues.ts`        | `commands/action/check/format-issues.ts`                                          | Used by check only. Slice-local.                                                                                |
-| `lib/check-manifest.ts`       | `commands/action/check/check-manifest.ts`                                         | Multi-issue display wrapper over `parseActionManifest`. Distinct semantics from brick. Used by check only.      |
+| Source                      | Destination                                                                     | Rationale                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `lib/errors.ts` (3 classes) | `_shared/cli-error.ts` — keeps `CliError`, `UsageError`, `NotFoundError`        | CLI-cross-cutting non-domain errors. No equivalent in any brick.                                              |
+| `lib/errors.ts` (2 classes) | **Deleted.** `RegistryFetchError`/`RegistryValidationError` consumed from brick | Eliminates dup with `@aiactions/registry/errors.ts`. `RegistryValidationError` added to brick.                |
+| `lib/exit-codes.ts`         | `_shared/exit-codes.ts` — verbatim                                              | `EXIT.*` constants are part of the script-consumer contract; preserved as-is.                                 |
+| `lib/output.ts`             | `_shared/output.ts` — verbatim                                                  | CLI-cross-cutting writer (TTY detection + table formatting). Used by 2+ slices.                               |
+| `lib/parse-registry-ref.ts` | `_shared/parse-registry-ref.ts` — verbatim                                      | Argv parser, CLI-specific. Used by install + uninstall (2 slices). Stays cross-slice but inside CLI.          |
+| `lib/parse-short-ref.ts`    | `commands/action/install/parse-short-ref.ts`                                    | Used by install only. Slice-local.                                                                            |
+| `lib/registry.ts`           | `@aiactions/registry/index-fetch.ts` (NEW)                                      | Registry-index domain code (fetch, parse, group, resolveLatest). Distinct from brick's existing action-fetch. |
+| `lib/walk-cache.ts`         | `@aiactions/registry/cache.ts` (NEW)                                            | Cache-layout FS walker — registry-domain. Used by list + uninstall.                                           |
+| `lib/format-issues.ts`      | `commands/action/check/format-issues.ts`                                        | Used by check only. Slice-local.                                                                              |
+| `lib/check-manifest.ts`     | `commands/action/check/check-manifest.ts`                                       | Multi-issue display wrapper over `parseActionManifest`. Distinct semantics from brick. Used by check only.    |
 
 ## 6. Slice file conventions
 
@@ -171,19 +171,19 @@ The CLI top-level `try { ... } catch (err) { ... }` in `cli.ts` keeps its curren
 
 `EXIT_BY_BRICK_ERROR` table (uses **only** the existing `EXIT.*` constants — `OK / RUNTIME / USAGE / NOT_FOUND / CONFLICT / REGISTRY / SCHEMA`; no new codes added in phase 5):
 
-| Constructor                              | Exit code         |
-| ---------------------------------------- | ----------------- |
-| `WorkflowParseError`                     | `EXIT.SCHEMA`     |
-| `WorkflowSchemaError`                    | `EXIT.SCHEMA`     |
-| `WorkflowValidationError`                | `EXIT.SCHEMA`     |
-| `DiscoveryError`                         | `EXIT.NOT_FOUND`  |
-| `RegistryFetchError`                     | `EXIT.REGISTRY`   |
-| `RegistryResolveError`                   | `EXIT.REGISTRY`   |
-| `RegistryValidationError`                | `EXIT.REGISTRY`   |
-| `ExpressionError`                        | `EXIT.RUNTIME`    |
-| `ExecError`                              | `EXIT.RUNTIME`    |
-| `GitError`                               | `EXIT.RUNTIME`    |
-| `RunnerError` / `JobError` / `StepError` | `EXIT.RUNTIME`    |
+| Constructor                              | Exit code        |
+| ---------------------------------------- | ---------------- |
+| `WorkflowParseError`                     | `EXIT.SCHEMA`    |
+| `WorkflowSchemaError`                    | `EXIT.SCHEMA`    |
+| `WorkflowValidationError`                | `EXIT.SCHEMA`    |
+| `DiscoveryError`                         | `EXIT.NOT_FOUND` |
+| `RegistryFetchError`                     | `EXIT.REGISTRY`  |
+| `RegistryResolveError`                   | `EXIT.REGISTRY`  |
+| `RegistryValidationError`                | `EXIT.REGISTRY`  |
+| `ExpressionError`                        | `EXIT.RUNTIME`   |
+| `ExecError`                              | `EXIT.RUNTIME`   |
+| `GitError`                               | `EXIT.RUNTIME`   |
+| `RunnerError` / `JobError` / `StepError` | `EXIT.RUNTIME`   |
 
 Adding finer-grained codes (e.g. dedicated `EXIT.GIT`, splitting `SCHEMA` vs `USAGE` for parse vs validation) is deferred to a separate follow-up to keep phase 5 strictly internal-restructure.
 
