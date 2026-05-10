@@ -1,5 +1,5 @@
 import { AIactionsError } from "@aiactions/schema";
-import { defineCommand, runCommand, showUsage } from "citty";
+import { type CommandDef, defineCommand, runCommand, showUsage } from "citty";
 
 import packageJson from "../package.json" with { type: "json" };
 import { subCommands } from "./commands/index.ts";
@@ -17,12 +17,41 @@ const main = defineCommand({
   subCommands,
 });
 
+/**
+ * Walk `cmd.subCommands` following positional segments in `rawArgs` and
+ * return the deepest matching command together with its parent. Mirrors
+ * citty's internal `resolveSubCommand` (not exported by the package) so
+ * `aia <resource> <verb> --help` renders the verb's help screen, not its
+ * `run()` body.
+ */
+async function resolveSubCommand(
+  cmd: CommandDef,
+  rawArgs: string[],
+  parent?: CommandDef,
+): Promise<[CommandDef, CommandDef | undefined]> {
+  const subs = await (typeof cmd.subCommands === "function" ? cmd.subCommands() : cmd.subCommands);
+  if (subs && Object.keys(subs).length > 0) {
+    const idx = rawArgs.findIndex((arg) => !arg.startsWith("-"));
+    const name = idx >= 0 ? rawArgs[idx] : undefined;
+    const entry = name === undefined ? undefined : subs[name];
+    const next = await (typeof entry === "function" ? entry() : entry);
+    if (next) {
+      return resolveSubCommand(next, rawArgs.slice(idx + 1), cmd);
+    }
+  }
+  return [cmd, parent];
+}
+
 const rawArgs = process.argv.slice(2);
 const firstArg = rawArgs[0];
 
 try {
-  if (rawArgs.length === 0 || firstArg === "--help" || firstArg === "-h") {
+  if (rawArgs.length === 0) {
     await showUsage(main);
+    process.exit(0);
+  } else if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+    const [resolved, parent] = await resolveSubCommand(main, rawArgs);
+    await showUsage(resolved, parent);
     process.exit(0);
   } else if (firstArg === "--version") {
     process.stdout.write(`${VERSION}\n`);

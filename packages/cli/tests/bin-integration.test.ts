@@ -39,6 +39,38 @@ test("aia --help prints USAGE block", async () => {
   expect(result.stdout).toContain("aia");
 });
 
+test("aia <resource> --help prints the resource's USAGE block", async () => {
+  const result = await runCli(["workflow", "--help"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("USAGE");
+  expect(result.stdout).toContain("workflow");
+  expect(result.stdout).toContain("list");
+  expect(result.stdout).toContain("check");
+});
+
+test("aia <resource> <verb> --help prints the verb's USAGE block", async () => {
+  const result = await runCli(["workflow", "list", "--help"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("USAGE");
+  expect(result.stdout).toContain("--json");
+});
+
+test("aia workflow check --help renders without invoking the run handler", async () => {
+  const result = await runCli(["workflow", "check", "--help"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("USAGE");
+  expect(result.stdout).toContain("--all");
+  expect(result.stderr).not.toContain("expected exactly one of");
+});
+
+test("aia action check --help renders without invoking the run handler (regression)", async () => {
+  const result = await runCli(["action", "check", "--help"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("USAGE");
+  expect(result.stdout).toContain("--all");
+  expect(result.stderr).not.toContain("expected exactly one of");
+});
+
 test("aia action install end-to-end populates the cache", async () => {
   const bareRepo = await makeBareRepoWithAction({
     cwd: env.home,
