@@ -15,6 +15,7 @@
 ## Task 0: Pre-flight on `main`
 
 **Files:**
+
 - Inspect: `git status`, `vp fmt --check` output
 
 - [ ] **Step 1: Confirm a clean `main` working tree**
@@ -32,7 +33,7 @@ vp fmt
 git status --short
 ```
 
-If `git status --short` shows any changes after `vp fmt`, the working tree had pending format drift. Commit it on `main` *before* starting the worktree to keep it out of phase-6's no-ff range (lesson MS1.7):
+If `git status --short` shows any changes after `vp fmt`, the working tree had pending format drift. Commit it on `main` _before_ starting the worktree to keep it out of phase-6's no-ff range (lesson MS1.7):
 
 ```bash
 git add -A
@@ -64,6 +65,7 @@ Expected: green across the whole monorepo. This baseline locks the "before" stat
 ## Task 1: Create the phase-6 worktree
 
 **Files:**
+
 - Create: `../aiactions-phase-6/` (sibling worktree directory)
 
 - [ ] **Step 1: Verify the worktree dir is free**
@@ -105,6 +107,7 @@ Expected: deps reconciled, lockfile unchanged (we have not modified any `package
 ## Task 2: Promote `NotInGitRepoError` to extend `AIactionsError`
 
 **Files:**
+
 - Modify: `packages/discovery/src/errors.ts`
 - Create: `packages/discovery/tests/errors.test.ts`
 
@@ -219,6 +222,7 @@ git commit -m "feat(discovery): NotInGitRepoError extends AIactionsError"
 ## Task 3: Add `@aiactions/discovery` dep to `@aiactions/cli` and extend `EXIT_BY_BRICK_ERROR`
 
 **Files:**
+
 - Modify: `packages/cli/package.json` (add `@aiactions/discovery` workspace dep)
 - Modify: `packages/cli/src/_shared/exit-codes.ts`
 - Create: `packages/cli/tests/_shared/exit-codes.test.ts`
@@ -243,8 +247,16 @@ Create `packages/cli/tests/_shared/exit-codes.test.ts`:
 import { describe, expect, it } from "vite-plus/test";
 
 import { NotInGitRepoError } from "@aiactions/discovery";
-import { RegistryFetchError, RegistryResolveError, RegistryValidationError } from "@aiactions/registry";
-import { WorkflowParseError, WorkflowSchemaError, WorkflowValidationError } from "@aiactions/schema";
+import {
+  RegistryFetchError,
+  RegistryResolveError,
+  RegistryValidationError,
+} from "@aiactions/registry";
+import {
+  WorkflowParseError,
+  WorkflowSchemaError,
+  WorkflowValidationError,
+} from "@aiactions/schema";
 
 import { EXIT, EXIT_BY_BRICK_ERROR } from "../../src/_shared/exit-codes.ts";
 
@@ -376,6 +388,7 @@ If the lockfile name in this repo is different (e.g. `bun.lockb`, `pnpm-lock.yam
 ## Task 4: Add the `workflow` command scaffold
 
 **Files:**
+
 - Create: `packages/cli/src/commands/workflow/index.ts`
 - Modify: `packages/cli/src/commands/index.ts`
 
@@ -451,6 +464,7 @@ git commit -m "feat(cli): add workflow command scaffold"
 ## Task 5: Slice `aia workflow list`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/workflow/list/command.ts`
 - Create: `packages/cli/src/commands/workflow/list/list-workflows.ts`
 - Create: `packages/cli/src/commands/workflow/list/receipt.ts`
@@ -618,9 +632,7 @@ describe("workflow list — writeListReceipt", () => {
     expect(stdout).toBe(
       ["greet  project  /p/.aiactions/workflows/greet.yaml", "--", ""].join("\n"),
     );
-    expect(stderr).toBe(
-      "/p/.aiactions/workflows/broken.yaml: schema_validation: missing field\n",
-    );
+    expect(stderr).toBe("/p/.aiactions/workflows/broken.yaml: schema_validation: missing field\n");
   });
 
   it("emits a `no workflows found` notice on stderr when both lists are empty (pretty)", () => {
@@ -745,6 +757,7 @@ git commit -m "feat(cli): vertical-slice workflow list"
 ## Task 6: Slice `aia workflow check`
 
 **Files:**
+
 - Create: `packages/cli/src/commands/workflow/check/command.ts`
 - Create: `packages/cli/src/commands/workflow/check/check-workflow.ts`
 - Create: `packages/cli/src/commands/workflow/check/receipt.ts`
@@ -752,6 +765,7 @@ git commit -m "feat(cli): vertical-slice workflow list"
 - Create: `packages/cli/tests/commands/workflow/check/check.test.ts`
 
 The check slice has two modes:
+
 - **Positional `<path>` (single-file)** — `parseWorkflow(path)`, **rethrow** any `WorkflowParseError|SchemaError|ValidationError` unchanged. The top-level CLI handler maps these to `EXIT.SCHEMA`. This intentionally diverges from `action check`, which converts ENOENT to `NotFoundError` — for workflows we keep all parser failures under one exit code.
 - **`--all` mode** — `discoverWorkflows()` → transform `DiscoveryResult.errors[]` into `CheckResult[]` rows. `NotInGitRepoError` bubbles unchanged.
 
@@ -883,7 +897,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { NotInGitRepoError } from "@aiactions/discovery";
-import { WorkflowParseError, WorkflowSchemaError, WorkflowValidationError } from "@aiactions/schema";
+import {
+  WorkflowParseError,
+  WorkflowSchemaError,
+  WorkflowValidationError,
+} from "@aiactions/schema";
 
 import { UsageError } from "../../../../src/_shared/cli-error.ts";
 import { runCheckWorkflow } from "../../../../src/commands/workflow/check/check-workflow.ts";
@@ -1023,9 +1041,7 @@ describe("writeCheckReceipt", () => {
         errors: [{ kind: "schema_validation", message: "missing field" }],
       },
     ]);
-    expect(stdout).toBe(
-      ["✗ /p/b.yaml", "    schema_validation: missing field", ""].join("\n"),
-    );
+    expect(stdout).toBe(["✗ /p/b.yaml", "    schema_validation: missing field", ""].join("\n"));
   });
 
   it("emits a summary line when results.length > 1 (pretty)", () => {
@@ -1063,6 +1079,7 @@ describe("writeCheckReceipt", () => {
 ```
 
 The `--all` describe block is intentionally a single placeholder. Stubbing `discoverWorkflows` from a module-level export is brittle in vitest+ESM; the more honest coverage is:
+
 - `runListWorkflow` already proxies discovery (tested in Task 5 via stdin/stderr capture).
 - The `--all` shape transformation (Discovery → CheckResult) is small and self-evident.
 - The verification gate (Task 7) exercises `--all` end-to-end via the built binary inside this very repo.
@@ -1077,6 +1094,7 @@ vp test commands/workflow/check/check.test.ts
 ```
 
 Expected:
+
 - The argument-validation tests pass (`runCheckWorkflow` already throws `UsageError`).
 - The single-file tests pass (`parseWorkflow` is rethrown).
 - The receipt tests pass (`writeCheckReceipt` works on synthetic `CheckResult[]`).
@@ -1169,7 +1187,7 @@ node packages/cli/bin/aia.mjs workflow check --help
 node packages/cli/bin/aia.mjs workflow check --all
 ```
 
-Expected for `--help`: a citty-rendered help screen with positional `path`, `--all`, `--json`. Expected for `--all` from inside this very repo: exit 0 with `0 file(s) checked` (or whatever count) since the repo currently has no `.aiactions/workflows/`. If there *are* workflows, all should be valid → exit 0.
+Expected for `--help`: a citty-rendered help screen with positional `path`, `--all`, `--json`. Expected for `--all` from inside this very repo: exit 0 with `0 file(s) checked` (or whatever count) since the repo currently has no `.aiactions/workflows/`. If there _are_ workflows, all should be valid → exit 0.
 
 - [ ] **Step 7: Commit**
 
@@ -1366,6 +1384,7 @@ Use `mcp__muninn__muninn_remember` with `vault: "aiactions"`:
 - `tags`: `["phase-6", "cli", "workflow", "discovery", "exit-codes", "shipped"]`
 
 Also store a separate memory `concept: "next-session-resume-post-phase-6"` summarising:
+
 - main HEAD SHA at end of merge.
 - 10 packages still (no new package added).
 - Next: phase 6.5 plan + execute (`aia workflow run`, surface decisions: input/env CLI flags, RuntimeEvent stream rendering, exit-code mapping from RunResult, signal forwarding).

@@ -75,6 +75,7 @@ No dep on `@aiactions/core` in this phase.
 ### 4.4 Sharing rule
 
 No new `_shared/` extraction. Each slice owns its `CheckResult`-style local types. The existing `_shared/`:
+
 - `cli-error.ts` — reused for `UsageError`.
 - `exit-codes.ts` — extended (see §6).
 - `output.ts` (table renderer) — not reused; pretty output is per-slice line-rendering.
@@ -117,12 +118,14 @@ list/receipt.ts (writeListReceipt)
 #### 5.1.3 Pretty output
 
 Rules:
+
 - One workflow per line, alphabetical by `name` (already sorted by `discoverWorkflows`).
 - Format: `<name>  <origin>  <absolutePath>[  [shadowed by <origin>: <absolutePath>]]`
 - After workflows, if `errors.length > 0`: a `--` separator line, then one line per error to **stderr**: `<absolutePath>: <kind>: <message>`.
 - Empty case (`workflows.length === 0 && errors.length === 0`): write `no workflows found\n` to **stderr**, exit 0.
 
 Example:
+
 ```
 greet            project   /home/u/proj/.aiactions/workflows/greet.yaml
 ci               project   /home/u/proj/.aiactions/workflows/ci.yaml  [shadowed by home: /home/u/.aiactions/workflows/ci.yaml]
@@ -138,13 +141,21 @@ Direct passthrough of `DiscoveryResult`. `shadowed` field is **omitted** when ab
 ```json
 {
   "workflows": [
-    {"name": "greet", "origin": "project", "absolutePath": "/.../greet.yaml"},
-    {"name": "ci", "origin": "project", "absolutePath": "/.../ci.yaml",
-     "shadowed": {"absolutePath": "/.../ci.yaml", "origin": "home"}}
+    { "name": "greet", "origin": "project", "absolutePath": "/.../greet.yaml" },
+    {
+      "name": "ci",
+      "origin": "project",
+      "absolutePath": "/.../ci.yaml",
+      "shadowed": { "absolutePath": "/.../ci.yaml", "origin": "home" }
+    }
   ],
   "errors": [
-    {"absolutePath": "/.../broken.yaml", "origin": "project",
-     "kind": "schema_validation", "message": "..."}
+    {
+      "absolutePath": "/.../broken.yaml",
+      "origin": "project",
+      "kind": "schema_validation",
+      "message": "..."
+    }
   ]
 }
 ```
@@ -169,6 +180,7 @@ Mirror `action check` exactly:
 ```
 
 The two modes are mutually exclusive:
+
 - `aia workflow check <path>` → single-file mode, calls `parseWorkflow(path)` directly.
 - `aia workflow check --all` → discovery mode, calls `discoverWorkflows()`.
 - No args → `UsageError("specify <path> or --all")` → exit `USAGE` (2).
@@ -229,6 +241,7 @@ export interface CheckResult {
 ```
 
 `kind` values:
+
 - `--all` mode: re-uses `DiscoveryErrorKind` literal values: `"yaml_parse" | "schema_validation" | "graph_validation" | "io_error"`.
 - Single-file mode never reaches this shape with `ok: false` (rethrown).
 
@@ -253,9 +266,12 @@ No `warnings[]` field. If a future schema introduces warnings, the field is adde
 {
   "ok": false,
   "files": [
-    {"path": "/.../greet.yaml", "ok": true,  "errors": []},
-    {"path": "/.../broken.yaml", "ok": false,
-     "errors": [{"kind": "schema_validation", "message": "..."}]}
+    { "path": "/.../greet.yaml", "ok": true, "errors": [] },
+    {
+      "path": "/.../broken.yaml",
+      "ok": false,
+      "errors": [{ "kind": "schema_validation", "message": "..." }]
+    }
   ]
 }
 ```
@@ -277,6 +293,7 @@ Two preparatory changes upstream of the slices.
 `packages/discovery/src/errors.ts`:
 
 Before:
+
 ```ts
 export class NotInGitRepoError extends Error {
   readonly code = "ENOTINGITREPO" as const;
@@ -288,6 +305,7 @@ export class NotInGitRepoError extends Error {
 ```
 
 After:
+
 ```ts
 import { AIactionsError } from "@aiactions/schema";
 
@@ -301,6 +319,7 @@ export class NotInGitRepoError extends AIactionsError {
 ```
 
 Impact:
+
 - Public surface unchanged (constructor signature, fields, `name`, `code`).
 - Existing `instanceof NotInGitRepoError` checks pass.
 - Existing `instanceof Error` checks pass (`AIactionsError extends Error`).
@@ -334,15 +353,15 @@ export const EXIT_BY_BRICK_ERROR: ReadonlyMap<
   abstract new (...args: any[]) => AIactionsError,
   ExitCode
 > = new Map([
-  [RegistryFetchError,        EXIT.REGISTRY],
-  [RegistryResolveError,      EXIT.REGISTRY],
-  [RegistryValidationError,   EXIT.REGISTRY],
+  [RegistryFetchError, EXIT.REGISTRY],
+  [RegistryResolveError, EXIT.REGISTRY],
+  [RegistryValidationError, EXIT.REGISTRY],
 
-  [WorkflowParseError,        EXIT.SCHEMA],
-  [WorkflowSchemaError,       EXIT.SCHEMA],
-  [WorkflowValidationError,   EXIT.SCHEMA],
+  [WorkflowParseError, EXIT.SCHEMA],
+  [WorkflowSchemaError, EXIT.SCHEMA],
+  [WorkflowValidationError, EXIT.SCHEMA],
 
-  [NotInGitRepoError,         EXIT.USAGE],
+  [NotInGitRepoError, EXIT.USAGE],
 ]);
 ```
 
