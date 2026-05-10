@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
-import { UsageError } from "../src/lib/errors.ts";
-import { parseRegistryRef } from "../src/lib/parse-registry-ref.ts";
+import { UsageError } from "../../src/_shared/cli-error.ts";
+import { parseRegistryRef } from "../../src/_shared/parse-registry-ref.ts";
 
 test("parses a well-formed registry ref and strips the leading 'v' from the version", () => {
   const ref = parseRegistryRef("claude/agent@v1");

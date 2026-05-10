@@ -4,8 +4,8 @@ import { isAbsolute, join, resolve } from "node:path";
 import { defineCommand } from "citty";
 
 import { checkManifest, type CheckResult } from "../../lib/check-manifest.ts";
-import { NotFoundError, UsageError } from "../../lib/errors.ts";
-import { EXIT } from "../../lib/exit-codes.ts";
+import { NotFoundError, UsageError } from "../../_shared/cli-error.ts";
+import { EXIT } from "../../_shared/exit-codes.ts";
 import { formatIssue } from "../../lib/format-issues.ts";
 
 const SKIP_SEGMENTS = new Set(["node_modules", ".git", "dist"]);

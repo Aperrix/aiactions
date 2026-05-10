@@ -1,6 +1,6 @@
 import { type RegistryRef, usesRefSchema } from "@aiactions/schema";
 
-import { UsageError } from "./errors.ts";
+import { UsageError } from "./cli-error.ts";
 
 /**
  * Parse a CLI argv ref string into a `RegistryRef`. Wraps the

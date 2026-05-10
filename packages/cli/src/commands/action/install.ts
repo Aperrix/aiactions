@@ -4,10 +4,10 @@ import * as clack from "@clack/prompts";
 import { defineCommand } from "citty";
 
 import packageJson from "../../../package.json" with { type: "json" };
-import { CliError, NotFoundError, UsageError } from "../../lib/errors.ts";
-import { EXIT } from "../../lib/exit-codes.ts";
-import { isInteractive } from "../../lib/output.ts";
-import { parseRegistryRef } from "../../lib/parse-registry-ref.ts";
+import { CliError, NotFoundError, UsageError } from "../../_shared/cli-error.ts";
+import { EXIT } from "../../_shared/exit-codes.ts";
+import { isInteractive } from "../../_shared/output.ts";
+import { parseRegistryRef } from "../../_shared/parse-registry-ref.ts";
 import { parseShortRef } from "../../lib/parse-short-ref.ts";
 import {
   fetchRegistry,

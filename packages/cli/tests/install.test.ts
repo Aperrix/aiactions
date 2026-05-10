@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 
 import { installCommand } from "../src/commands/action/install.ts";
-import { UsageError } from "../src/lib/errors.ts";
+import { UsageError } from "../src/_shared/cli-error.ts";
 import { makeBareRepoWithAction } from "./fixtures/make-bare-repo.ts";
 import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
 

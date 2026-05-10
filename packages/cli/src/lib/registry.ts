@@ -1,7 +1,7 @@
 import { registrySchema, type Registry, type RegistryEntry } from "@aiactions/schema";
 import { rcompare as semverRcompare } from "semver";
 
-import { RegistryFetchError, RegistryValidationError } from "./errors.ts";
+import { RegistryFetchError, RegistryValidationError } from "@aiactions/registry";
 
 export const REGISTRY_URL_DEFAULT =
   "https://raw.githubusercontent.com/Aperrix/aiactions/main/actions/registry.json";
@@ -23,7 +23,7 @@ export async function fetchRegistry(url?: string): Promise<Registry> {
   } catch (err) {
     throw new RegistryFetchError(
       `failed to fetch registry from ${target}: ${(err as Error).message}`,
-      err,
+      { cause: err },
     );
   } finally {
     clearTimeout(timer);
@@ -40,7 +40,7 @@ export async function fetchRegistry(url?: string): Promise<Registry> {
   } catch (err) {
     throw new RegistryValidationError(
       `registry at ${target} is malformed JSON: ${(err as Error).message}`,
-      err,
+      { cause: err },
     );
   }
 
@@ -49,7 +49,7 @@ export async function fetchRegistry(url?: string): Promise<Registry> {
     const issue = parsed.error.issues[0];
     throw new RegistryValidationError(
       `registry at ${target} failed validation: ${issue?.path.join(".")}: ${issue?.message}`,
-      parsed.error,
+      { cause: parsed.error },
     );
   }
   return parsed.data;

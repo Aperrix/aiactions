@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test } from "vite-plus/test";
 
 import { checkManifest, joinZodPath } from "../src/lib/check-manifest.ts";
-import { NotFoundError } from "../src/lib/errors.ts";
+import { NotFoundError } from "../src/_shared/cli-error.ts";
 
 const FIXTURES = resolve(__dirname, "fixtures/manifests");
 

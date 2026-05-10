@@ -2,7 +2,7 @@ import { parseActionManifest } from "@aiactions/parser";
 import { WorkflowParseError, WorkflowSchemaError } from "@aiactions/schema";
 import type { ZodError } from "zod";
 
-import { NotFoundError } from "./errors.ts";
+import { NotFoundError } from "../_shared/cli-error.ts";
 import type { Issue } from "./format-issues.ts";
 
 export type { Issue } from "./format-issues.ts";

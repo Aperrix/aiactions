@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 
-import { formatTable, type TableColumn } from "../src/lib/output.ts";
+import { formatTable, type TableColumn } from "../../src/_shared/output.ts";
 
 test("formatTable aligns columns with padEnd", () => {
   const cols: TableColumn<{ a: string; b: string }>[] = [

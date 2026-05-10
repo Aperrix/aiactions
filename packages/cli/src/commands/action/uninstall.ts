@@ -4,9 +4,9 @@ import { dirname, join } from "node:path";
 import * as clack from "@clack/prompts";
 import { defineCommand } from "citty";
 
-import { NotFoundError, UsageError } from "../../lib/errors.ts";
-import { isInteractive } from "../../lib/output.ts";
-import { parseRegistryRef } from "../../lib/parse-registry-ref.ts";
+import { NotFoundError, UsageError } from "../../_shared/cli-error.ts";
+import { isInteractive } from "../../_shared/output.ts";
+import { parseRegistryRef } from "../../_shared/parse-registry-ref.ts";
 import { resolveRegistryRoot } from "@aiactions/paths";
 import { type CachedEntry, walkCache } from "../../lib/walk-cache.ts";
 
