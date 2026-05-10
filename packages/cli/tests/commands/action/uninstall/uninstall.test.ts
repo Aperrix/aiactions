@@ -3,9 +3,9 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 
-import { uninstallCommand } from "../src/commands/action/uninstall.ts";
-import { NotFoundError, UsageError } from "../src/_shared/cli-error.ts";
-import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
+import { uninstallCommand } from "../../../../src/commands/action/uninstall/command.ts";
+import { NotFoundError, UsageError } from "../../../../src/_shared/cli-error.ts";
+import { makeTempHome, type TempHome } from "../../../fixtures/with-temp-home.ts";
 
 let env: TempHome;
 

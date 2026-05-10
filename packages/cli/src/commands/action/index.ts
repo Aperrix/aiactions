@@ -3,7 +3,7 @@ import { defineCommand } from "citty";
 import { checkCommand } from "./check/command.ts";
 import { installCommand } from "./install/command.ts";
 import { listCommand } from "./list/command.ts";
-import { uninstallCommand } from "./uninstall.ts";
+import { uninstallCommand } from "./uninstall/command.ts";
 
 export const actionCommand = defineCommand({
   meta: {
