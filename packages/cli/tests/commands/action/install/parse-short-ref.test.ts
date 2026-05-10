@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
-import { UsageError } from "../src/_shared/cli-error.ts";
-import { parseShortRef } from "../src/lib/parse-short-ref.ts";
+import { UsageError } from "../../../../src/_shared/cli-error.ts";
+import { parseShortRef } from "../../../../src/commands/action/install/parse-short-ref.ts";
 
 test("valid short ref parses", () => {
   expect(parseShortRef("claude/agent")).toEqual({ ns: "claude", name: "agent" });

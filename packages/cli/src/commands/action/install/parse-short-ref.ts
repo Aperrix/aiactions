@@ -1,4 +1,4 @@
-import { UsageError } from "../_shared/cli-error.ts";
+import { UsageError } from "../../../_shared/cli-error.ts";
 
 const SHORT_REF_RE = /^([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)$/u;
 

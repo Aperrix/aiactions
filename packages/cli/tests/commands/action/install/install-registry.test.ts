@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 
-import { makeBareRepoWithAction } from "./fixtures/make-bare-repo.ts";
-import { runCli } from "./fixtures/run-cli.ts";
+import { makeBareRepoWithAction } from "../../../fixtures/make-bare-repo.ts";
+import { runCli } from "../../../fixtures/run-cli.ts";
 import {
   jsonRegistry,
   startRegistryServer,
   statusOnly,
   type RegistryServer,
-} from "./fixtures/registry-server.ts";
-import { makeTempHome, type TempHome } from "./fixtures/with-temp-home.ts";
+} from "../../../fixtures/registry-server.ts";
+import { makeTempHome, type TempHome } from "../../../fixtures/with-temp-home.ts";
 
 const NOOP_MANIFEST = "name: noop\ndescription: x\nruns:\n  using: node\n  main: index.mjs\n";
 const NOOP_SOURCES: Readonly<Record<string, string>> = {
